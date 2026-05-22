@@ -6,6 +6,7 @@ from models import Empresa, Cliente, Factura, Producto, Usuario, ItemFactura, In
 from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime, date
+from auth import get_current_superadmin
 
 router = APIRouter(prefix="/empresas", tags=["Empresas"])
 
@@ -73,13 +74,20 @@ def _empresa_dict(e: Empresa, db: Session) -> dict:
 
 
 @router.get("/")
-def listar_empresas(db: Session = Depends(get_db)):
+def listar_empresas(
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_superadmin)
+):
     empresas = db.query(Empresa).order_by(Empresa.id).all()
     return {"empresas": [_empresa_dict(e, db) for e in empresas]}
 
 
 @router.post("/")
-def crear_empresa(body: EmpresaCreate, db: Session = Depends(get_db)):
+def crear_empresa(
+    body: EmpresaCreate,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_superadmin)
+):
     cfg = {"plan": body.plan or "basico", "estado": "activa"}
     empresa = Empresa(
         nombre=body.nombre,
@@ -96,7 +104,12 @@ def crear_empresa(body: EmpresaCreate, db: Session = Depends(get_db)):
 
 
 @router.put("/{empresa_id}")
-def actualizar_empresa(empresa_id: int, body: EmpresaUpdate, db: Session = Depends(get_db)):
+def actualizar_empresa(
+    empresa_id: int,
+    body: EmpresaUpdate,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_superadmin)
+):
     empresa = db.query(Empresa).filter(Empresa.id == empresa_id).first()
     if not empresa:
         raise HTTPException(status_code=404, detail="Empresa no encontrada")
@@ -126,7 +139,11 @@ def actualizar_empresa(empresa_id: int, body: EmpresaUpdate, db: Session = Depen
 
 
 @router.delete("/{empresa_id}")
-def eliminar_empresa(empresa_id: int, db: Session = Depends(get_db)):
+def eliminar_empresa(
+    empresa_id: int,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_superadmin)
+):
     """
     Elimina una empresa y TODOS sus datos asociados en cascada.
     Protección: no se puede eliminar la empresa con id=1 (SetubalAI principal).
@@ -166,7 +183,11 @@ def eliminar_empresa(empresa_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/{empresa_id}/stats")
-def stats_empresa(empresa_id: int, db: Session = Depends(get_db)):
+def stats_empresa(
+    empresa_id: int,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_superadmin)
+):
     empresa = db.query(Empresa).filter(Empresa.id == empresa_id).first()
     if not empresa:
         raise HTTPException(status_code=404, detail="Empresa no encontrada")
