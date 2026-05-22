@@ -1,0 +1,5 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { -webkit-font-smoothing: antialiased; }
+a { text-decoration: none; }
+::-webkit-scrollbar { width: 6px; background: #0f1011; }
+::-webkit-scrollbar-thumb { background: #28282c; border-radius: 3px; }
