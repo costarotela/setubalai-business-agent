@@ -1,6 +1,14 @@
 "use client";
 import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from "react";
 
+export interface Empresa {
+  id: number;
+  nombre: string;
+  rubro?: string;
+  email?: string;
+  moneda?: string;
+}
+
 export interface AuthUser {
   id: number;
   empresa_id: number;
@@ -8,6 +16,7 @@ export interface AuthUser {
   email: string;
   rol: string;
   activo: boolean;
+  empresa?: Empresa;
 }
 
 interface AuthCtx {

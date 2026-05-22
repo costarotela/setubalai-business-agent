@@ -82,8 +82,12 @@ function AppShell({ children }: { children: React.ReactNode }) {
               <Zap size={16} color="white" />
             </div>
             <div>
-              <div style={{ fontWeight: 600, fontSize: 14, color: "#f7f8f8", letterSpacing: "-0.2px" }}>SetubalAI</div>
-              <div style={{ fontSize: 11, color: "#62666d", marginTop: 1 }}>Business Agent</div>
+              <div style={{ fontWeight: 600, fontSize: 14, color: "#f7f8f8", letterSpacing: "-0.2px" }}>
+                {user.empresa?.nombre || "Business Agent"}
+              </div>
+              <div style={{ fontSize: 11, color: "#62666d", marginTop: 1 }}>
+                {user.empresa?.rubro || "Gestión Inteligente"}
+              </div>
             </div>
           </div>
         </div>

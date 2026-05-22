@@ -74,14 +74,17 @@ def login(
 
     return TokenResponse(
         access_token=token,
-        user=_user_dict(user),
+        user=_user_dict(user, db),
     )
 
 
 # ── GET /auth/me ──────────────────────────────────────────────────────────────
 @router.get("/me")
-def me(current_user: Usuario = Depends(get_current_user)):
-    return _user_dict(current_user)
+def me(
+    current_user: Usuario = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    return _user_dict(current_user, db)
 
 
 # ── POST /auth/cambiar-password ───────────────────────────────────────────────
@@ -130,7 +133,7 @@ def crear_usuario(
     db.add(user)
     db.commit()
     db.refresh(user)
-    return _user_dict(user)
+    return _user_dict(user, db)
 
 
 # ── GET /auth/users (superadmin — todos | admin — su empresa) ─────────────────
@@ -145,12 +148,12 @@ def listar_usuarios(
         users = db.query(Usuario).filter(
             Usuario.empresa_id == current_user.empresa_id
         ).order_by(Usuario.id).all()
-    return {"users": [_user_dict(u) for u in users]}
+    return {"users": [_user_dict(u, db) for u in users]}
 
 
 # ── Helper ────────────────────────────────────────────────────────────────────
-def _user_dict(u: Usuario) -> dict:
-    return {
+def _user_dict(u: Usuario, db: Session = None) -> dict:
+    user_data = {
         "id": u.id,
         "empresa_id": u.empresa_id,
         "nombre": u.nombre,
@@ -160,3 +163,18 @@ def _user_dict(u: Usuario) -> dict:
         "ultimo_acceso": None,
         "created_at": u.created_at.isoformat() if u.created_at else None,
     }
+    
+    # Incluir datos de la empresa si se proporciona db
+    if db:
+        from models import Empresa
+        empresa = db.query(Empresa).filter(Empresa.id == u.empresa_id).first()
+        if empresa:
+            user_data["empresa"] = {
+                "id": empresa.id,
+                "nombre": empresa.nombre,
+                "rubro": empresa.rubro,
+                "email": empresa.email,
+                "moneda": empresa.moneda or "USD",
+            }
+    
+    return user_data
