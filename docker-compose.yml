@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  # Base de datos PostgreSQL (si no ya existe una)
+  db:
+    image: postgres:17-alpine
+    container_name: setubalai-db
+    restart: always
+    environment:
+      POSTGRES_DB: business
+      POSTGRES_USER: paperclip
+      POSTGRES_PASSWORD: setubalai2024
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U paperclip -d business"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # API Backend FastAPI
+  api:
+    build:
+      context: .
+      dockerfile: services/api/Dockerfile
+    container_name: setubalai-api
+    restart: always
+    ports:
+      - "3010:3010"
+    environment:
+      DATABASE_URL: postgresql://paperclip:setubalai2024@db:5432/business
+      DB_SCHEMA: setubalai
+      SECRET_KEY: cambiar-en-produccion
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # Web App Next.js
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    container_name: setubalai-web
+    restart: always
+    ports:
+      - "3011:3011"
+    environment:
+      NEXT_PUBLIC_API_URL: http://api:3010
+    depends_on:
+      - api
+
+volumes:
+  postgres_data:

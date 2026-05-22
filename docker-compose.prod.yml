@@ -1,0 +1,8 @@
+# Para uso con PostgreSQL existente (recomendado para VPS)
+# Usar: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+
+services:
+  api:
+    environment:
+      DATABASE_URL: postgresql://paperclip:paperclip@host.docker.internal:5432/business
+      DB_SCHEMA: setubalai

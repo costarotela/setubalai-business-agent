@@ -1,0 +1,77 @@
+# Configuración del Agente Empresarial SetubalAI
+app:
+  name: "SetubalAI Agente Empresarial"
+  version: "1.0.0"
+  debug: false
+
+# Configuración del Bot de Telegram
+telegram:
+  bot_token: "YOUR_BOT_TOKEN_HERE"
+  webhook_url: null  # opcional, para webhook en lugar de polling
+  webhook_port: 8443
+  admin_user_ids: []  # IDs de usuarios administradores
+
+# Configuración del LLM (OpenAI-compatible)
+llm:
+  provider: "openrouter"  # openrouter, openai, ollama, etc.
+  base_url: "https://openrouter.ai/api/v1"
+  api_key: "YOUR_API_KEY_HERE"
+  model: "qwen/qwen-32b-preview"
+  max_tokens: 2048
+  temperature: 0.7
+  system_prompt: |
+    Eres el Agente IA de SetubalAI, especialista en gestión empresarial para PYMEs.
+    Ayudas con CRM, cobros, atención al cliente, y gestión de productos/servicios.
+    Siempre respondes en español, de forma profesional pero cercana.
+    Tu objetivo es facilitar la operación del negocio y mejorar la productividad.
+
+# Base de datos
+database:
+  path: "data/setubalai.db"
+  backup_interval_hours: 24
+  backup_retention_days: 30
+
+# Dashboard web
+dashboard:
+  enabled: true
+  host: "0.0.0.0"
+  port: 8080
+  title: "Panel de Control - SetubalAI"
+
+# Configuración de módulos
+modules:
+  crm:
+    enabled: true
+    max_clientes_por_empresa: 1000
+    
+  cobros:
+    enabled: true
+    recordatorios_automaticos: true
+    dias_recordatorio: [7, 3, 1, -1, -7]  # días antes y después del vencimiento
+    
+  atencion:
+    enabled: true
+    escalacion_automatica: true
+    tiempo_respuesta_max_horas: 24
+    
+  reportes:
+    enabled: true
+    formatos: ["pdf", "html", "json"]
+    
+  memoria:
+    enabled: true
+    embeddings_model: "text-embedding-3-small"  # para búsqueda semántica
+    max_memoria_items: 1000
+
+# Logging
+logging:
+  level: "INFO"
+  file: "logs/setubalai.log"
+  max_size_mb: 100
+  backup_count: 5
+
+# Notificaciones
+notifications:
+  email_enabled: false
+  sms_enabled: false
+  webhook_enabled: false
