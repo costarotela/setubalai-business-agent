@@ -62,7 +62,7 @@ def login(
         )
 
     # Actualizar último acceso
-    user.ultimo_acceso = datetime.now(timezone.utc)
+    # user.ultimo_acceso no existe en el modelo — omitir
     db.commit()
 
     token = create_access_token({
@@ -157,6 +157,6 @@ def _user_dict(u: Usuario) -> dict:
         "email": u.email,
         "rol": u.rol,
         "activo": u.activo,
-        "ultimo_acceso": u.ultimo_acceso.isoformat() if u.ultimo_acceso else None,
+        "ultimo_acceso": None,
         "created_at": u.created_at.isoformat() if u.created_at else None,
     }
