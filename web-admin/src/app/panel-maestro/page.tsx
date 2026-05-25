@@ -5,7 +5,7 @@ import {
   Building2, Mail, Phone, Plus, CheckCircle, XCircle,
   Zap, Users, DollarSign, Server, Database, Globe,
   ChevronDown, ChevronUp, Edit2, X, RefreshCw, Activity,
-  BarChart3, CreditCard, Package, FileText, LogOut,
+  BarChart3, CreditCard, Package, FileText, LogOut, Copy, KeyRound, ExternalLink,
 } from "lucide-react";
 
 const API = "/api";
@@ -466,32 +466,47 @@ function FormFields({
   );
 }
 
+interface AdminCredentials {
+  email: string;
+  password_temporal: string;
+  login_url: string;
+}
+
 /* ─── NuevaEmpresaForm ───────────────────────────────── */
 function NuevaEmpresaForm({ onCreated }: { onCreated: () => void }) {
   const [form, setForm] = useState<AnyStringMap>({ nombre: "", rubro: "", email: "", telefono: "", moneda: "USD", plan: "basico" });
   const [saving, setSaving] = useState(false);
-  const [success, setSuccess] = useState(false);
+  const [credentials, setCredentials] = useState<AdminCredentials | null>(null);
+  const [error, setError] = useState("");
+  const [copied, setCopied] = useState(false);
 
   const crear = async () => {
     if (!form.nombre) return;
-    setSaving(true);
+    setSaving(true); setError(""); setCredentials(null);
     try {
       const res = await fetchAuth(`${API}/empresas/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
       });
-      if (!res.ok) throw new Error("Error al crear empresa");
-      setSaving(false);
-      setSuccess(true);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Error al crear empresa");
+      setCredentials(data.admin_credentials || null);
       setForm({ nombre: "", rubro: "", email: "", telefono: "", moneda: "USD", plan: "basico" } as AnyStringMap);
       onCreated();
-      setTimeout(() => setSuccess(false), 3000);
-    } catch (err) {
-      console.error("Error creando empresa:", err);
+    } catch (err: any) {
+      setError(err.message || "Error al crear la empresa. Verifica los datos e intenta nuevamente.");
+    } finally {
       setSaving(false);
-      alert("Error al crear la empresa. Verifica los datos e intenta nuevamente.");
     }
+  };
+
+  const copyCredentials = () => {
+    if (!credentials) return;
+    const text = `🔑 Credenciales SetubalAI Business Agent\n\nEmpresa: ${form.nombre || "Nueva empresa"}\nEmail: ${credentials.email}\nPassword: ${credentials.password_temporal}\nLogin: ${credentials.login_url}`;
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   return (
@@ -515,14 +530,14 @@ function NuevaEmpresaForm({ onCreated }: { onCreated: () => void }) {
 
       <FormFields form={form} setForm={setForm} />
 
-      {success && (
+      {error && (
         <div style={{
           marginTop: 14, padding: "10px 14px", borderRadius: 8,
-          background: "rgba(16,185,129,0.1)", border: "1px solid rgba(16,185,129,0.3)",
-          color: "#10b981", fontSize: 13, fontWeight: 600,
+          background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.25)",
+          color: "#ef4444", fontSize: 13, fontWeight: 600,
           display: "flex", alignItems: "center", gap: 8,
         }}>
-          <CheckCircle size={14} /> Empresa creada exitosamente
+          <XCircle size={14} /> {error}
         </div>
       )}
 
@@ -537,6 +552,91 @@ function NuevaEmpresaForm({ onCreated }: { onCreated: () => void }) {
       >
         <Plus size={15} /> {saving ? "Creando..." : "Crear empresa"}
       </button>
+
+      {/* ── Credenciales modal ───────────────────────────────── */}
+      {credentials && (
+        <div style={{
+          marginTop: 24, padding: 24, borderRadius: 14,
+          background: "rgba(16,185,129,0.06)", border: "1px solid rgba(16,185,129,0.25)",
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+            <CheckCircle size={20} color="#10b981" />
+            <div>
+              <h3 style={{ fontSize: 15, fontWeight: 700, color: "#10b981", margin: 0 }}>Empresa creada exitosamente</h3>
+              <p style={{ fontSize: 12, color: "#62666d", margin: 0 }}>Credenciales del administrador</p>
+            </div>
+          </div>
+
+          {/* Email */}
+          <div style={{
+            padding: "12px 14px", borderRadius: 10,
+            background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.08)",
+            marginBottom: 10,
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+              <Mail size={13} color="#62666d" />
+              <span style={{ fontSize: 10, color: "#62666d", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em" }}>Email de acceso</span>
+            </div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: "#f7f8f8", fontFamily: "monospace" }}>
+              {credentials.email}
+            </div>
+          </div>
+
+          {/* Password */}
+          <div style={{
+            padding: "12px 14px", borderRadius: 10,
+            background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.08)",
+            marginBottom: 10,
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+              <KeyRound size={13} color="#f59e0b" />
+              <span style={{ fontSize: 10, color: "#62666d", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em" }}>Contraseña temporal</span>
+            </div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: "#f59e0b", fontFamily: "monospace", letterSpacing: "0.08em" }}>
+              {credentials.password_temporal}
+            </div>
+          </div>
+
+          {/* Login URL */}
+          <div style={{
+            padding: "12px 14px", borderRadius: 10,
+            background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.08)",
+            marginBottom: 18,
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+              <ExternalLink size={13} color="#7170ff" />
+              <span style={{ fontSize: 10, color: "#62666d", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em" }}>URL de acceso</span>
+            </div>
+            <div style={{ fontSize: 12, color: "#7170ff", fontWeight: 600 }}>
+              {credentials.login_url}
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div style={{ display: "flex", gap: 10 }}>
+            <button
+              onClick={copyCredentials}
+              style={{
+                flex: 1, background: copied ? "#10b981" : "rgba(113,112,255,0.15)",
+                border: `1px solid ${copied ? "#10b981" : "rgba(113,112,255,0.3)"}`,
+                borderRadius: 8, padding: "9px 14px", fontSize: 12, fontWeight: 700,
+                color: copied ? "#fff" : "#a5a4ff", cursor: "pointer",
+                display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                transition: "all 0.2s",
+              }}
+            >
+              {copied ? <><CheckCircle size={14} /> ¡Copiado!</> : <><Copy size={14} /> Copiar credenciales</>}
+            </button>
+          </div>
+
+          <p style={{
+            fontSize: 10.5, color: "#62666d", marginTop: 12, marginBottom: 0,
+            fontStyle: "italic", textAlign: "center",
+          }}>
+            ⚠️ Enviá estas credenciales al cliente. Deberá cambiar la contraseña al primer inicio de sesión.
+          </p>
+        </div>
+      )}
     </div>
   );
 }

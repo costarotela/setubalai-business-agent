@@ -44,6 +44,8 @@ def login(
     form: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db),
 ):
+    from models import Empresa
+
     user = db.query(Usuario).filter(
         Usuario.email == form.username.lower().strip(),
         Usuario.activo == True,
@@ -59,6 +61,14 @@ def login(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Email o contraseña incorrectos",
+        )
+
+    # Verificar que la empresa del usuario está activa
+    empresa = db.query(Empresa).filter(Empresa.id == user.empresa_id).first()
+    if not empresa or empresa.estado != "activa":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Tu empresa está inactiva. Contactá a soporte.",
         )
 
     # Actualizar último acceso
@@ -149,6 +159,70 @@ def listar_usuarios(
             Usuario.empresa_id == current_user.empresa_id
         ).order_by(Usuario.id).all()
     return {"users": [_user_dict(u, db) for u in users]}
+
+
+# ── PUT /auth/users/{user_id}/toggle-activo ────────────────────────
+@router.put("/users/{user_id}/toggle-activo")
+def toggle_usuario(
+    user_id: int,
+    current_user: Usuario = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Superadmin o admin de la empresa puede activar/desactivar un usuario."""
+    user = db.query(Usuario).filter(Usuario.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    # Admin solo puede modificar usuarios de su empresa
+    if current_user.rol == "admin" and user.empresa_id != current_user.empresa_id:
+        raise HTTPException(status_code=403, detail="No podés modificar usuarios de otra empresa")
+    if current_user.rol == "operador":
+        raise HTTPException(status_code=403, detail="Sin permisos")
+
+    # No permitir desactivar al único admin de la empresa
+    if user.rol == "admin" and not user.activo:
+        admins_count = db.query(Usuario).filter(
+            Usuario.empresa_id == user.empresa_id,
+            Usuario.rol == "admin",
+            Usuario.activo == True,
+            Usuario.id != user_id,
+        ).count()
+        if admins_count == 0:
+            raise HTTPException(status_code=400, detail="No se puede desactivar al único admin de la empresa")
+
+    user.activo = not user.activo
+    db.commit()
+    db.refresh(user)
+    return _user_dict(user, db)
+
+
+# ── POST /auth/users/{user_id}/reset-password ──────────────────────
+@router.post("/users/{user_id}/reset-password")
+def reset_password(
+    user_id: int,
+    current_user: Usuario = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Genera una nueva password temporal. Retorna la password en texto plano."""
+    import secrets
+    user = db.query(Usuario).filter(Usuario.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    if current_user.rol == "admin" and user.empresa_id != current_user.empresa_id:
+        raise HTTPException(status_code=403, detail="No podés resetear passwords de otra empresa")
+    if current_user.rol not in ("superadmin", "admin"):
+        raise HTTPException(status_code=403, detail="Sin permisos")
+
+    new_password = secrets.token_urlsafe(12)
+    user.password_hash = hash_password(new_password)
+    db.commit()
+    return {
+        "ok": True,
+        "email": user.email,
+        "password_temporal": new_password,
+        "message": "Password reseteada. Enviá la nueva contraseña al usuario.",
+    }
 
 
 # ── Helper ────────────────────────────────────────────────────────────────────

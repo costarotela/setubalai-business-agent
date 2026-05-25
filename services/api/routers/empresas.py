@@ -300,12 +300,15 @@ def listar_empresas(
     return {"empresas": [_empresa_dict(e, db) for e in empresas]}
 
 
-@router.post("/")
+@router.post("/", status_code=201)
 def crear_empresa(
     body: EmpresaCreate,
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(get_current_superadmin)
 ):
+    from auth import hash_password
+    import secrets
+
     cfg = {"plan": body.plan or "basico", "estado": "activa"}
     empresa = Empresa(
         nombre=body.nombre,
@@ -316,9 +319,31 @@ def crear_empresa(
         configuracion=cfg,
     )
     db.add(empresa)
+    db.flush()  # Get empresa.id
+
+    # Crear usuario admin para la nueva empresa
+    email_admin = (body.email or f"admin.{empresa.id}@setubalai.test").lower().strip()
+    password_temp = secrets.token_urlsafe(12)
+
+    admin_user = Usuario(
+        empresa_id=empresa.id,
+        nombre=f"Admin {body.nombre}",
+        email=email_admin,
+        password_hash=hash_password(password_temp),
+        rol="admin",
+        activo=True,
+    )
+    db.add(admin_user)
     db.commit()
     db.refresh(empresa)
-    return _empresa_dict(empresa, db)
+
+    result = _empresa_dict(empresa, db)
+    result["admin_credentials"] = {
+        "email": admin_user.email,
+        "password_temporal": password_temp,
+        "login_url": "https://business.setubalai.org/login",
+    }
+    return result
 
 
 @router.put("/{empresa_id}")
