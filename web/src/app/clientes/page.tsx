@@ -39,15 +39,26 @@ export default function ClientesPage() {
   });
   const [saving, setSaving] = useState(false);
 
+  const [stats, setStats] = useState({ total: 0, activos: 0, morosos: 0, prospectos: 0, valor_total: 0 });
+
   const cargar = (buscar = "", estado = "", tipo = "") => {
     setLoading(true);
-    let url = `${API}/clientes/?limit=200`;
+    let url = `${API}/clientes?limit=200`;
     if (buscar) url += `&buscar=${encodeURIComponent(buscar)}`;
     if (estado) url += `&estado=${estado}`;
     if (tipo) url += `&tipo=${tipo}`;
-    fetch(url).then(r => r.json()).then(d => {
+    
+    const token = localStorage.getItem("setubalai_token_v2");
+    const headers: Record<string, string> = {};
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+    
+    Promise.all([
+      fetch(url, { headers }).then(r => r.json()),
+      fetch(`${API}/clientes/stats`, { headers }).then(r => r.json()),
+    ]).then(([d, s]) => {
       setClientes(d.clientes || []);
       setTotal(d.total || 0);
+      setStats(s || { total: 0, activos: 0, morosos: 0, prospectos: 0, valor_total: 0 });
       setLoading(false);
     }).catch(() => setLoading(false));
   };
@@ -57,22 +68,18 @@ export default function ClientesPage() {
   const guardar = async () => {
     if (!form.nombre) return;
     setSaving(true);
-    await fetch(`${API}/clientes/`, {
+    const token = localStorage.getItem("setubalai_token_v2");
+    await fetch(`${API}/clientes`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify({ ...form, empresa_id: 1 }),
     });
     setSaving(false);
     setShowForm(false);
     setForm({ nombre: "", empresa_nombre: "", email: "", telefono: "", tipo: "empresa", estado: "activo", ciudad: "", cuit: "", cbu: "", alias_cbu: "", banco: "", contacto_nombre: "", web: "", instagram: "", limite_credito: 0, descuento_pct: 0 });
     cargar(busqueda, estadoFiltro, tipoFiltro);
-  };
-
-  const stats = {
-    activos: clientes.filter(c => c.estado === "activo").length,
-    morosos: clientes.filter(c => c.estado === "moroso").length,
-    prospectos: clientes.filter(c => c.estado === "prospecto").length,
-    valorTotal: clientes.reduce((s, c) => s + (c.valor_total || 0), 0),
   };
 
   const inputStyle = {
@@ -89,7 +96,7 @@ export default function ClientesPage() {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 600, color: "#f7f8f8", letterSpacing: "-0.4px", margin: 0 }}>Clientes</h1>
-          <p style={{ fontSize: 13, color: "#62666d", marginTop: 5, margin: 0 }}>{total} clientes en CRM · Facturado {fmt(stats.valorTotal)}</p>
+          <p style={{ fontSize: 13, color: "#62666d", marginTop: 5, margin: 0 }}>{stats.total} clientes en CRM · Facturado total {fmt(stats.valor_total)}</p>
         </div>
         <button onClick={() => setShowForm(!showForm)} style={{ display: "flex", alignItems: "center", gap: 8, padding: "9px 18px", background: "#5e6ad2", color: "white", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
           <UserPlus size={14} /> Nuevo cliente

@@ -475,16 +475,23 @@ function NuevaEmpresaForm({ onCreated }: { onCreated: () => void }) {
   const crear = async () => {
     if (!form.nombre) return;
     setSaving(true);
-    await fetchAuth(`${API}/empresas/`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
-    });
-    setSaving(false);
-    setSuccess(true);
-    setForm({ nombre: "", rubro: "", email: "", telefono: "", moneda: "USD", plan: "basico" } as AnyStringMap);
-    onCreated();
-    setTimeout(() => setSuccess(false), 3000);
+    try {
+      const res = await fetchAuth(`${API}/empresas/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      if (!res.ok) throw new Error("Error al crear empresa");
+      setSaving(false);
+      setSuccess(true);
+      setForm({ nombre: "", rubro: "", email: "", telefono: "", moneda: "USD", plan: "basico" } as AnyStringMap);
+      onCreated();
+      setTimeout(() => setSuccess(false), 3000);
+    } catch (err) {
+      console.error("Error creando empresa:", err);
+      setSaving(false);
+      alert("Error al crear la empresa. Verifica los datos e intenta nuevamente.");
+    }
   };
 
   return (

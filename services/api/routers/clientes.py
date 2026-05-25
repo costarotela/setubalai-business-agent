@@ -146,8 +146,8 @@ def crear(request: Request, data: ClienteCreate, db: Session = Depends(get_db), 
     return _dict(c)
 
 @router.put("/{cliente_id}")
-def actualizar(cliente_id: int, data: ClienteUpdate, db: Session = Depends(get_db)):
-    c = db.query(Cliente).filter(Cliente.id == cliente_id).first()
+def actualizar(cliente_id: int, data: ClienteUpdate, db: Session = Depends(get_db), empresa_id: int = Depends(resolve_empresa_id)):
+    c = db.query(Cliente).filter(Cliente.id == cliente_id, Cliente.empresa_id == empresa_id).first()
     if not c:
         raise HTTPException(404, "Cliente no encontrado")
     for k, v in data.model_dump(exclude_none=True).items():
@@ -158,8 +158,8 @@ def actualizar(cliente_id: int, data: ClienteUpdate, db: Session = Depends(get_d
     return _dict(c)
 
 @router.delete("/{cliente_id}")
-def eliminar(cliente_id: int, db: Session = Depends(get_db)):
-    c = db.query(Cliente).filter(Cliente.id == cliente_id).first()
+def eliminar(cliente_id: int, db: Session = Depends(get_db), empresa_id: int = Depends(resolve_empresa_id)):
+    c = db.query(Cliente).filter(Cliente.id == cliente_id, Cliente.empresa_id == empresa_id).first()
     if not c:
         raise HTTPException(404, "Cliente no encontrado")
     db.delete(c)

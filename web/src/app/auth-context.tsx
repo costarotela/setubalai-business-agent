@@ -33,7 +33,7 @@ const Context = createContext<AuthCtx>({
 });
 
 const API = process.env.NEXT_PUBLIC_API_URL || "/api";
-const TOKEN_KEY = "setubalai_token";
+const TOKEN_KEY = "setubalai_token_v2";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser]   = useState<AuthUser | null>(null);

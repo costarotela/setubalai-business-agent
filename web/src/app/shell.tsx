@@ -4,7 +4,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 import {
   BarChart3, Users, DollarSign, Package,
-  LayoutDashboard, Zap, Wrench, Building2, LogOut
+  LayoutDashboard, Zap, Wrench, Building2, LogOut, Settings
 } from "lucide-react";
 import { AuthProvider, useAuth } from "./auth-context";
 
@@ -29,6 +29,7 @@ const menuGroups = [
     label: "Administración",
     items: [
       { name: "Proveedores",   path: "/proveedores",    icon: Building2 },
+      { name: "Configuración", path: "/configuracion",  icon: Settings },
     ],
   },
 ];

@@ -15,7 +15,7 @@ router = APIRouter(prefix="/cobros", tags=["Cobros"])
 
 class ItemFacturaCreate(BaseModel):
     producto_id: Optional[int] = None
-    descripcion: str
+    descripcion: Optional[str] = None  # Se genera desde producto si no se envía
     cantidad: float = 1
     precio_unitario: float
 
@@ -173,14 +173,14 @@ def exportar_facturas_csv(
     )
 
 @router.post("/", status_code=201)
-def crear_factura(data: FacturaCreate, db: Session = Depends(get_db)):
+def crear_factura(data: FacturaCreate, db: Session = Depends(get_db), empresa_id: int = Depends(resolve_empresa_id)):
     # Calcular total
     subtotal = sum(item.cantidad * item.precio_unitario for item in data.items)
     # Numero auto
-    ultima = db.query(func.count(Factura.id)).filter(Factura.empresa_id == data.empresa_id).scalar()
-    numero = f"FAC-{data.empresa_id:03d}-{(ultima+1):04d}"
+    ultima = db.query(func.count(Factura.id)).filter(Factura.empresa_id == empresa_id).scalar()
+    numero = f"FAC-{empresa_id:03d}-{(ultima+1):04d}"
     factura = Factura(
-        empresa_id=data.empresa_id,
+        empresa_id=empresa_id,
         cliente_id=data.cliente_id,
         numero=numero,
         estado="pendiente",
@@ -193,13 +193,20 @@ def crear_factura(data: FacturaCreate, db: Session = Depends(get_db)):
     db.add(factura)
     db.flush()
     for item in data.items:
+        # Resolver descripcion desde producto si no se envía
+        prod = None
+        if item.producto_id:
+            prod = db.query(Producto).filter(Producto.id == item.producto_id).first()
+        desc = item.descripcion or (prod.nombre if prod else "Producto genérico")
+        precio = float(item.precio_unitario) or (float(prod.precio or prod.precio_venta) if prod else 0)
+        subtotal = round(item.cantidad * precio, 2)
         db.add(ItemFactura(
             factura_id=factura.id,
             producto_id=item.producto_id,
-            descripcion=item.descripcion,
+            descripcion=desc,
             cantidad=item.cantidad,
-            precio_unitario=item.precio_unitario,
-            subtotal=item.cantidad * item.precio_unitario
+            precio_unitario=precio,
+            subtotal=subtotal
         ))
     # Actualizar valor_total del cliente
     db.query(Cliente).filter(Cliente.id == data.cliente_id).update(
@@ -210,13 +217,13 @@ def crear_factura(data: FacturaCreate, db: Session = Depends(get_db)):
     return _factura_dict(factura, db)
 
 @router.put("/{factura_id}/pagar")
-def marcar_pagada(factura_id: int, data: PagoFactura, db: Session = Depends(get_db)):
-    f = db.query(Factura).filter(Factura.id == factura_id).first()
+def pagar_factura(factura_id: int, body: PagoFactura, db: Session = Depends(get_db), empresa_id: int = Depends(resolve_empresa_id)):
+    f = db.query(Factura).filter(Factura.id == factura_id, Factura.empresa_id == empresa_id).first()
     if not f:
         raise HTTPException(status_code=404, detail="Factura no encontrada")
     f.estado = "pagada"
-    f.fecha_pago = data.fecha_pago or date.today()
-    f.metodo_pago = data.metodo_pago
+    f.fecha_pago = body.fecha_pago or date.today()
+    f.metodo_pago = body.metodo_pago
     f.updated_at = datetime.now()
     db.commit()
     return {"ok": True, "factura": f.numero, "total": float(f.total), "mensaje": f"Factura {f.numero} marcada como pagada"}

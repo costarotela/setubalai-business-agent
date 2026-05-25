@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SetubalAI Business Agent — Definición de Producto</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #0f1117; color: #e2e8f0; line-height: 1.6; }
+
+  header {
+    background: linear-gradient(135deg, #1a1f2e 0%, #16213e 100%);
+    border-bottom: 2px solid #3b82f6;
+    padding: 2.5rem 4rem;
+  }
+  header h1 { font-size: 2rem; font-weight: 800; color: #fff; letter-spacing: -0.5px; }
+  header h1 span { color: #3b82f6; }
+  header p { color: #94a3b8; margin-top: 0.4rem; font-size: 0.95rem; }
+  header .badge { display: inline-block; background: #1e3a5f; color: #60a5fa; border: 1px solid #3b82f6; padding: 0.2rem 0.8rem; border-radius: 20px; font-size: 0.78rem; font-weight: 600; margin-top: 0.8rem; }
+
+  .container { max-width: 1200px; margin: 0 auto; padding: 3rem 2rem; }
+
+  h2 { font-size: 1.4rem; font-weight: 700; color: #f1f5f9; margin-bottom: 1.2rem; display: flex; align-items: center; gap: 0.6rem; }
+  h2 .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  h3 { font-size: 1rem; font-weight: 700; color: #cbd5e1; margin-bottom: 0.6rem; text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.8rem; }
+
+  .section { margin-bottom: 3rem; }
+
+  /* FRASE CENTRAL */
+  .tagline {
+    background: linear-gradient(135deg, #1e3a5f, #1e293b);
+    border: 1px solid #3b82f6;
+    border-radius: 12px;
+    padding: 2rem 2.5rem;
+    margin-bottom: 3rem;
+    text-align: center;
+  }
+  .tagline p { font-size: 1.5rem; font-weight: 700; color: #fff; line-height: 1.4; }
+  .tagline .sub { font-size: 1rem; color: #94a3b8; margin-top: 0.8rem; font-weight: 400; }
+
+  /* TWO ROLES */
+  .roles-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 3rem; }
+  .role-card {
+    background: #1a1f2e;
+    border-radius: 12px;
+    padding: 1.8rem;
+    border-top: 4px solid;
+  }
+  .role-card.pablo { border-color: #8b5cf6; }
+  .role-card.cliente { border-color: #10b981; }
+  .role-card h2 { font-size: 1.1rem; }
+  .role-card .role-icon { font-size: 2.5rem; margin-bottom: 1rem; }
+  .role-tag { display: inline-block; padding: 0.2rem 0.7rem; border-radius: 20px; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; margin-bottom: 1rem; }
+  .pablo .role-tag { background: #2e1065; color: #c4b5fd; }
+  .cliente .role-tag { background: #064e3b; color: #6ee7b7; }
+  .role-card ul { list-style: none; }
+  .role-card ul li { padding: 0.35rem 0; color: #cbd5e1; font-size: 0.9rem; display: flex; align-items: flex-start; gap: 0.5rem; }
+  .role-card ul li::before { content: '→'; color: #64748b; flex-shrink: 0; margin-top: 0.05rem; }
+  .pablo ul li::before { color: #7c3aed; }
+  .cliente ul li::before { color: #059669; }
+
+  /* ARQUITECTURA BD */
+  .db-diagram {
+    background: #1a1f2e;
+    border-radius: 12px;
+    padding: 2rem;
+    margin-bottom: 3rem;
+  }
+  .db-visual {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    overflow-x: auto;
+    padding: 1rem 0;
+  }
+  .db-box {
+    background: #0f1117;
+    border: 1px solid #334155;
+    border-radius: 8px;
+    padding: 1rem 1.2rem;
+    min-width: 140px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+  .db-box.main { border-color: #3b82f6; background: #1e3a5f30; }
+  .db-box h4 { font-size: 0.75rem; color: #64748b; text-transform: uppercase; font-weight: 600; }
+  .db-box p { font-size: 0.88rem; font-weight: 700; color: #f1f5f9; margin-top: 0.3rem; }
+  .db-box .tag { font-size: 0.68rem; background: #1e3a5f; color: #60a5fa; border-radius: 4px; padding: 0.1rem 0.4rem; margin-top: 0.3rem; display: inline-block; }
+  .arrow { color: #475569; font-size: 1.5rem; flex-shrink: 0; }
+  .arrow.right::before { content: '→'; }
+  .empresa-split { display: flex; flex-direction: column; gap: 0.8rem; }
+
+  .correct-badge {
+    background: #064e3b;
+    border: 1px solid #10b981;
+    border-radius: 8px;
+    padding: 1rem 1.5rem;
+    color: #86efac;
+    font-size: 0.9rem;
+    margin-top: 1.2rem;
+    display: flex;
+    gap: 0.8rem;
+    align-items: flex-start;
+  }
+  .correct-badge::before { content: '✓'; font-weight: 800; font-size: 1.1rem; flex-shrink: 0; margin-top: -0.1rem; }
+  .issue-badge {
+    background: #431407;
+    border: 1px solid #ef4444;
+    border-radius: 8px;
+    padding: 1rem 1.5rem;
+    color: #fca5a5;
+    font-size: 0.9rem;
+    margin-top: 0.8rem;
+    display: flex;
+    gap: 0.8rem;
+    align-items: flex-start;
+  }
+  .issue-badge::before { content: '⚠'; font-weight: 800; font-size: 1.1rem; flex-shrink: 0; margin-top: -0.1rem; }
+
+  /* FLOW */
+  .flow {
+    display: flex;
+    gap: 0;
+    align-items: stretch;
+    margin-top: 1.5rem;
+    flex-wrap: wrap;
+  }
+  .flow-step {
+    background: #1a1f2e;
+    border: 1px solid #334155;
+    border-radius: 8px;
+    padding: 1.2rem;
+    flex: 1;
+    min-width: 160px;
+    position: relative;
+  }
+  .flow-step .num {
+    background: #3b82f6;
+    color: #fff;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    font-size: 0.75rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 0.6rem;
+  }
+  .flow-step h4 { font-size: 0.82rem; font-weight: 700; color: #e2e8f0; margin-bottom: 0.4rem; }
+  .flow-step p { font-size: 0.75rem; color: #94a3b8; }
+  .flow-arrow {
+    color: #3b82f6;
+    font-size: 1.8rem;
+    display: flex;
+    align-items: center;
+    padding: 0 0.3rem;
+    flex-shrink: 0;
+  }
+
+  /* CANALES */
+  .canales-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.2rem; margin-top: 1.2rem; }
+  .canal-card {
+    background: #1a1f2e;
+    border: 1px solid #334155;
+    border-radius: 10px;
+    padding: 1.4rem;
+    text-align: center;
+  }
+  .canal-card .icon { font-size: 2rem; margin-bottom: 0.6rem; }
+  .canal-card h4 { font-size: 0.85rem; font-weight: 700; color: #f1f5f9; margin-bottom: 0.4rem; }
+  .canal-card p { font-size: 0.75rem; color: #94a3b8; }
+  .canal-card .who { font-size: 0.68rem; text-transform: uppercase; font-weight: 700; margin-top: 0.6rem; padding: 0.2rem 0.5rem; border-radius: 4px; display: inline-block; }
+  .who.pablo-who { background: #2e1065; color: #c4b5fd; }
+  .who.cliente-who { background: #064e3b; color: #6ee7b7; }
+  .who.both { background: #1e3a5f; color: #60a5fa; }
+
+  /* PLANES */
+  .planes-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.2rem; margin-top: 1.2rem; }
+  .plan-card {
+    background: #1a1f2e;
+    border: 1px solid #334155;
+    border-radius: 10px;
+    padding: 1.4rem;
+    position: relative;
+  }
+  .plan-card.recommended { border-color: #3b82f6; }
+  .plan-card .precio { font-size: 1.8rem; font-weight: 800; color: #fff; }
+  .plan-card .precio span { font-size: 0.85rem; font-weight: 400; color: #94a3b8; }
+  .plan-card h4 { font-size: 0.85rem; font-weight: 700; color: #f1f5f9; margin-bottom: 0.3rem; }
+  .plan-card .modulos { margin-top: 0.8rem; }
+  .plan-card .modulo { font-size: 0.75rem; padding: 0.15rem 0; color: #94a3b8; display: flex; gap: 0.4rem; }
+  .plan-card .modulo.si { color: #86efac; }
+  .plan-card .modulo.si::before { content: '✓'; }
+  .plan-card .modulo.no { color: #6b7280; text-decoration: line-through; }
+  .plan-card .modulo.no::before { content: '—'; color: #4b5563; }
+  .rec-badge { position: absolute; top: -10px; right: 12px; background: #3b82f6; color: #fff; font-size: 0.65rem; font-weight: 700; padding: 0.2rem 0.6rem; border-radius: 20px; text-transform: uppercase; }
+
+  /* SEPARADORES */
+  .sep { height: 1px; background: linear-gradient(to right, transparent, #334155, transparent); margin: 2rem 0; }
+
+  /* DECISION */
+  .decision-table { width: 100%; border-collapse: collapse; margin-top: 1.2rem; }
+  .decision-table th { background: #1e3a5f; color: #93c5fd; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em; padding: 0.7rem 1rem; text-align: left; }
+  .decision-table td { padding: 0.65rem 1rem; border-bottom: 1px solid #1e293b; font-size: 0.85rem; color: #cbd5e1; }
+  .decision-table tr:last-child td { border-bottom: none; }
+  .decision-table tr:nth-child(even) td { background: #1a1f2e30; }
+  .ok { color: #4ade80; font-weight: 700; }
+  .pend { color: #fbbf24; }
+
+  @media (max-width: 768px) {
+    .roles-grid, .canales-grid, .planes-grid { grid-template-columns: 1fr; }
+    header { padding: 1.5rem; }
+    .container { padding: 1.5rem 1rem; }
+    .flow { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>SetubalAI <span>Business Agent</span></h1>
+  <p>Documento de Definición de Producto — versión 1.0</p>
+  <span class="badge">MAYO 2026 — APROBADO POR PABLO</span>
+</header>
+
+<div class="container">
+
+  <!-- FRASE CENTRAL -->
+  <div class="tagline">
+    <p>Un agente de inteligencia artificial que gestiona el negocio de una empresa desde WhatsApp y una web app.</p>
+    <div class="sub">
+      El dueño escribe en lenguaje natural. El agente ejecuta.<br>
+      SetubalAI lo vende como SaaS: una infraestructura, N empresas clientes.
+    </div>
+  </div>
+
+  <!-- LOS DOS ACTORES -->
+  <div class="section">
+    <h2><span class="dot" style="background:#f59e0b"></span> Los dos actores del sistema</h2>
+    <div class="roles-grid">
+
+      <div class="role-card pablo">
+        <div class="role-icon">👨‍💼</div>
+        <span class="role-tag">Pablo — SetubalAI (SaaS Provider)</span>
+        <h2>Vos como dueño del producto</h2>
+        <ul>
+          <li>Das de alta empresas clientes en el Panel Maestro</li>
+          <li>Asignás planes (Starter / Business / Enterprise)</li>
+          <li>Monitoreás la salud de toda la infraestructura</li>
+          <li>Cobrás la suscripción mensual</li>
+          <li>Desplegás mejoras una vez → llegan a todos los clientes</li>
+          <li>Gestionás tu propia empresa (SetubalAI) como cliente #1</li>
+          <li>Accedés al sistema por Telegram (operación diaria tuya)</li>
+        </ul>
+      </div>
+
+      <div class="role-card cliente">
+        <div class="role-icon">🏪</div>
+        <span class="role-tag">Empresa cliente (tu producto)</span>
+        <h2>El cliente que te paga</h2>
+        <ul>
+          <li>Escribe a su agente por WhatsApp en lenguaje natural</li>
+          <li>El agente conoce SOLO los datos de SU empresa</li>
+          <li>Gestiona clientes, cobros y productos sin planillas</li>
+          <li>Recibe recordatorios automáticos de cobranzas</li>
+          <li>Accede a un dashboard web con sus KPIs</li>
+          <li>Exporta reportes y facturas en PDF</li>
+          <li>Nunca ve datos de otra empresa en el sistema</li>
+        </ul>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ARQUITECTURA DE DATOS -->
+  <div class="section">
+    <h2><span class="dot" style="background:#3b82f6"></span> Arquitectura de datos — por qué es correcto</h2>
+    <div class="db-diagram">
+      <p style="color:#94a3b8; font-size:0.88rem; margin-bottom:1.5rem;">
+        Una sola base de datos PostgreSQL. Todas las tablas tienen <code style="background:#1e3a5f; color:#60a5fa; padding:0.1rem 0.4rem; border-radius:4px;">empresa_id</code>.
+        El agente de cada empresa filtra SIEMPRE por su <code style="background:#1e3a5f; color:#60a5fa; padding:0.1rem 0.4rem; border-radius:4px;">empresa_id</code> extraído del JWT.
+      </p>
+
+      <div class="db-visual">
+        <div class="empresa-split">
+          <div class="db-box">
+            <h4>Empresa A</h4>
+            <p>Ferretería López</p>
+            <span class="tag">empresa_id = 1</span>
+          </div>
+          <div class="db-box">
+            <h4>Empresa B</h4>
+            <p>Estudio Contable XYZ</p>
+            <span class="tag">empresa_id = 2</span>
+          </div>
+          <div class="db-box">
+            <h4>Empresa C</h4>
+            <p>Veterinaria San Roque</p>
+            <span class="tag">empresa_id = 3</span>
+          </div>
+        </div>
+
+        <div class="arrow right"></div>
+
+        <div class="db-box main" style="min-width:180px;">
+          <h4>Base de datos única</h4>
+          <p>PostgreSQL 17</p>
+          <span class="tag">schema: setubalai</span>
+          <br><br>
+          <p style="font-size:0.75rem; color:#64748b; font-weight:400;">clientes (empresa_id)</p>
+          <p style="font-size:0.75rem; color:#64748b; font-weight:400;">facturas (empresa_id)</p>
+          <p style="font-size:0.75rem; color:#64748b; font-weight:400;">productos (empresa_id)</p>
+          <p style="font-size:0.75rem; color:#64748b; font-weight:400;">usuarios (empresa_id)</p>
+        </div>
+
+        <div class="arrow right"></div>
+
+        <div class="db-box" style="min-width:160px;">
+          <h4>El agente filtra</h4>
+          <p style="font-size:0.78rem; color:#94a3b8; font-weight:400; margin-top:0.3rem;">JWT → empresa_id → query WHERE empresa_id = X</p>
+          <br>
+          <p style="font-size:0.75rem; color:#4ade80;">Empresa A nunca ve datos de Empresa B</p>
+        </div>
+      </div>
+
+      <div class="correct-badge">
+        El modelo SaaS multi-tenant con empresa_id es CORRECTO. Un solo servidor, una sola BD, N empresas aisladas. Cada mejora de código se despliega una vez y llega a todos los clientes. El costo de infra no crece linealmente con el número de clientes.
+      </div>
+
+      <div class="issue-badge">
+        BUG ACTUAL: hay 1 cliente en BD con empresa_id = NULL. Esto rompe el aislamiento. Hay que corregirlo y agregar constraint NOT NULL en todas las tablas de datos.
+      </div>
+    </div>
+  </div>
+
+  <!-- CANALES DE COMUNICACION -->
+  <div class="section">
+    <h2><span class="dot" style="background:#10b981"></span> Canales de comunicación</h2>
+    <div class="canales-grid">
+      <div class="canal-card">
+        <div class="icon">📱</div>
+        <h4>WhatsApp</h4>
+        <p>Canal principal del cliente empresa. Escribe en lenguaje natural, el agente responde con datos de su empresa.</p>
+        <span class="who cliente-who">Solo el cliente empresa</span>
+      </div>
+      <div class="canal-card">
+        <div class="icon">✈️</div>
+        <h4>Telegram</h4>
+        <p>Canal operativo de Pablo. Gestión de SetubalAI, alertas del sistema, operación interna del negocio.</p>
+        <span class="who pablo-who">Solo Pablo</span>
+      </div>
+      <div class="canal-card">
+        <div class="icon">🌐</div>
+        <h4>Web App</h4>
+        <p>Dashboard visual. El cliente ve KPIs, gestiona datos con formularios, exporta reportes.</p>
+        <span class="who both">Cliente empresa + Pablo</span>
+      </div>
+      <div class="canal-card">
+        <div class="icon">🎛️</div>
+        <h4>Panel Maestro</h4>
+        <p>Solo para Pablo. Alta de empresas, configuración de planes, monitoreo de toda la infraestructura.</p>
+        <span class="who pablo-who">Solo Pablo (superadmin)</span>
+      </div>
+      <div class="canal-card">
+        <div class="icon">🔗</div>
+        <h4>API REST</h4>
+        <p>FastAPI en :3010. Conecta web app, agente y futuras integraciones. Documentación auto-generada.</p>
+        <span class="who both">Interno del sistema</span>
+      </div>
+      <div class="canal-card">
+        <div class="icon">🧠</div>
+        <h4>Memoria AI (Noxem)</h4>
+        <p>El agente recuerda contexto entre sesiones. Cada empresa tiene su propia memoria semántica.</p>
+        <span class="who both">Por empresa, aislada</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- FLUJO NUEVO CLIENTE -->
+  <div class="section">
+    <h2><span class="dot" style="background:#f59e0b"></span> Flujo: cómo entra un nuevo cliente</h2>
+    <div class="flow">
+      <div class="flow-step">
+        <div class="num">1</div>
+        <h4>Venta</h4>
+        <p>Pablo cierra contrato con empresa. Elige plan.</p>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="num">2</div>
+        <h4>Alta en Panel Maestro</h4>
+        <p>Pablo crea empresa en web-admin. Se genera empresa_id.</p>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="num">3</div>
+        <h4>Onboarding automático</h4>
+        <p>Sistema crea usuario admin, configura instancia WhatsApp (Evolution API).</p>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="num">4</div>
+        <h4>El cliente opera</h4>
+        <p>Escribe a su número WhatsApp. El agente responde con sus datos.</p>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="num">5</div>
+        <h4>El agente aprende</h4>
+        <p>Noxem guarda contexto. El agente mejora con el uso real de esa empresa.</p>
+      </div>
+    </div>
+
+    <p style="color:#64748b; font-size:0.78rem; margin-top:1rem;">
+      Meta Fase 4.7: todo el flujo en menos de 2 minutos, sin que Pablo toque el servidor.
+    </p>
+  </div>
+
+  <!-- PLANES -->
+  <div class="section">
+    <h2><span class="dot" style="background:#a855f7"></span> Planes de suscripción</h2>
+    <div class="planes-grid">
+
+      <div class="plan-card">
+        <h4>Starter</h4>
+        <div class="precio">$99 <span>/mes USD</span></div>
+        <div class="modulos">
+          <div class="modulo si">CRM (gestión de clientes)</div>
+          <div class="modulo si">Cobros y facturación</div>
+          <div class="modulo si">WhatsApp compartido</div>
+          <div class="modulo no">Catálogo de productos</div>
+          <div class="modulo no">Proveedores</div>
+          <div class="modulo no">API propia</div>
+        </div>
+        <p style="font-size:0.72rem; color:#64748b; margin-top:0.8rem;">Costo infra: ~$2/mes</p>
+      </div>
+
+      <div class="plan-card recommended">
+        <span class="rec-badge">⭐ Recomendado</span>
+        <h4>Business</h4>
+        <div class="precio">$249 <span>/mes USD</span></div>
+        <div class="modulos">
+          <div class="modulo si">CRM (gestión de clientes)</div>
+          <div class="modulo si">Cobros y facturación</div>
+          <div class="modulo si">WhatsApp número propio</div>
+          <div class="modulo si">Catálogo de productos</div>
+          <div class="modulo si">Proveedores</div>
+          <div class="modulo no">API propia</div>
+        </div>
+        <p style="font-size:0.72rem; color:#64748b; margin-top:0.8rem;">Costo infra: ~$5/mes</p>
+      </div>
+
+      <div class="plan-card">
+        <h4>Enterprise</h4>
+        <div class="precio">$499 <span>/mes USD</span></div>
+        <div class="modulos">
+          <div class="modulo si">Todo lo de Business</div>
+          <div class="modulo si">WhatsApp número propio</div>
+          <div class="modulo si">API propia documentada</div>
+          <div class="modulo si">VPS dedicado (datos aislados)</div>
+          <div class="modulo si">SLA prioritario</div>
+          <div class="modulo si">Onboarding personalizado</div>
+        </div>
+        <p style="font-size:0.72rem; color:#64748b; margin-top:0.8rem;">Costo infra: ~$20/mes</p>
+      </div>
+
+    </div>
+    <p style="color:#94a3b8; font-size:0.82rem; margin-top:1.2rem;">
+      10 clientes Business = <strong style="color:#4ade80;">$2.490/mes ganancia neta</strong>.
+      50 clientes = <strong style="color:#4ade80;">$12.200/mes en la misma VPS</strong>.
+    </p>
+  </div>
+
+  <!-- ESTADO DE LO QUE FALTA -->
+  <div class="section">
+    <h2><span class="dot" style="background:#ef4444"></span> Estado actual — qué falta para vender</h2>
+    <table class="decision-table">
+      <thead>
+        <tr>
+          <th>Ítem</th>
+          <th>Descripción</th>
+          <th>Estado</th>
+          <th>Prioridad</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Auth JWT + Login</td>
+          <td>Login web con email/password → JWT con empresa_id</td>
+          <td class="ok">✓ Completado</td>
+          <td>BLOQUEANTE</td>
+        </tr>
+        <tr>
+          <td>Multi-tenant frontend</td>
+          <td>Web app filtra datos por empresa_id del JWT</td>
+          <td class="ok">✓ Completado</td>
+          <td>BLOQUEANTE</td>
+        </tr>
+        <tr>
+          <td>Static files</td>
+          <td>Hermes puede enviar links a PDFs/reportes</td>
+          <td class="ok">✓ Completado</td>
+          <td>BLOQUEANTE</td>
+        </tr>
+        <tr>
+          <td>Integridad BD</td>
+          <td>Corregir cliente con empresa_id = NULL, agregar NOT NULL</td>
+          <td class="pend">⚠ Pendiente (bug)</td>
+          <td>CRÍTICO</td>
+        </tr>
+        <tr>
+          <td>WhatsApp (Evolution API)</td>
+          <td>Canal principal del cliente empresa</td>
+          <td class="pend">⏳ Pendiente</td>
+          <td>BLOQUEANTE</td>
+        </tr>
+        <tr>
+          <td>Personalización por empresa</td>
+          <td>Logo, color, nombre en web app</td>
+          <td class="pend">⏳ Pendiente</td>
+          <td>IMPORTANTE</td>
+        </tr>
+        <tr>
+          <td>Módulos on/off por plan</td>
+          <td>Starter no ve Productos ni Proveedores</td>
+          <td class="pend">⏳ Pendiente</td>
+          <td>IMPORTANTE</td>
+        </tr>
+        <tr>
+          <td>Onboarding automatizado</td>
+          <td>Alta de cliente en &lt;2 min sin tocar servidor</td>
+          <td class="pend">⏳ Pendiente</td>
+          <td>ESCALA</td>
+        </tr>
+        <tr>
+          <td>Monitoreo automático</td>
+          <td>Alerta si algo falla antes de que el cliente llame</td>
+          <td class="pend">⏳ Pendiente</td>
+          <td>ESCALA</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- RESPUESTA A LA PREGUNTA DE PABLO -->
+  <div class="section">
+    <h2><span class="dot" style="background:#4ade80"></span> Respuesta directa a tus preguntas</h2>
+    <div style="display:flex; flex-direction:column; gap:1rem;">
+
+      <div class="correct-badge" style="flex-direction:column; align-items:flex-start;">
+        <strong style="font-size:1rem;">¿Datos compartidos en una sola BD es correcto? → SI</strong>
+        <p style="margin-top:0.4rem; font-weight:400;">El aislamiento está garantizado por empresa_id en cada query. El cliente nunca ve datos de otra empresa. Esta arquitectura permite escalar a 50 clientes en la misma VPS sin cambiar nada.</p>
+      </div>
+
+      <div class="correct-badge" style="flex-direction:column; align-items:flex-start;">
+        <strong style="font-size:1rem;">¿Cada agente crece con los datos de SU empresa? → SI</strong>
+        <p style="margin-top:0.4rem; font-weight:400;">Noxem guarda memoria semántica por empresa. El historial de conversaciones, las preferencias y el contexto del negocio quedan asociados a esa empresa. El agente mejora con el uso real de cada cliente.</p>
+      </div>
+
+      <div class="correct-badge" style="flex-direction:column; align-items:flex-start;">
+        <strong style="font-size:1rem;">¿Tu idea de ofrecer agentes a empresas es correcta? → SI, y es el modelo exacto que construimos</strong>
+        <p style="margin-top:0.4rem; font-weight:400;">Vos vendés "un agente para tu empresa". Internamente es el mismo motor (Hermes) conectado a los datos de esa empresa. El cliente percibe un agente que conoce su negocio. Eso es exactamente lo que tenés construido.</p>
+      </div>
+
+      <div class="issue-badge" style="flex-direction:column; align-items:flex-start;">
+        <strong style="font-size:1rem;">¿Hay algo mal? → El BUG de empresa_id = NULL</strong>
+        <p style="margin-top:0.4rem; font-weight:400;">Hay un cliente en la BD sin empresa_id asignado. Si el agente lo encuentra y lo devuelve a otra empresa, hay una fuga de datos. Hay que corregirlo más agregar NOT NULL en todas las tablas de datos.</p>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="sep"></div>
+  <p style="text-align:center; color:#4b5563; font-size:0.78rem; padding-bottom:2rem;">
+    SetubalAI Business Agent — Documento de Producto v1.0 — Mayo 2026<br>
+    Generado por Hermes Agent. Actualizar con cada decisión arquitectural nueva.
+  </p>
+
+</div>
+</body>
+</html>

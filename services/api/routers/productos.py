@@ -20,6 +20,13 @@ class ProductoCreate(BaseModel):
     stock_minimo: int = 0
     control_stock: bool = False
     categoria_id: Optional[int] = None
+    codigo: Optional[str] = None
+    imagen_url: Optional[str] = None
+    visible_en_catalogo: bool = False
+    destacado_en_catalogo: bool = False
+    precio_oferta: Optional[float] = None
+    costo: Optional[float] = None
+    descripcion_catalogo: Optional[str] = None
 
 class ProductoUpdate(BaseModel):
     nombre: Optional[str] = None
@@ -27,6 +34,20 @@ class ProductoUpdate(BaseModel):
     stock_actual: Optional[int] = None
     activo: Optional[bool] = None
     descripcion: Optional[str] = None
+    categoria_id: Optional[int] = None
+    tipo: Optional[str] = None
+    precio_tipo: Optional[str] = None
+    moneda: Optional[str] = None
+    stock_minimo: Optional[int] = None
+    control_stock: Optional[bool] = None
+    codigo: Optional[str] = None
+    imagen_url: Optional[str] = None
+    visible_en_catalogo: Optional[bool] = None
+    destacado_en_catalogo: Optional[bool] = None
+    precio_oferta: Optional[float] = None
+    costo: Optional[float] = None
+    orden_catalogo: Optional[int] = None
+    descripcion_catalogo: Optional[str] = None
 
 def _q(db, empresa_id):
     return db.query(Producto, CategoriaProducto).outerjoin(
@@ -47,6 +68,13 @@ def _prod_dict(p, cat):
         "stock_actual": p.stock_actual,
         "stock_minimo": p.stock_minimo,
         "control_stock": p.control_stock,
+        "codigo": p.codigo,
+        "costo": float(p.costo) if p.costo else None,
+        "precio_oferta": float(p.precio_oferta) if p.precio_oferta else None,
+        "orden_catalogo": p.orden_catalogo,
+        "visible_en_catalogo": p.visible_en_catalogo,
+        "destacado_en_catalogo": p.destacado_en_catalogo,
+        "descripcion_catalogo": p.descripcion_catalogo,
         "imagen_url": p.imagen_url,
         "activo": p.activo,
     }
@@ -74,16 +102,18 @@ def obtener_producto(producto_id: int, db: Session = Depends(get_db)):
     return _prod_dict(row[0], row[1])
 
 @router.post("/", status_code=201)
-def crear_producto(data: ProductoCreate, db: Session = Depends(get_db)):
-    p = Producto(**data.model_dump())
+def crear_producto(data: ProductoCreate, db: Session = Depends(get_db), empresa_id: int = Depends(resolve_empresa_id)):
+    d = data.model_dump()
+    d["empresa_id"] = empresa_id
+    p = Producto(**d)
     db.add(p)
     db.commit()
     db.refresh(p)
     return _prod_dict(p, None)
 
 @router.put("/{producto_id}")
-def actualizar_producto(producto_id: int, data: ProductoUpdate, db: Session = Depends(get_db)):
-    p = db.query(Producto).filter(Producto.id == producto_id).first()
+def actualizar_producto(producto_id: int, data: ProductoUpdate, db: Session = Depends(get_db), empresa_id: int = Depends(resolve_empresa_id)):
+    p = db.query(Producto).filter(Producto.id == producto_id, Producto.empresa_id == empresa_id).first()
     if not p:
         raise HTTPException(404, "Producto no encontrado")
     for k, v in data.model_dump(exclude_none=True).items():

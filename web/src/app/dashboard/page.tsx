@@ -56,7 +56,7 @@ export default function DashboardPage() {
     Promise.all([
       fetch(`${API}/reportes/dashboard`).then(r => r.json()),
       fetch(`${API}/cobros/pendientes`).then(r => r.json()),
-      fetch(`${API}/clientes/`).then(r => r.json()),
+      fetch(`${API}/clientes`).then(r => r.json()),
     ]).then(([d, p, c]) => {
       setDash(d);
       setPendientes(p?.facturas?.slice(0, 5) || []);

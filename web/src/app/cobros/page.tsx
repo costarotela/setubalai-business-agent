@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
+import { useAuth } from "../auth-context";
 import {
   CheckCircle, Clock, AlertTriangle, Download, Plus, X,
   FileText, Trash2, CreditCard,
@@ -118,6 +119,8 @@ function MetodoBadge({ metodo }: { metodo: string }) {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function CobrosPage() {
+  const { token } = useAuth();
+
   // Stats
   const [stats, setStats] = useState<any>(null);
 
@@ -190,8 +193,8 @@ export default function CobrosPage() {
         fetch(`${API}/cobros/pendientes?limit=200${clienteParam}`).then(r => r.json()),
         fetch(`${API}/cobros/vencidas?limit=200${clienteParam}`).then(r => r.json()),
       ]).then(([p, v]) => {
-        const pendientes: Factura[] = (p?.facturas || []).map((f: any) => ({ ...f, estado: f.estado || "pendiente" }));
-        const vencidas: Factura[] = (v?.vencidas || []).map((f: any) => ({ ...f, estado: "vencida" }));
+        const pendientes: Factura[] = (p?.facturas || []).map((f: any) => ({ ...f, cliente_nombre: f.cliente || f.cliente_nombre, estado: f.estado || "pendiente" }));
+        const vencidas: Factura[] = (v?.vencidas || []).map((f: any) => ({ ...f, cliente_nombre: f.cliente || f.cliente_nombre, estado: "vencida" }));
 
         // Merge: vencidas first, dedup pendientes que ya están en vencidas
         const ids = new Set(vencidas.map(f => f.id));
@@ -214,11 +217,11 @@ export default function CobrosPage() {
   // ── Cargar catálogos para modal ───────────────────────────────────────────
 
   const cargarCatalogos = useCallback(() => {
-    fetch(`${API}/clientes/?limit=200`)
+    fetch(`${API}/clientes?limit=200`)
       .then(r => r.json())
       .then(d => setClientes(d?.clientes || []))
       .catch(() => {});
-    fetch(`${API}/productos/`)
+    fetch(`${API}/productos`)
       .then(r => r.json())
       .then(d => setProductos(d?.productos || []))
       .catch(() => {});
@@ -241,7 +244,7 @@ export default function CobrosPage() {
     try {
       await fetch(`${API}/cobros/${id}/pagar`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
         body: JSON.stringify({ metodo_pago: "transferencia" }),
       });
       cargarTabla();

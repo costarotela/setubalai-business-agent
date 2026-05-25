@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routers import clientes, cobros, productos, reportes, proveedores, empresas
+from routers import clientes, cobros, productos, reportes, proveedores, empresas, categorias, catalogo_publico
 from routers.auth import router as auth_router
 import os
 from dotenv import load_dotenv
@@ -16,9 +16,10 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "https://business.setubalai.org",
         "http://localhost:3011",
-        "http://localhost:3000",
+        "http://localhost:3012",
+        "https://business.setubalai.org",
+        "https://admin.setubalai.org",
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -27,14 +28,15 @@ app.add_middleware(
 
 # Auth routes (public — no requieren JWT)
 app.include_router(auth_router)
-
 # Business routes
 app.include_router(clientes.router)
 app.include_router(cobros.router)
 app.include_router(productos.router)
 app.include_router(reportes.router)
 app.include_router(proveedores.router)
+app.include_router(categorias.router)
 app.include_router(empresas.router)
+app.include_router(catalogo_publico.router)
 
 
 @app.get("/")

@@ -16,7 +16,7 @@ export default function DashboardPage() {
     Promise.all([
       fetch(`${API}/cobros/stats`).then(r => r.json()),
       fetch(`${API}/cobros/pendientes`).then(r => r.json()),
-      fetch(`${API}/clientes/`).then(r => r.json()),
+      fetch(`${API}/clientes`).then(r => r.json()),
     ]).then(([c, p, clientes]) => {
       setStats({
         cobradoMes: c.cobrado_este_mes || 0,

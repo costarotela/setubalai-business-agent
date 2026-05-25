@@ -25,7 +25,7 @@ export default function ProveedoresPage() {
 
   const cargar = (buscar = "") => {
     setLoading(true);
-    const url = buscar ? `${API}/proveedores/?buscar=${encodeURIComponent(buscar)}` : `${API}/proveedores/`;
+    const url = buscar ? `${API}/proveedores?buscar=${encodeURIComponent(buscar)}` : `${API}/proveedores`;
     fetch(url).then(r => r.json()).then(d => { setProveedores(d.proveedores || []); setLoading(false); }).catch(() => setLoading(false));
   };
 
@@ -34,7 +34,7 @@ export default function ProveedoresPage() {
   const guardar = async () => {
     if (!form.nombre) return;
     setSaving(true);
-    await fetch(`${API}/proveedores/`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...form, empresa_id: 1 }) });
+    await fetch(`${API}/proveedores`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...form, empresa_id: 1 }) });
     setSaving(false); setShowForm(false);
     setForm({ nombre: "", contacto_nombre: "", email: "", telefono: "", cuit: "", cbu: "", alias_cbu: "", banco: "", condiciones_pago: "", categoria: "", descuento_pct: 0, notas: "" });
     cargar();

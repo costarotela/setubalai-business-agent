@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev --port 3012",
     "build": "next build",
-    "start": "NODE_ENV=production node .next/standalone/server.js"
+    "start": "next start --port 3012"
   },
   "dependencies": {
     "lucide-react": "^1.16.0",

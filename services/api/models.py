@@ -12,9 +12,22 @@ class Empresa(Base):
     rubro = Column(String(100))
     email = Column(String(200))
     telefono = Column(String(50))
+    direccion = Column(Text)
     moneda = Column(String(10), default="USD")
     zona_horaria = Column(String(50), default="America/Argentina/Buenos_Aires")
     configuracion = Column(JSONB, default={})
+    # Campos fiscales y bancarios
+    cuit = Column(String(20))
+    cbu = Column(String(50))
+    alias_cbu = Column(String(50))
+    banco = Column(String(100))
+    # Plan y estado
+    plan = Column(String(20), default="basico")
+    estado = Column(String(20), default="activa")
+    # Contacto y web
+    contacto_nombre = Column(String(200))
+    web = Column(String(500))
+    instagram = Column(String(100))
     created_at = Column(TIMESTAMPTZ, server_default=func.now())
     updated_at = Column(TIMESTAMPTZ, server_default=func.now())
 
@@ -78,6 +91,13 @@ class Producto(Base):
     activo = Column(Boolean, default=True)
     codigo = Column(String(50))
     imagen_url = Column(String(500))
+    # Catalogo publico
+    visible_en_catalogo = Column(Boolean, default=False)
+    destacado_en_catalogo = Column(Boolean, default=False)
+    precio_oferta = Column(DECIMAL(15,2))
+    orden_catalogo = Column(Integer, default=0)
+    costo = Column(DECIMAL(15,2))
+    descripcion_catalogo = Column(Text)
     created_at = Column(TIMESTAMPTZ, server_default=func.now())
     updated_at = Column(TIMESTAMPTZ, server_default=func.now())
 
@@ -87,7 +107,11 @@ class CategoriaProducto(Base):
     empresa_id = Column(Integer, ForeignKey("empresa.id"))
     nombre = Column(String(100), nullable=False)
     descripcion = Column(Text)
+    categoria_padre_id = Column(Integer, ForeignKey("categorias_productos.id"), nullable=True)
+    orden = Column(Integer, default=0)
+    activo = Column(Boolean, default=True)
     created_at = Column(TIMESTAMPTZ, server_default=func.now())
+    parent = relationship("CategoriaProducto", remote_side=[id])
 
 class Proveedor(Base):
     __tablename__ = "proveedores"

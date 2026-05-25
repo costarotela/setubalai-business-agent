@@ -93,8 +93,8 @@ def obtener(proveedor_id: int, db: Session = Depends(get_db)):
     return _dict(p)
 
 @router.post("/", status_code=201)
-def crear(data: ProveedorCreate, db: Session = Depends(get_db)):
-    p = Proveedor(**data.model_dump())
+def crear(data: ProveedorCreate, db: Session = Depends(get_db), empresa_id: int = Depends(resolve_empresa_id)):
+    p = Proveedor(**{**data.model_dump(), "empresa_id": empresa_id})
     p.activo = True
     db.add(p)
     db.commit()
@@ -102,8 +102,8 @@ def crear(data: ProveedorCreate, db: Session = Depends(get_db)):
     return _dict(p)
 
 @router.put("/{proveedor_id}")
-def actualizar(proveedor_id: int, data: ProveedorUpdate, db: Session = Depends(get_db)):
-    p = db.query(Proveedor).filter(Proveedor.id == proveedor_id).first()
+def actualizar(proveedor_id: int, data: ProveedorUpdate, db: Session = Depends(get_db), empresa_id: int = Depends(resolve_empresa_id)):
+    p = db.query(Proveedor).filter(Proveedor.id == proveedor_id, Proveedor.empresa_id == empresa_id).first()
     if not p:
         raise HTTPException(404, "Proveedor no encontrado")
     for k, v in data.model_dump(exclude_none=True).items():
@@ -114,8 +114,8 @@ def actualizar(proveedor_id: int, data: ProveedorUpdate, db: Session = Depends(g
     return _dict(p)
 
 @router.delete("/{proveedor_id}")
-def eliminar(proveedor_id: int, db: Session = Depends(get_db)):
-    p = db.query(Proveedor).filter(Proveedor.id == proveedor_id).first()
+def eliminar(proveedor_id: int, db: Session = Depends(get_db), empresa_id: int = Depends(resolve_empresa_id)):
+    p = db.query(Proveedor).filter(Proveedor.id == proveedor_id, Proveedor.empresa_id == empresa_id).first()
     if not p:
         raise HTTPException(404, "Proveedor no encontrado")
     p.activo = False

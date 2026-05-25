@@ -33,7 +33,7 @@ export default function LoginPage() {
         return;
       }
 
-      localStorage.setItem("setubalai_token", data.access_token);
+      localStorage.setItem("setubalai_token_v2", data.access_token);
       window.location.href = "/dashboard";
 
     } catch (err) {
