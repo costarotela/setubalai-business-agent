@@ -3,21 +3,24 @@ import { NextRequest, NextResponse } from "next/server";
 const API_BASE = "http://127.0.0.1:3010";
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
-  return proxy(req, { params });
+  const p = await params;
+  return proxy(req, p);
 }
 export async function POST(req: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
-  return proxy(req, { params });
+  const p = await params;
+  return proxy(req, p);
 }
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
-  return proxy(req, { params });
+  const p = await params;
+  return proxy(req, p);
 }
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
-  return proxy(req, { params });
+  const p = await params;
+  return proxy(req, p);
 }
 
-async function proxy(req: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
-  const { path } = await params;
-  const pathStr = path.join("/");
+async function proxy(req: NextRequest, params: { path: string[] }) {
+  const pathStr = params.path.join("/");
   const search = req.nextUrl.search || "";
   const url = `${API_BASE}/${pathStr}${search}`;
 
@@ -34,11 +37,12 @@ async function proxy(req: NextRequest, { params }: { params: Promise<{ path: str
 
   const res = await fetch(url, init);
 
-  // Handle 307 trailing-slash redirects without losing auth headers
+  // Follow 307/308 redirects from backend
   if (res.status === 307 || res.status === 308) {
     const loc = res.headers.get("location");
     if (loc) {
-      const res2 = await fetch(loc, init);
+      const fullUrl = loc.startsWith("http") ? loc : `${API_BASE}${loc}`;
+      const res2 = await fetch(fullUrl, init);
       const data2 = await res2.text();
       return new NextResponse(data2, {
         status: res2.status,

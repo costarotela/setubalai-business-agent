@@ -15,9 +15,14 @@ from database import get_db
 from models import Usuario
 
 # ── Config ───────────────────────────────────────────────────────────────────
-SECRET_KEY = os.getenv("SECRET_KEY", "setubalai_secret_key_produccion_2024")
-ALGORITHM = os.getenv("ALGORITHM", "HS256")
-ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 1440))
+# Load dotenv HERE so SECRET_KEY is always available regardless of import order
+from dotenv import load_dotenv
+load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
+
+_SECRET = os.getenv("SECRET_KEY") or os.getenv("TOKEN_KEY") or "setubalai_secret_key_produccion_2024"
+SECRET_KEY: str = _SECRET
+ALGORITHM: str = os.getenv("ALGORITHM", "HS256")
+ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 1440))
 
 # ── Crypto ───────────────────────────────────────────────────────────────────
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")

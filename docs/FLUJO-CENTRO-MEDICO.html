@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SetubalAI — Flujo Completo Centro Médico Multiespecialidad</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0a0b0d; color: #e4e5e7; font-family: 'Inter', -apple-system, sans-serif; padding: 40px 60px; }
+  h1 { font-size: 28px; margin-bottom: 8px; color: #f7f8f8; }
+  .subtitle { color: #62666d; font-size: 14px; margin-bottom: 40px; }
+  
+  .section { margin-bottom: 50px; }
+  .section-title { font-size: 18px; font-weight: 700; color: #6b8afd; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.08em; }
+  
+  .flow { display: flex; align-items: flex-start; gap: 0; overflow-x: auto; padding: 20px 0; }
+  .flow-step { min-width: 220px; max-width: 260px; flex-shrink: 0; }
+  .flow-step .card { background: #141517; border: 1px solid rgba(107,138,253,0.2); border-radius: 12px; padding: 20px; position: relative; }
+  .flow-step .card.highlight { border-color: rgba(107,138,253,0.6); box-shadow: 0 0 20px rgba(107,138,253,0.08); }
+  .step-num { position: absolute; top: -10px; left: 16px; background: #6b8afd; color: #0a0b0d; width: 24px; height: 24px; border-radius: 50%; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+  .step-title { font-size: 15px; font-weight: 700; color: #f7f8f8; margin-bottom: 10px; }
+  .step-detail { font-size: 12px; color: #8a8f98; line-height: 1.6; }
+  .step-detail li { padding-left: 8px; margin-bottom: 3px; list-style: none; }
+  .step-detail li::before { content: "→ "; color: #6b8afd; }
+  .step-db { margin-top: 10px; font-size: 11px; color: #4a9e6a; background: rgba(74,158,106,0.1); border-radius: 4px; padding: 6px 8px; font-family: 'JetBrains Mono', monospace; }
+  
+  .arrow { color: #6b8afd; font-size: 24px; padding: 30px 4px 0; flex-shrink: 0; }
+  
+  .db-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; margin-top: 20px; }
+  .db-table { background: #141517; border: 1px solid rgba(255,255,255,0.06); border-radius: 8px; overflow: hidden; }
+  .db-table-header { background: #1a1b1e; padding: 10px 14px; font-weight: 700; font-size: 13px; display: flex; justify-content: space-between; align-items: center; }
+  .db-table-header .rows { font-size: 11px; color: #4a9e6a; font-family: monospace; }
+  .db-table-header .rows.empty { color: #e85d5d; }
+  .db-table-body { padding: 8px 14px; }
+  .db-col { font-size: 11px; color: #8a8f98; font-family: 'JetBrains Mono', monospace; line-height: 1.8; border-bottom: 1px solid rgba(255,255,255,0.03); padding: 2px 0; }
+  .db-col .pk { color: #e8c85d; }
+  .db-col .fk { color: #6b8afd; }
+  .db-col .data-type { color: #4a4e55; float: right; }
+  
+  .relation-map { margin-top: 20px; }
+  .rel-row { display: flex; align-items: center; gap: 12px; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 12px; }
+  .rel-source { color: #6b8afd; font-family: monospace; min-width: 180px; }
+  .rel-arrow { color: #4a9e6a; }
+  .rel-target { color: #4a9e6a; font-family: monospace; min-width: 150px; }
+  .rel-desc { color: #8a8f98; font-size: 11px; }
+  
+  .missing-box { background: rgba(232,93,93,0.08); border: 1px solid rgba(232,93,93,0.3); border-radius: 8px; padding: 16px; margin-top: 16px; }
+  .missing-box h4 { color: #e85d5d; font-size: 13px; margin-bottom: 8px; }
+  .missing-box li { color: #c4c5c7; font-size: 12px; margin-bottom: 4px; list-style: none; padding-left: 12px; }
+  .missing-box li::before { content: "✗ "; color: #e85d5d; }
+  
+  .done-box { background: rgba(74,158,106,0.08); border: 1px solid rgba(74,158,106,0.3); border-radius: 8px; padding: 16px; margin-top: 16px; }
+  .done-box h4 { color: #4a9e6a; font-size: 13px; margin-bottom: 8px; }
+  .done-box li { color: #c4c5c7; font-size: 12px; margin-bottom: 4px; list-style: none; padding-left: 12px; }
+  .done-box li::before { content: "✓ "; color: #4a9e6a; }
+  
+  .warn-box { background: rgba(232,200,93,0.08); border: 1px solid rgba(232,200,93,0.3); border-radius: 8px; padding: 16px; margin-top: 16px; }
+  .warn-box h4 { color: #e8c85d; font-size: 13px; margin-bottom: 8px; }
+  .warn-box li { color: #c4c5c7; font-size: 12px; margin-bottom: 4px; list-style: none; padding-left: 12px; }
+  .warn-box li::before { content: "⚠ "; color: #e8c85d; }
+
+  h3 { font-size: 15px; margin: 24px 0 12px; color: #c4c5c7; }
+  p.desc { color: #8a8f98; font-size: 13px; line-height: 1.7; margin-bottom: 12px; }
+</style>
+</head>
+<body>
+
+<h1>SetubalAI — Centro Médico Multiespecialidad</h1>
+<p class="subtitle">Objetivo: Agente IA especializado para gestionar la logística y administración de clínicas médicas multiespecialidad (9-15 especialidades, sin internación).</p>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-title">1. FLUJO COMPLETO — Del paciente al seguimiento</div>
+  <p class="desc">Todo lo que ocurre desde que un paciente contacta la clínica hasta que cierra su ciclo de atención.</p>
+  
+  <div class="flow">
+    <div class="flow-step">
+      <div class="card highlight">
+        <div class="step-num">1</div>
+        <div class="step-title">PACIENTE EXISTE</div>
+        <ul class="step-detail">
+          <li>Se registra UNA vez</li>
+          <li>Datos: nombre, DNI, teléfono</li>
+          <li>Obra social + plan + nro. afiliado</li>
+          <li>Alergias, medicación habitual</li>
+          <li>Antecedentes, cirugías previas</li>
+        </ul>
+        <div class="step-db">pacientes (20 filas)</div>
+      </div>
+    </div>
+    
+    <div class="arrow">→</div>
+    
+    <div class="flow-step">
+      <div class="card">
+        <div class="step-num">2</div>
+        <div class="step-title">CONSULTA DISPONIBILIDAD</div>
+        <ul class="step-detail">
+          <li>Pide turno: médico o especialidad</li>
+          <li>Sistema cruza horarios + slots libres</li>
+          <li>Verifica cobertura obra social</li>
+          <li>Ofrece opciones reales al paciente</li>
+        </ul>
+        <div class="step-db">medicos.horarios_atencion<br>+ visitas (slot occupied)</div>
+      </div>
+    </div>
+    
+    <div class="arrow">→</div>
+    
+    <div class="flow-step">
+      <div class="card">
+        <div class="step-num">3</div>
+        <div class="step-title">TURNO CONFIRMADO</div>
+        <ul class="step-detail">
+          <li>Paciente + Médico + Fecha/hora</li>
+          <li>Estado: confirmado</li>
+          <li>24hs antes → recordatorio WA</li>
+          <li>Si no viene → ausente → slot liberado</li>
+        </ul>
+        <div class="step-db">visitas (39 filas)<br>estado: pendiente/confirmado/realizado/cancelado/ausente</div>
+      </div>
+    </div>
+    
+    <div class="arrow">→</div>
+    
+    <div class="flow-step">
+      <div class="card highlight">
+        <div class="step-num">4</div>
+        <div class="step-title">ATENCIÓN MÉDICA</div>
+        <ul class="step-detail">
+          <li>Recepción marca "presente"</li>
+          <li>Enfermería: signos vitales</li>
+          <li>Médico abre HISTORIA CLÍNICA</li>
+          <li>Ve TODO lo anterior del paciente</li>
+          <li>Registra: anamnesis, examen, Dx, tratamiento</li>
+        </ul>
+        <div class="step-db">atenciones_medicas (12 filas)<br>Vinculada a visita</div>
+      </div>
+    </div>
+    
+    <div class="arrow">→</div>
+    
+    <div class="flow-step">
+      <div class="card">
+        <div class="step-num">5</div>
+        <div class="step-title">RECETA + PRÁCTICAS</div>
+        <ul class="step-detail">
+          <li>Genera RECETA (medicamentos, dosis)</li>
+          <li>Ordena PRÁCTICAS (lab, imágenes, etc.)</li>
+          <li>Cada práctica tiene código NABON</li>
+          <li>Obra social cubre X%, paciente paga resto</li>
+        </ul>
+        <div class="step-db">recetas (0 filas)<br>practicas_medicas (31 filas)<br>nomenclador (0 filas)</div>
+      </div>
+    </div>
+    
+    <div class="arrow">→</div>
+    
+    <div class="flow-step">
+      <div class="card highlight">
+        <div class="step-num">6</div>
+        <div class="step-title">SEGUIMIENTO AUTOMÁTICO</div>
+        <ul class="step-detail">
+          <li>"Volvé en 14 días para control"</li>
+          <li>Sistema programa nuevo turno</li>
+          <li>Resultados de lab → notifica al médico</li>
+          <li>Pacientes que no volvieron → alerta</li>
+        </ul>
+        <div class="step-db">visitas (seguimiento)<br>+ notificaciones_programadas</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-title">2. HISTORIA CLÍNICA — El corazón del sistema</div>
+  <p class="desc">La historia clínica pertenece al PACIENTE, no al médico. Todos los profesionales que lo atienden pueden ver la historia completa. Es el registro vivo de toda la vida clínica del paciente.</p>
+  
+  <div class="db-grid">
+    <div class="db-table">
+      <div class="db-table-header">historia_clinica <span class="rows">35 filas</span></div>
+      <div class="db-table-body">
+        <div class="db-col"><span class="pk">id</span> <span class="data-type">serial</span></div>
+        <div class="db-col"><span class="fk">paciente_nuevo_id → pacientes</span> <span class="data-type">int</span></div>
+        <div class="db-col">grupo_sanguineo</div>
+        <div class="db-col">alergias TEXT[]</div>
+        <div class="db-col">medicacion_habitual TEXT[]</div>
+        <div class="db-col">antecedentes_personales</div>
+        <div class="db-col">antecedentes_familiares</div>
+        <div class="db-col">cirugias_previas TEXT[]</div>
+        <div class="db-col">notas_adicionales</div>
+      </div>
+    </div>
+    
+    <div class="db-table">
+      <div class="db-table-header">atenciones_medicas <span class="rows">12 filas</span></div>
+      <div class="db-table-body">
+        <div class="db-col"><span class="pk">id</span> <span class="data-type">serial</span></div>
+        <div class="db-col"><span class="fk">visita_id → visitas</span> <span class="data-type">int</span></div>
+        <div class="db-col"><span class="fk">paciente_nuevo_id → pacientes</span></div>
+        <div class="db-col"><span class="fk">medico_id → medicos</span></div>
+        <div class="db-col">anamnesis</div>
+        <div class="db-col">examen_fisico</div>
+        <div class="db-col">diagnostico</div>
+        <div class="db-col">plan_tratamiento</div>
+        <div class="db-col">signos_vitales (10 cols)</div>
+        <div class="db-col">evolucion</div>
+      </div>
+    </div>
+    
+    <div class="db-table">
+      <div class="db-table-header">practicas_medicas <span class="rows">31 filas</span></div>
+      <div class="db-table-body">
+        <div class="db-col"><span class="pk">id</span> <span class="data-type">serial</span></div>
+        <div class="db-col"><span class="fk">atencion_medica_id → atenciones</span></div>
+        <div class="db-col"><span class="fk">paciente_nuevo_id → pacientes</span></div>
+        <div class="db-col"><span class="fk">medico_id → medicos</span></div>
+        <div class="db-col">tipo_practica</div>
+        <div class="db-col">codigo_nomenclador</div>
+        <div class="db-col">precio_practica</div>
+        <div class="db-col">coseguro_paciente</div>
+        <div class="db-col">cobertura_obra_social</div>
+        <div class="db-col">estado_facturacion</div>
+        <div class="db-col">requiere_autorizacion</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-title">3. MAPA DE BASE DE DATOS — Tablas médicas</div>
+  
+  <div class="db-grid">
+    <div class="db-table">
+      <div class="db-table-header">pacientes <span class="rows">20 filas</span></div>
+      <div class="db-table-body">
+        <div class="db-col"><span class="pk">id</span></div>
+        <div class="db-col">empresa_id</div>
+        <div class="db-col">nombre, apellido, dni</div>
+        <div class="db-col">fecha_nacimiento, sexo</div>
+        <div class="db-col">telefono, email</div>
+        <div class="db-col">direccion, ciudad, provincia</div>
+        <div class="db-col">obra_social</div>
+        <div class="db-col">numero_afiliado, plan</div>
+        <div class="db-col">vigencia_afiliacion</div>
+        <div class="db-col">activo</div>
+      </div>
+    </div>
+    
+    <div class="db-table">
+      <div class="db-table-header">medicos <span class="rows">5 filas</span></div>
+      <div class="db-table-body">
+        <div class="db-col"><span class="pk">id</span></div>
+        <div class="db-col">empresa_id</div>
+        <div class="db-col">usuario_id → usuarios</div>
+        <div class="db-col">nombre, apellido</div>
+        <div class="db-col">matricula_provincial</div>
+        <div class="db-col">matricula_nacional</div>
+        <div class="db-col">especialidades TEXT[]</div>
+        <div class="db-col">duracion_turno_minutos</div>
+        <div class="db-col">horarios_atencion JSONB</div>
+        <div class="db-col">activo</div>
+      </div>
+    </div>
+    
+    <div class="db-table">
+      <div class="db-table-header">visitas <span class="rows">39 filas</span></div>
+      <div class="db-table-body">
+        <div class="db-col"><span class="pk">id</span></div>
+        <div class="db-col">empresa_id</div>
+        <div class="db-col">paciente_nuevo_id → pacientes</div>
+        <div class="db-col">medico_id → medicos</div>
+        <div class="db-col">fecha_hora</div>
+        <div class="db-col">duracion_minutos</div>
+        <div class="db-col">estado (7 estados)</div>
+        <div class="db-col">motivo_consulta</div>
+        <div class="db-col">tipo_visita</div>
+        <div class="db-col">recordatorio_enviado</div>
+        <div class="db-col">cancelacion_motivo</div>
+      </div>
+    </div>
+    
+    <div class="db-table">
+      <div class="db-table-header">estudios_adjuntos <span class="rows">10 filas</span></div>
+      <div class="db-table-body">
+        <div class="db-col"><span class="pk">id</span></div>
+        <div class="db-col">empresa_id</div>
+        <div class="db-col">paciente_nuevo_id → pacientes</div>
+        <div class="db-col">tipo_estudio</div>
+        <div class="db-col">descripcion</div>
+        <div class="db-col">fecha_estudio</div>
+        <div class="db-col">archivo_nombre, archivo_url</div>
+        <div class="db-col">archivo_tipo, tamano</div>
+        <div class="db-col">consulta_id → visitas</div>
+      </div>
+    </div>
+    
+    <div class="db-table">
+      <div class="db-table-header">recetas <span class="rows">8 filas</span></div>
+      <div class="db-table-body">
+        <div class="db-col"><span class="pk">id</span></div>
+        <div class="db-col">empresa_id</div>
+        <div class="db-col">atencion_medica_id</div>
+        <div class="db-col">paciente_nuevo_id → pacientes</div>
+        <div class="db-col">medico_id → medicos</div>
+        <div class="db-col">medicamentos JSONB</div>
+        <div class="db-col">indicaciones</div>
+        <div class="db-col">valida_hasta</div>
+        <div class="db-col">archivo_pdf_url</div>
+      </div>
+    </div>
+    
+    <div class="db-table">
+      <div class="db-table-header">nomenclador_practicas <span class="rows">18 filas</span></div>
+      <div class="db-table-body">
+        <div class="db-col"><span class="pk">id</span></div>
+        <div class="db-col">empresa_id</div>
+        <div class="db-col">codigo</div>
+        <div class="db-col">descripcion</div>
+        <div class="db-col">tipo</div>
+        <div class="db-col">especialidad_requerida</div>
+        <div class="db-col">precio_particular</div>
+        <div class="db-col">valor_modulo</div>
+        <div class="db-col">duracion_minutos</div>
+        <div class="db-col">requiere_autorizacion</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-title">4. RELACIONES — Lo que ya existe</div>
+  <div class="relation-map">
+    <div class="rel-row"><span class="rel-source">visitas.paciente_nuevo_id</span><span class="rel-arrow">→</span><span class="rel-target">pacientes.id</span><span class="rel-desc">Quién tiene el turno</span></div>
+    <div class="rel-row"><span class="rel-source">visitas.medico_id</span><span class="rel-arrow">→</span><span class="rel-target">medicos.id</span><span class="rel-desc">Quién atiende</span></div>
+    <div class="rel-row"><span class="rel-source">atenciones_medicas.visita_id</span><span class="rel-arrow">→</span><span class="rel-target">visitas.id</span><span class="rel-desc">La consulta que se realizó</span></div>
+    <div class="rel-row"><span class="rel-source">atenciones_medicas.paciente_nuevo_id</span><span class="rel-arrow">→</span><span class="rel-target">pacientes.id</span><span class="rel-desc">A quién se atendió</span></div>
+    <div class="rel-row"><span class="rel-source">atenciones_medicas.medico_id</span><span class="rel-arrow">→</span><span class="rel-target">medicos.id</span><span class="rel-desc">Quién atendió</span></div>
+    <div class="rel-row"><span class="rel-source">practicas_medicas.atencion_medica_id</span><span class="rel-arrow">→</span><span class="rel-target">atenciones_medicas.id</span><span class="rel-desc">Práctica generada en la consulta</span></div>
+    <div class="rel-row"><span class="rel-source">historia_clinica.paciente_nuevo_id</span><span class="rel-arrow">→</span><span class="rel-target">pacientes.id</span><span class="rel-desc">Historia del paciente</span></div>
+    <div class="rel-row"><span class="rel-source">recetas.atencion_medica_id</span><span class="rel-arrow">→</span><span class="rel-target">atenciones_medicas.id</span><span class="rel-desc">Receta de la consulta</span></div>
+    <div class="rel-row"><span class="rel-source">estudios_adjuntos.paciente_nuevo_id</span><span class="rel-arrow">→</span><span class="rel-target">pacientes.id</span><span class="rel-desc">Estudio del paciente</span></div>
+    <div class="rel-row"><span class="rel-source">estudios_adjuntos.consulta_id</span><span class="rel-arrow">→</span><span class="rel-target">visitas.id</span><span class="rel-desc">Estudio ordenado en la visita</span></div>
+    <div class="rel-row"><span class="rel-source">usuarios.medico_id</span><span class="rel-arrow">→</span><span class="rel-target">medicos.id</span><span class="rel-desc">Médico con login al sistema</span></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-title">5. LO QUE FALTA PARA EL MVP</div>
+  
+  <div class="missing-box">
+    <h4>TODO SEMBRADO — No hay tablas vacías críticas</h4>
+    <ul>
+      <li>Nomenclador: ✅ 18 prácticas cargadas</li>
+      <li>Recetas: ✅ 8 recetas con medicamentos reales</li>
+      <li>Estudios: ✅ 10 estudios de diversas áreas</li>
+    </ul>
+  </div>
+  
+  <div class="warn-box">
+    <h4>IMPORTANTE — Mejora la funcionalidad</h4>
+    <ul>
+      <li>Campo de <b>seguimiento</b>: que una atencion genere automáticamente un nuevo turno futuro</li>
+      <li>Consulta de <b>disponibilidad real</b>: slots libres = (horarios del médico) - (visitas ocupadas)</li>
+      <li>Derivación entre <b>especialidades</b>: una atencion en Cardiología genera visita en Laboratorio</li>
+      <li>Contacto responsable para <b>menores de edad</b> (pediatría)</li>
+    </ul>
+  </div>
+  
+  <div class="done-box">
+    <h4>YA FUNCIONA — No tocar</h4>
+    <ul>
+      <li>Tabla pacientes separada de clientes ✅</li>
+      <li>Historia clínica accesible por cualquier profesional ✅</li>
+      <li>Turnos con estados y registro completo ✅</li>
+      <li>Atenciones con diagnóstico, signos vitales, evolución ✅</li>
+      <li>Prácticas vinculadas a atenciones con facturación ✅</li>
+      <li>Multi-tenant: cada empresa solo ve sus datos ✅</li>
+      <li>Auth JWT: médicos solo ven sus pacientes atendidos ✅</li>
+      <li>Frontend con todas las páginas creadas ✅</li>
+      <li>Backend salud.py: 16 endpoints funcionando ✅</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-title">6. ROUTER ACTUAL — salud.py → Frontend</div>
+  <p class="desc">Todos los endpoints médicos están en un solo router (`salud.py`). El frontend consume estos endpoints.</p>
+  
+  <div class="db-grid">
+    <div class="db-table">
+      <div class="db-table-header">Backend (salud.py)</div>
+      <div class="db-table-body">
+        <div class="db-col" style="color:#4a9e6a;">GET /pacientes/</div>
+        <div class="db-col" style="color:#4a9e6a;">POST /pacientes/</div>
+        <div class="db-col" style="color:#4a9e6a;">GET /pacientes/{id}/historial</div>
+        <div class="db-col" style="color:#4a9e6a;">GET /medicos/</div>
+        <div class="db-col" style="color:#4a9e6a;">POST /medicos/</div>
+        <div class="db-col" style="color:#4a9e6a;">GET /turnos/</div>
+        <div class="db-col" style="color:#4a9e6a;">POST /turnos/</div>
+        <div class="db-col" style="color:#4a9e6a;">PUT /turnos/{id}</div>
+        <div class="db-col" style="color:#4a9e6a;">DELETE /turnos/{id}</div>
+        <div class="db-col" style="color:#4a9e6a;">GET /practicas_medicas/</div>
+        <div class="db-col" style="color:#4a9e6a;">GET /historia_clinica/</div>
+        <div class="db-col" style="color:#4a9e6a;">GET /mis_pacientes/</div>
+        <div class="db-col" style="color:#4a9e6a;">GET /nomenclador_practicas/</div>
+      </div>
+    </div>
+    
+    <div class="db-table">
+      <div class="db-table-header">Frontend (web/ páginas)</div>
+      <div class="db-table-body">
+        <div class="db-col" style="color:#6b8afd;">/pacientes/ → pacientes</div>
+        <div class="db-col" style="color:#6b8afd;">/turnos/ → agenda</div>
+        <div class="db-col" style="color:#6b8afd;">/medicos/ → equipo médico</div>
+        <div class="db-col" style="color:#6b8afd;">/historia-clinica/ → historia completa</div>
+        <div class="db-col" style="color:#6b8afd;">/practicas/ → facturación</div>
+        <div class="db-col" style="color:#6b8afd;">/nomencladores/ → catálogo</div>
+        <div class="db-col" style="color:#6b8afd;">/obras-sociales/ → cobertura</div>
+        <div class="db-col" style="color:#6b8afd;">/cobros/ → pagos pacientes</div>
+        <div class="db-col" style="color:#6b8afd;">/dashboard/ → KPIs</div>
+        <div class="db-col" style="color:#6b8afd;">/clientes/ → CRM general</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

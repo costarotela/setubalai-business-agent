@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Historia Clínica — Jorge Fernández | CentroMedicIntegral</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f0f4f8;
+      padding: 20px;
+    }
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px 30px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .header h1 { font-size: 1.8rem; }
+    .header .meta { font-size: 0.9rem; opacity: 0.9; }
+    
+    .alert-box {
+      background: #fff3cd;
+      border-left: 4px solid #ffc107;
+      padding: 15px 20px;
+      margin-bottom: 20px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .alert-box .icon { font-size: 1.5rem; }
+    .alert-box .text { font-size: 0.95rem; color: #856404; }
+    
+    .perfil-medico {
+      background: white;
+      border-radius: 12px;
+      padding: 30px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    .perfil-header {
+      display: flex;
+      gap: 30px;
+      margin-bottom: 30px;
+      padding-bottom: 20px;
+      border-bottom: 2px solid #e2e8f0;
+    }
+    .perfil-photo {
+      width: 120px;
+      height: 120px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 3rem;
+      font-weight: 700;
+    }
+    .perfil-datos h2 { font-size: 1.6rem; margin-bottom: 8px; color: #1a202c; }
+    .perfil-datos .badges { display: flex; gap: 8px; margin-bottom: 12px; }
+    .badge {
+      padding: 4px 12px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+    .badge-edad { background: #e0f2fe; color: #0369a1; }
+    .badge-sangre { background: #fee2e2; color: #991b1b; }
+    .badge-osde { background: #dbeafe; color: #1e40af; }
+    .perfil-datos .contacto { font-size: 0.9rem; color: #64748b; margin-top: 8px; }
+    
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    .card h3 {
+      font-size: 1.1rem;
+      color: #1a202c;
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .card h3 .emoji { font-size: 1.3rem; }
+    .card ul { list-style: none; }
+    .card li {
+      padding: 10px 0;
+      border-bottom: 1px solid #f1f5f9;
+      font-size: 0.95rem;
+      color: #475569;
+    }
+    .card li:last-child { border-bottom: none; }
+    .card li strong { color: #1e293b; font-weight: 600; }
+    
+    .alerta-critica {
+      background: #fef2f2;
+      border: 2px solid #ef4444;
+      padding: 12px 16px;
+      border-radius: 8px;
+      color: #991b1b;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .consultas-recientes {
+      background: white;
+      border-radius: 12px;
+      padding: 25px;
+      margin-top: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    .consultas-recientes h3 {
+      font-size: 1.3rem;
+      margin-bottom: 20px;
+      color: #1a202c;
+    }
+    .consulta-item {
+      border-left: 4px solid #667eea;
+      padding: 15px 20px;
+      margin-bottom: 15px;
+      background: #f8fafc;
+      border-radius: 8px;
+    }
+    .consulta-header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .consulta-header .fecha { font-weight: 600; color: #1e293b; }
+    .consulta-header .especialidad {
+      background: #e0e7ff;
+      color: #4338ca;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+    }
+    .consulta-body { font-size: 0.95rem; color: #475569; line-height: 1.6; }
+    .consulta-body strong { color: #1e293b; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div>
+      <h1>Historia Clínica — Jorge Fernández</h1>
+      <div class="meta">CentroMedicIntegral | DNI 18.234.567 | HC #00012345</div>
+    </div>
+    <div style="text-align: right;">
+      <div style="font-size: 0.9rem;">Sesión: Dr. Diego Pérez</div>
+      <div style="font-size: 0.85rem; opacity: 0.8;">Traumatología | 28/05/2026 16:00</div>
+    </div>
+  </div>
+
+  <div class="alert-box">
+    <div class="icon">⚠️</div>
+    <div class="text">
+      <strong>Alergias registradas:</strong> Penicilina | 
+      <strong>Cardiópata:</strong> HTA + Insuficiencia Cardíaca FC II | 
+      <strong>Medicación habitual:</strong> 3 fármacos activos
+    </div>
+  </div>
+
+  <div class="perfil-medico">
+    <div class="perfil-header">
+      <div class="perfil-photo">JF</div>
+      <div class="perfil-datos">
+        <h2>Jorge Fernández</h2>
+        <div class="badges">
+          <span class="badge badge-edad">58 años</span>
+          <span class="badge badge-sangre">Grupo A+</span>
+          <span class="badge badge-osde">OSDE Plan 310</span>
+        </div>
+        <div class="contacto">
+          📞 +54 9 341 555-1234 | 📧 jorge.fernandez@email.com<br>
+          🚨 <strong>Contacto emergencia:</strong> María Fernández (Esposa) — +54 9 341 555-5678
+        </div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <!-- Antecedentes Personales -->
+      <div class="card">
+        <h3><span class="emoji">🏥</span> Antecedentes Personales</h3>
+        <ul>
+          <li><strong>Hipertensión arterial</strong> (desde 2020) — CIE-10: I10 — Activo</li>
+          <li><strong>Insuficiencia cardíaca FC II</strong> (desde 2023) — CIE-10: I50.9 — Activo</li>
+          <li><strong>Dislipemia</strong> (colesterol elevado) — Activo</li>
+          <li><strong>Apendicectomía</strong> (2015) — Cirugía</li>
+        </ul>
+      </div>
+
+      <!-- Alergias -->
+      <div class="card">
+        <h3><span class="emoji">🚫</span> Alergias</h3>
+        <div class="alerta-critica">
+          ⚠️ <strong>PENICILINA</strong> — Reacción anafiláctica (2018)
+        </div>
+        <ul style="margin-top: 15px;">
+          <li><strong>Evitar:</strong> Penicilina, Amoxicilina, Ampicilina</li>
+          <li><strong>Alternativas seguras:</strong> Cefalosporinas (con precaución), Azitromicina</li>
+        </ul>
+      </div>
+
+      <!-- Medicación Habitual -->
+      <div class="card">
+        <h3><span class="emoji">💊</span> Medicación Habitual</h3>
+        <ul>
+          <li><strong>Enalapril 10mg</strong> — 1 comprimido por la mañana (HTA)</li>
+          <li><strong>Carvedilol 12.5mg</strong> — 1 comprimido cada 12hs (IC)</li>
+          <li><strong>Furosemida 60mg</strong> — 1 comprimido por la mañana (diurético)</li>
+        </ul>
+        <div style="margin-top: 12px; padding: 10px; background: #fef3c7; border-radius: 6px; font-size: 0.9rem;">
+          <strong>Última modificación:</strong> 28/05/26 — Dra. Ana Martínez (Cardiología)<br>
+          Aumentó Furosemida de 40mg → 60mg
+        </div>
+      </div>
+
+      <!-- Hábitos -->
+      <div class="card">
+        <h3><span class="emoji">🏃</span> Hábitos</h3>
+        <ul>
+          <li><strong>Tabaco:</strong> No fuma (ex-fumador, dejó en 2018)</li>
+          <li><strong>Alcohol:</strong> Ocasional (1-2 copas vino/semana)</li>
+          <li><strong>Actividad física:</strong> Sedentario</li>
+          <li><strong>Peso:</strong> 92 kg | <strong>Altura:</strong> 175 cm | <strong>IMC:</strong> 30.0 (Obesidad grado I)</li>
+        </ul>
+      </div>
+
+      <!-- Antecedentes Familiares -->
+      <div class="card">
+        <h3><span class="emoji">👨‍👩‍👦</span> Antecedentes Familiares</h3>
+        <ul>
+          <li><strong>Padre:</strong> Hipertensión, IAM a los 65 años (fallecido)</li>
+          <li><strong>Madre:</strong> Diabetes tipo 2</li>
+          <li><strong>Hermano:</strong> Hipertensión arterial</li>
+        </ul>
+      </div>
+
+      <!-- Screening / Prevención -->
+      <div class="card">
+        <h3><span class="emoji">🔬</span> Screening / Prevención</h3>
+        <ul>
+          <li><strong>Último ecocardiograma:</strong> Pendiente (pedido 28/05/26)</li>
+          <li><strong>Último laboratorio:</strong> 15/04/26</li>
+          <li><strong>Última colonoscopia:</strong> 2022 (próxima: 2027)</li>
+          <li><strong>PSA:</strong> Nunca realizado (recomendar a partir 50 años)</li>
+        </ul>
+        <div style="margin-top: 12px; padding: 10px; background: #fecaca; border-radius: 6px; font-size: 0.9rem; color: #991b1b;">
+          ⚠️ <strong>Ecocardiograma URGENTE pedido hace 6 semanas — NO REALIZADO</strong>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="consultas-recientes">
+    <h3>📋 Últimas 5 Consultas</h3>
+
+    <div class="consulta-item">
+      <div class="consulta-header">
+        <div class="fecha">28/05/2026 10:00</div>
+        <div class="especialidad">Cardiología</div>
+      </div>
+      <div class="consulta-body">
+        <strong>Dra. Ana Martínez</strong><br>
+        <strong>Motivo:</strong> Control cardiológico<br>
+        <strong>Diagnóstico:</strong> IC FC II descompensada. HTA mal controlada.<br>
+        <strong>TA:</strong> 150/95 | <strong>FC:</strong> 82 lpm | Edemas +/++++ MMII<br>
+        <strong>Plan:</strong> Ajuste Furosemida 60mg. Eco URGENTE. Lab completo. Control en 7 días.<br>
+        <strong>Receta:</strong> <a href="#">receta-28052026-001.pdf</a> | <strong>Pedido:</strong> <a href="#">pedido-eco-28052026.pdf</a>
+      </div>
+    </div>
+
+    <div class="consulta-item">
+      <div class="consulta-header">
+        <div class="fecha">15/04/2026 10:30</div>
+        <div class="especialidad">Cardiología</div>
+      </div>
+      <div class="consulta-body">
+        <strong>Dra. Ana Martínez</strong><br>
+        <strong>Motivo:</strong> Control rutinario<br>
+        <strong>Diagnóstico:</strong> IC FC II estable. HTA controlada.<br>
+        <strong>TA:</strong> 145/90 | <strong>FC:</strong> 78 lpm | Sin edemas<br>
+        <strong>Plan:</strong> Mantener medicación. Eco + Lab en 6 semanas. Control en 6 semanas.
+      </div>
+    </div>
+
+    <div class="consulta-item">
+      <div class="consulta-header">
+        <div class="fecha">20/02/2026 11:00</div>
+        <div class="especialidad">Clínica Médica</div>
+      </div>
+      <div class="consulta-body">
+        <strong>Dr. Javier González</strong><br>
+        <strong>Motivo:</strong> Catarro de vías aéreas superiores<br>
+        <strong>Diagnóstico:</strong> Rinofaringitis aguda (J00)<br>
+        <strong>Plan:</strong> Paracetamol 500mg c/8hs. Hidratación. Reposo.<br>
+        <strong>Receta:</strong> <a href="#">receta-20022026-003.pdf</a>
+      </div>
+    </div>
+
+    <div class="consulta-item">
+      <div class="consulta-header">
+        <div class="fecha">10/01/2026 09:30</div>
+        <div class="especialidad">Cardiología</div>
+      </div>
+      <div class="consulta-body">
+        <strong>Dra. Ana Martínez</strong><br>
+        <strong>Motivo:</strong> Control cardiológico<br>
+        <strong>Diagnóstico:</strong> IC FC II estable. HTA controlada.<br>
+        <strong>TA:</strong> 140/85 | <strong>FC:</strong> 74 lpm<br>
+        <strong>Plan:</strong> Mantener tratamiento. Control en 3 meses.
+      </div>
+    </div>
+
+    <div class="consulta-item">
+      <div class="consulta-header">
+        <div class="fecha">15/11/2025 16:00</div>
+        <div class="especialidad">Cardiología</div>
+      </div>
+      <div class="consulta-body">
+        <strong>Dra. Ana Martínez</strong><br>
+        <strong>Motivo:</strong> Disnea de esfuerzo<br>
+        <strong>Diagnóstico:</strong> Insuficiencia cardíaca FC II (nuevo diagnóstico)<br>
+        <strong>Ecocardiograma:</strong> FEVI 45%, dilatación AI<br>
+        <strong>Plan:</strong> Inicio Carvedilol 12.5mg c/12hs + Furosemida 40mg/día.<br>
+        <strong>Receta:</strong> <a href="#">receta-15112025-001.pdf</a>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

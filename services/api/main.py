@@ -1,11 +1,11 @@
+from dotenv import load_dotenv
+load_dotenv()
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routers import clientes, cobros, productos, reportes, proveedores, empresas, categorias, catalogo_publico
+from routers import clientes, cobros, productos, reportes, proveedores, empresas, categorias, catalogo_publico, salud
 from routers.auth import router as auth_router
 import os
-from dotenv import load_dotenv
-
-load_dotenv()
 
 app = FastAPI(
     title="SetubalAI Business Agent API",
@@ -37,6 +37,8 @@ app.include_router(proveedores.router)
 app.include_router(categorias.router)
 app.include_router(empresas.router)
 app.include_router(catalogo_publico.router)
+# Health vertical routes
+app.include_router(salud.router)
 
 
 @app.get("/")

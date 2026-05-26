@@ -4,40 +4,74 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 import {
   BarChart3, Users, DollarSign, Package,
-  LayoutDashboard, Zap, Wrench, Building2, LogOut, Settings
+  LayoutDashboard, Zap, Wrench, Building2, LogOut, Settings,
+  Stethoscope, Calendar, FileText, ClipboardList, UserCog
 } from "lucide-react";
 import { AuthProvider, useAuth } from "./auth-context";
 
-const menuGroups = [
+// === INTERFAZ PRODUCTOS (Comercio general) ===
+const PRODUCTOS_MENU = [
   {
     label: "Principal",
     items: [
       { name: "Dashboard",  path: "/dashboard",  icon: LayoutDashboard },
-      { name: "Clientes",   path: "/clientes",   icon: Users },
-      { name: "Cobros",     path: "/cobros",      icon: DollarSign },
-      { name: "Reportes",   path: "/reportes",   icon: BarChart3 },
+      { name: "Clientes",   path: "/clientes",   icon: Users     },
+      { name: "Cobros",    path: "/cobros",     icon: DollarSign },
+      { name: "Reportes",  path: "/reportes",   icon: BarChart3  },
     ],
   },
   {
     label: "Catálogo",
     items: [
-      { name: "Productos",  path: "/productos",  icon: Package },
-      { name: "Servicios",  path: "/servicios",  icon: Wrench },
+      { name: "Productos",    path: "/productos",    icon: Package   },
     ],
   },
   {
     label: "Administración",
     items: [
-      { name: "Proveedores",   path: "/proveedores",    icon: Building2 },
-      { name: "Configuración", path: "/configuracion",  icon: Settings },
+      { name: "Proveedores",    path: "/proveedores",    icon: Building2 },
+      { name: "Configuración",  path: "/configuracion",  icon: Settings  },
+    ],
+  },
+];
+
+// === INTERFAZ SALUD (Clínicas, diagnóstico por imágenes, etc) ===
+const SALUD_MENU = [
+  {
+    label: "Atención",
+    items: [
+      { name: "Dashboard",   path: "/dashboard",   icon: LayoutDashboard },
+      { name: "Pacientes",   path: "/pacientes",     icon: Users        },
+      { name: "Médicos",     path: "/medicos",       icon: Stethoscope   },
+      { name: "Turnos",      path: "/turnos",        icon: Calendar      },
+    ],
+  },
+  {
+    label: "Clínico",
+    items: [
+      { name: "Historia Clínica",  path: "/historia-clinica",  icon: ClipboardList },
+      { name: "Prácticas Médicas", path: "/practicas",         icon: FileText       },
+    ],
+  },
+  {
+    label: "Administración",
+    items: [
+      { name: "Nomencladores",    path: "/nomencladores",    icon: Building2 },
+      { name: "Obras Sociales",   path: "/obras-sociales",   icon: DollarSign },
+      { name: "Configuración",    path: "/configuracion",    icon: Settings   },
     ],
   },
 ];
 
 function AppShell({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname();
-  const router   = useRouter();
+  const pathname   = usePathname();
+  const router     = useRouter();
   const { user, loading, logout } = useAuth();
+
+  // Detectar vertical por rubro
+  const rubroLower  = (user?.empresa?.rubro || "").toLowerCase();
+  const esSalud     = rubroLower === "salud" || rubroLower === "médico" || rubroLower === "clínica" || rubroLower === "clinica";
+  const menuGroups  = esSalud ? SALUD_MENU : PRODUCTOS_MENU;
 
   useEffect(() => {
     if (!loading && !user && pathname !== "/login") {

@@ -1,19 +1,22 @@
-# GOAL — SetubalAI Business Agent
-**Producto:** Agente empresarial AI vendible a cualquier empresa
+# GOAL — SetubalAI Agent IA para Clínicas Médicas Multiespecialidad
+**Producto:** Agente IA especializado para gestionar logística y administración de clínicas médicas multiespecialidad
 **Owner:** Pablo (@pcostarotela) — SetubalAI
 **Inicio:** 2026-05-21
-**Estado:** FASE 1 EN CONSTRUCCION
+**Pivote estratégico:** 2026-05-26 — De "agente genérico" → "agente para clínicas médicas"
+**Estado:** MVP CLÍNICA MÉDICA EN CONSTRUCCIÓN
 
 ---
 
 ## VISION
 
-Un dueño o gerente de empresa controla TODO su negocio desde WhatsApp y una web app.
-Sin planillas, sin apps complicadas, sin capacitación. Solo escribe y el agente ejecuta.
+**OBJETIVO DEFINITIVO:** Todas las clínicas médicas de multiespecialidad necesitan un agente especializado para resolver la logística y administración de toda la información relacionada con los pacientes que se atienden en la clínica.
 
-**Modelo: SaaS Multi-Tenant.** Una infraestructura, N empresas clientes.
-Cada mejora se despliega una vez y llega a todos. Cada empresa ve solo sus datos.
-Personalizable: logo, colores, módulos activos según plan. No hay dos empresas iguales.
+El centro de todo es el **PACIENTE** y su **HISTORIA CLÍNICA**. De ahí derivan todas las relaciones: agendar turnos, atención médica, prácticas, recetas, estudios, seguimientos.
+
+**Modelo: SaaS Multi-Tenant.** Una infraestructura, N clínicas clientes.
+Cada mejora se despliega una vez y llega a todos. Cada clínica ve solo sus datos.
+
+Ver diagrama visual completo: `docs/FLUJO-CENTRO-MEDICO.html`
 
 Ver arquitectura completa: `docs/ARQUITECTURA-SAAS.md`
 
