@@ -7,7 +7,7 @@ Cada expone como un tool MCP que Hermes puede llamar directamente sin curl.
 import os
 import asyncio
 from contextlib import asynccontextmanager
-from datetime import date
+from datetime import date, datetime, timedelta, timezone
 from typing import Optional, List
 
 from mcp.server.fastmcp import FastMCP
@@ -24,14 +24,17 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from database import get_db
 from models import (
     Factura, Cliente, Producto, ItemFactura,
-    Ticket, Proveedor, Interaccion
+    Ticket, Proveedor, Interaccion,
+    Paciente, Medico, Visita, AtencionMedica,
+    HistoriaClinica, PracticaMedica, NomencladorPractica,
+    Receta, EstudioAdjunto, NotificacionProgramada,
 )
 from tenancy import resolve_empresa_id
 
 # Crear servidor MCP
 mcp = FastMCP(
     name="setubalai-api",
-    instructions="Herramientas de negocio para SetubalAI: CRM, cobros, productos, reportes."
+    instructions="Herramientas de negocio para SetubalAI: CRM, cobros, productos, reportes Y herramientas médicas completas para centros de salud."
 )
 
 # ─── COBROS / FACTURAS ───────────────────────────────────────────────────────
@@ -445,13 +448,596 @@ def get_tickets(estado: Optional[str] = None, limite: int = 50) -> dict:
         db.close()
 
 
+# ─── SALUD / CENTRO MÉDICO ───────────────────────────────────────────────────
+
+DAY_MAP = {
+    0: "lunes", 1: "martes", 2: "miércoles", 3: "jueves",
+    4: "viernes", 5: "sábado", 6: "domingo"
+}
+
+
+def _parse_horario(horario_str):
+    """Parsea '09:00-13:00' → (9*60, 13*60) en minutos desde medianoche."""
+    start_str, end_str = horario_str.strip().split("-")
+    sh, sm = map(int, start_str.split(":"))
+    eh, em = map(int, end_str.split(":"))
+    return sh * 60 + sm, eh * 60 + em
+
+
+def _get_slots_for_day(horarios, dt_utc, occupied_slots, duracion_min):
+    """Genera slots disponibles para un día dado según horarios_atencion."""
+    dia = DAY_MAP[dt_utc.weekday()]
+    day_horarios = horarios.get(dia, [])
+    if not day_horarios:
+        return []
+
+    slots = []
+    # Evitar slots en el pasado
+    now_utc = datetime.now(timezone.utc)
+
+    for horario_str in day_horarios:
+        start_min, end_min = _parse_horario(horario_str)
+        current = start_min
+        while current + duracion_min <= end_min:
+            h, m = divmod(current, 60)
+            slot_dt = dt_utc.replace(hour=h, minute=m, second=0, microsecond=0)
+            # Skip past slots
+            if slot_dt <= now_utc:
+                current += duracion_min
+                continue
+            # Check if occupied (compare with 2-min tolerance)
+            is_free = True
+            for occ in occupied_slots:
+                diff = abs((slot_dt - occ).total_seconds())
+                if diff < 120:  # 2 min tolerance
+                    is_free = False
+                    break
+            if is_free:
+                slots.append(slot_dt.isoformat())
+            current += duracion_min
+    return slots
+
+
+@mcp.tool()
+def med_especialidades_disponibles(empresa_id: int = 16) -> dict:
+    """Lista todas las especialidades médicas disponibles en el centro."""
+    from sqlalchemy import distinct
+    db = next(get_db())
+    try:
+        rows = db.query(distinct(Medico.especialidades)).filter(
+            Medico.empresa_id == empresa_id,
+            Medico.activo == True
+        ).all()
+        # especialidades es ARRAY, need to unnest
+        all_rows = db.query(Medico).filter(
+            Medico.empresa_id == empresa_id,
+            Medico.activo == True
+        ).all()
+        specs = set()
+        for m in all_rows:
+            if m.especialidades:
+                for s in m.especialidades:
+                    specs.add(s)
+        return {"especialidades": sorted(specs)}
+    finally:
+        db.close()
+
+
+@mcp.tool()
+def med_buscar_paciente(
+    dni: Optional[str] = None,
+    nombre: Optional[str] = None,
+    apellido: Optional[str] = None,
+    telefono: Optional[str] = None,
+    empresa_id: int = 16
+) -> dict:
+    """Busca pacientes por DNI, nombre, apellido o teléfono.
+    Retorna lista de coincidencias. Ideal para identificar si existe."""
+    db = next(get_db())
+    try:
+        q = db.query(Paciente).filter(Paciente.empresa_id == empresa_id)
+        if dni:
+            q = q.filter(Paciente.dni == dni)
+        if nombre:
+            q = q.filter(Paciente.nombre.ilike(f"%{nombre}%"))
+        if apellido:
+            q = q.filter(Paciente.apellido.ilike(f"%{apellido}%"))
+        if telefono:
+            q = q.filter(Paciente.telefono == telefono)
+
+        result = []
+        for p in q.order_by(Paciente.apellido).limit(20).all():
+            result.append({
+                "id": p.id,
+                "nombre": p.nombre,
+                "apellido": p.apellido,
+                "dni": p.dni,
+                "telefono": p.telefono,
+                "email": p.email,
+                "obra_social": p.obra_social,
+                "numero_afiliado": p.numero_afiliado,
+                "plan": p.plan,
+            })
+        return {"total": len(result), "pacientes": result}
+    finally:
+        db.close()
+
+
+@mcp.tool()
+def med_crear_paciente(
+    nombre: str,
+    apellido: str,
+    dni: str,
+    fecha_nacimiento: Optional[str] = None,
+    obra_social: Optional[str] = None,
+    numero_afiliado: Optional[str] = None,
+    plan: Optional[str] = None,
+    telefono: Optional[str] = None,
+    email: Optional[str] = None,
+    empresa_id: int = 16
+) -> dict:
+    """Crea un nuevo paciente en el sistema.
+    Retorna datos del paciente creado con su ID."""
+    db = next(get_db())
+    try:
+        # Check DNI duplicate
+        existing = db.query(Paciente).filter(
+            Paciente.empresa_id == empresa_id,
+            Paciente.dni == dni
+        ).first()
+        if existing:
+            return {
+                "ok": False,
+                "error": f"Ya existe un paciente con DNI {dni}: {existing.nombre} {existing.apellido} (ID: {existing.id})"
+            }
+
+        fn = None
+        if fecha_nacimiento:
+            try:
+                fn = datetime.strptime(fecha_nacimiento, "%Y-%m-%d").date()
+            except ValueError:
+                return {"ok": False, "error": "fecha_nacimiento debe ser YYYY-MM-DD"}
+        else:
+            # fecha_nacimiento es NOT NULL, usar fecha por defecto
+            fn = date(1980, 1, 1)
+
+        p = Paciente(
+            empresa_id=empresa_id,
+            nombre=nombre,
+            apellido=apellido,
+            dni=dni,
+            fecha_nacimiento=fn,
+            obra_social=obra_social,
+            numero_afiliado=numero_afiliado,
+            plan=plan,
+            telefono=telefono,
+            email=email,
+            activo=True,
+        )
+        db.add(p)
+        db.commit()
+        db.refresh(p)
+
+        return {
+            "ok": True,
+            "id": p.id,
+            "nombre": p.nombre,
+            "apellido": p.apellido,
+            "dni": p.dni,
+            "obra_social": p.obra_social,
+            "mensaje": f"Paciente creado: {nombre} {apellido} (ID: {p.id})"
+        }
+    except Exception as e:
+        db.rollback()
+        return {"ok": False, "error": str(e)}
+    finally:
+        db.close()
+
+
+@mcp.tool()
+def med_listar_medicos(
+    especialidad: Optional[str] = None,
+    activo: bool = True,
+    empresa_id: int = 16
+) -> dict:
+    """Lista médicos activos, opcionalmente filtrados por especialidad."""
+    from sqlalchemy import cast, String
+    db = next(get_db())
+    try:
+        q = db.query(Medico).filter(
+            Medico.empresa_id == empresa_id,
+            Medico.activo == activo
+        )
+        if especialidad:
+            # PostgreSQL array contains
+            medics_actual = []
+            for m in q.all():
+                if m.especialidades and especialidad in m.especialidades:
+                    medics_actual.append(m)
+        else:
+            medics_actual = q.all()
+
+        result = []
+        for m in medics_actual:
+            result.append({
+                "id": m.id,
+                "nombre": m.nombre,
+                "apellido": m.apellido,
+                "especialidades": m.especialidades or [],
+                "duracion_turno_minutos": m.duracion_turno_minutos,
+                "horarios_atencion": m.horarios_atencion,
+                "matricula_provincial": m.matricula_provincial,
+                "matricula_nacional": m.matricula_nacional,
+            })
+        return {"total": len(result), "medicos": result}
+    finally:
+        db.close()
+
+
+@mcp.tool()
+def med_buscar_slots_disponibles(
+    medico_id: int,
+    fecha_desde: str,  # YYYY-MM-DD
+    fecha_hasta: str,   # YYYY-MM-DD
+    empresa_id: int = 16
+) -> dict:
+    """Busca slots disponibles para un médico en un rango de fechas.
+    Considera horarios_atencion del médico y turnos ya agendados.
+    Retorna slots en formato ISO."""
+    db = next(get_db())
+    try:
+        medico = db.query(Medico).filter(
+            Medico.id == medico_id,
+            Medico.empresa_id == empresa_id
+        ).first()
+        if not medico:
+            return {"ok": False, "error": f"Médico #{medico_id} no encontrado"}
+
+        duracion = medico.duracion_turno_minutos
+        horarios = medico.horarios_atencion or {}
+
+        # Get existing turnos
+        try:
+            fd = datetime.strptime(fecha_desde, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+            fh = datetime.strptime(fecha_hasta, "%Y-%m-%d").replace(
+                hour=23, minute=59, second=59, tzinfo=timezone.utc
+            )
+        except ValueError:
+            return {"ok": False, "error": "Fechas deben ser YYYY-MM-DD"}
+
+        turnos = db.query(Visita).filter(
+            Visita.empresa_id == empresa_id,
+            Visita.medico_id == medico_id,
+            Visita.fecha_hora >= fd,
+            Visita.fecha_hora <= fh,
+            Visita.estado.in_(["pendiente", "confirmado", "en_curso", "en-curso"])
+        ).all()
+
+        occupied = [t.fecha_hora for t in turnos if t.fecha_hora]
+
+        slots = []
+        delta = timedelta(days=1)
+        current_date = fd.replace(hour=0, minute=0, second=0, microsecond=0)
+        end_date = fh.replace(hour=0, minute=0, second=0, microsecond=0)
+
+        while current_date <= end_date:
+            day_slots = _get_slots_for_day(horarios, current_date, occupied, duracion)
+            for s in day_slots:
+                slots.append(s)
+            current_date += delta
+
+        return {
+            "ok": True,
+            "medico": f"{medico.nombre} {medico.apellido}",
+            "duracion_minutos": duracion,
+            "total_slots": len(slots),
+            "slots": slots
+        }
+    finally:
+        db.close()
+
+
+@mcp.tool()
+def med_crear_turno(
+    paciente_id: int,
+    medico_id: int,
+    fecha_hora: str,  # ISO format: YYYY-MM-DDTHH:MM:SS
+    motivo_consulta: Optional[str] = None,
+    tipo_visita: str = "consulta",
+    empresa_id: int = 16
+) -> dict:
+    """Crea un turno (visita) en la DB.
+    Verifica: paciente existe, médico existe, slot disponible, no duplicados."""
+    db = next(get_db())
+    try:
+        # Verify paciente
+        paciente = db.query(Paciente).filter(
+            Paciente.id == paciente_id,
+            Paciente.empresa_id == empresa_id
+        ).first()
+        if not paciente:
+            return {"ok": False, "error": f"Paciente #{paciente_id} no encontrado"}
+
+        # Verify medico
+        medico = db.query(Medico).filter(
+            Medico.id == medico_id,
+            Medico.empresa_id == empresa_id
+        ).first()
+        if not medico:
+            return {"ok": False, "error": f"Médico #{medico_id} no encontrado"}
+
+        # Parse fecha
+        try:
+            fh = datetime.fromisoformat(fecha_hora)
+            if fh.tzinfo is None:
+                fh = fh.replace(tzinfo=timezone.utc)
+        except ValueError:
+            return {"ok": False, "error": "fecha_hora debe ser ISO (YYYY-MM-DDTHH:MM:SS)"}
+
+        # Check slot not already taken
+        existing = db.query(Visita).filter(
+            Visita.medico_id == medico_id,
+            Visita.fecha_hora == fh,
+            Visita.estado.in_(["pendiente", "confirmado", "en_curso", "en-curso"])
+        ).first()
+        if existing:
+            return {"ok": False, "error": "Ese horario ya está ocupado"}
+
+        # Check patient doesn't already have a pending turn
+        dup = db.query(Visita).filter(
+            Visita.paciente_nuevo_id == paciente_id,
+            Visita.estado.in_(["pendiente", "confirmado"]),
+        ).all()
+        for d in dup:
+            d_medico = db.query(Medico).filter(Medico.id == d.medico_id).first()
+            if d_medico and d_medico.especialidades:
+                if set(medico.especialidades) & set(d_medico.especialidades):
+                    return {
+                        "ok": False,
+                        "error": f"Ya tenés un turno pendiente con Dr/a. {d_medico.apellido} ({', '.join(d_medico.especialidades)}). No se pueden tener 2 turnos para la misma especialidad."
+                    }
+
+        duracion = medico.duracion_turno_minutos
+
+        v = Visita(
+            empresa_id=empresa_id,
+            paciente_nuevo_id=paciente_id,
+            medico_id=medico_id,
+            fecha_hora=fh,
+            duracion_minutos=duracion,
+            estado="pendiente",
+            motivo_consulta=motivo_consulta or "Consulta general",
+            tipo_visita=tipo_visita,
+        )
+        db.add(v)
+        db.commit()
+        db.refresh(v)
+
+        especialidad = medico.especialidades[0] if medico.especialidades else "General"
+        return {
+            "ok": True,
+            "turno_id": v.id,
+            "paciente": f"{paciente.nombre} {paciente.apellido}",
+            "medico": f"{medico.nombre} {medico.apellido} ({especialidad})",
+            "fecha_hora": v.fecha_hora.isoformat(),
+            "duracion_minutos": duracion,
+            "estado": "pendiente",
+            "mensaje": f"Turno #{v.id} creado para {paciente.nombre} {paciente.apellido} con Dr/a. {medico.apellido}"
+        }
+    except Exception as e:
+        db.rollback()
+        return {"ok": False, "error": str(e)}
+    finally:
+        db.close()
+
+
+@mcp.tool()
+def med_listar_turnos(
+    medico_id: Optional[int] = None,
+    paciente_id: Optional[int] = None,
+    fecha: Optional[str] = None,
+    estado: Optional[str] = None,
+    empresa_id: int = 16
+) -> dict:
+    """Lista turnos con filtros. Retorna datos con nombres de paciente y médico."""
+    db = next(get_db())
+    try:
+        q = db.query(Visita).filter(Visita.empresa_id == empresa_id)
+        if medico_id:
+            q = q.filter(Visita.medico_id == medico_id)
+        if paciente_id:
+            q = q.filter(Visita.paciente_nuevo_id == paciente_id)
+        if fecha:
+            try:
+                fd = datetime.strptime(fecha, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+                fh = fd + timedelta(days=1)
+                q = q.filter(Visita.fecha_hora >= fd, Visita.fecha_hora < fh)
+            except ValueError:
+                return {"ok": False, "error": "fecha debe ser YYYY-MM-DD"}
+        if estado:
+            q = q.filter(Visita.estado == estado)
+        else:
+            # Default: exclude cancelled
+            q = q.filter(Visita.estado != "cancelado")
+
+        turnos = q.order_by(Visita.fecha_hora).limit(100).all()
+
+        result = []
+        for t in turnos:
+            paciente = db.query(Paciente).filter(Paciente.id == t.paciente_nuevo_id).first()
+            medico = db.query(Medico).filter(Medico.id == t.medico_id).first()
+            esp = medico.especialidades[0] if medico and medico.especialidades else ""
+            result.append({
+                "id": t.id,
+                "paciente": f"{paciente.nombre} {paciente.apellido}" if paciente else "?",
+                "medico": f"{medico.nombre} {medico.apellido}" if medico else "?",
+                "especialidad": esp,
+                "fecha_hora": str(t.fecha_hora) if t.fecha_hora else None,
+                "duracion_minutos": t.duracion_minutos,
+                "estado": t.estado,
+                "motivo_consulta": str(t.motivo_consulta or "")[:100],
+                "tipo_visita": t.tipo_visita,
+            })
+        return {"total": len(result), "turnos": result}
+    finally:
+        db.close()
+
+
+@mcp.tool()
+def med_cancelar_turno(
+    turno_id: int,
+    motivo: Optional[str] = None,
+    empresa_id: int = 16
+) -> dict:
+    """Cancela un turno. Siempre se puede cancelar.
+    Calcula si fue con 24h de anticipación para la reprogramación posterior:
+    - Cancelación con +24h: reprograma con prioridad normal
+    - Cancelación con -24h: reprograma fuera del rango urgente, sin prioridad"""
+    db = next(get_db())
+    try:
+        turno = db.query(Visita).filter(
+            Visita.id == turno_id,
+            Visita.empresa_id == empresa_id
+        ).first()
+        if not turno:
+            return {"ok": False, "error": f"Turno #{turno_id} no encontrado"}
+
+        if turno.estado == "cancelado":
+            return {"ok": False, "error": "El turno ya fue cancelado"}
+
+        now_utc = datetime.now(timezone.utc)
+        cancelo_con_anticipacion = True  # default
+        turno_fecha_str = "N/A"
+
+        if turno.fecha_hora:
+            fh = turno.fecha_hora
+            if fh.tzinfo is None:
+                fh = fh.replace(tzinfo=timezone.utc)
+            turno_fecha_str = fh.strftime("%d/%m/%Y a las %H:%M")
+            diff = (fh - now_utc).total_seconds()
+            if diff < 86400:
+                cancelo_con_anticipacion = False
+
+        turno.estado = "cancelado"
+        turno.cancelacion_motivo = motivo or "Cancelado por paciente"
+        turno.fecha_cancelacion = now_utc
+        turno.updated_at = now_utc
+        db.commit()
+
+        if cancelo_con_anticipacion:
+            reprogramacion_msg = (
+                "Turno cancelado con suficiente anticipación. Puedes reprogramar normalmente."
+            )
+        else:
+            reprogramacion_msg = (
+                "Atención: cancelaste con menos de 24h de anticipación. "
+                "Si deseas reprogramar, se te asignará disponibilidad sin prioridad "
+                "(solo fuera del rango urgente). Contacta a recepción para asistencia."
+            )
+
+        return {
+            "ok": True,
+            "turno_id": turno_id,
+            "estado": "cancelado",
+            "cancelo_con_anticipacion": cancelo_con_anticipacion,
+            "turno_fecha_original": turno_fecha_str,
+            "mensaje": f"Turno cancelado. {reprogramacion_msg}"
+        }
+    except Exception as e:
+        db.rollback()
+        return {"ok": False, "error": str(e)}
+    finally:
+        db.close()
+
+
+@mcp.tool()
+def med_modificar_turno(
+    turno_id: int,
+    nueva_fecha_hora: str,
+    empresa_id: int = 16
+) -> dict:
+    """Modifica la fecha/hora de un turno existente.
+    Siempre se puede modificar, pero con < 24h se asigna sin prioridad."""
+    db = next(get_db())
+    try:
+        turno = db.query(Visita).filter(
+            Visita.id == turno_id,
+            Visita.empresa_id == empresa_id
+        ).first()
+        if not turno:
+            return {"ok": False, "error": f"Turno #{turno_id} no encontrado"}
+
+        if turno.estado == "cancelado":
+            return {"ok": False, "error": "No se puede modificar un turno cancelado"}
+
+        now_utc = datetime.now(timezone.utc)
+        fh_original = turno.fecha_hora
+        modifica_con_anticipacion = True
+        turno_fecha_str = "N/A"
+
+        if fh_original:
+            if fh_original.tzinfo is None:
+                fh_original = fh_original.replace(tzinfo=timezone.utc)
+            turno_fecha_str = fh_original.strftime("%d/%m/%Y a las %H:%M")
+            diff = (fh_original - now_utc).total_seconds()
+            if diff < 86400:
+                modifica_con_anticipacion = False
+
+        try:
+            new_fh = datetime.fromisoformat(nueva_fecha_hora)
+            if new_fh.tzinfo is None:
+                new_fh = new_fh.replace(tzinfo=timezone.utc)
+        except ValueError:
+            return {"ok": False, "error": "nueva_fecha_hora debe ser ISO format"}
+
+        # Check slot not taken
+        existing = db.query(Visita).filter(
+            Visita.medico_id == turno.medico_id,
+            Visita.fecha_hora == new_fh,
+            Visita.id != turno_id,
+            Visita.estado.in_(["pendiente", "confirmado", "en_curso", "en-curso"])
+        ).first()
+        if existing:
+            return {"ok": False, "error": "Ese nuevo horario ya está ocupado"}
+
+        old_fh = turno.fecha_hora
+        turno.fecha_hora = new_fh
+        turno.updated_at = now_utc
+        db.commit()
+
+        if modifica_con_anticipacion:
+            reprogramacion_msg = f"Turno reprogramado de {old_fh.strftime('%d/%m %H:%M')} a {new_fh.strftime('%d/%m %H:%M')}"
+        else:
+            reprogramacion_msg = (
+                f"Turno reprogramado de {old_fh.strftime('%d/%m %H:%M')} a {new_fh.strftime('%d/%m %H:%M')}. "
+                f"Modificaste con menos de 24h, se asignó disponibilidad sin prioridad."
+            )
+
+        return {
+            "ok": True,
+            "turno_id": turno_id,
+            "modifica_con_anticipacion": modifica_con_anticipacion,
+            "fecha_anterior": str(old_fh),
+            "fecha_nueva": str(new_fh),
+            "mensaje": reprogramacion_msg
+        }
+    except Exception as e:
+        db.rollback()
+        return {"ok": False, "error": str(e)}
+    finally:
+        db.close()
+
+
 # ─── EJECUTAR ────────────────────────────────────────────────────────────────
 
 def main():
     print("Iniciando SetubalAI MCP Server...")
-    print("Tools disponibles: get_facturas, get_facturas_vencidas, get_facturas_pendientes,")
-    print("                   marcar_factura_pagada, get_cobros_stats, get_clientes, get_cliente,")
-    print("                   get_productos, get_stock_critico, get_tickets")
+    print("CRM/Cobros: get_facturas, get_facturas_vencidas, get_facturas_pendientes,")
+    print("            marcar_factura_pagada, get_cobros_stats, get_clientes, get_cliente,")
+    print("            get_productos, get_stock_critico, get_tickets")
+    print("MÉDICAS: med_especialidades_disponibles, med_buscar_paciente, med_crear_paciente,")
+    print("         med_listar_medicos, med_buscar_slots_disponibles, med_crear_turno,")
+    print("         med_listar_turnos, med_cancelar_turno, med_modificar_turno")
     mcp.run()
 
 if __name__ == "__main__":

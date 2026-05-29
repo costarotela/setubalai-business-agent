@@ -254,6 +254,42 @@ class Visita(Base):
     updated_at = Column(TIMESTAMPTZ, server_default=func.now())
     medico = relationship("Medico")
 
+class GrillaMedica(Base):
+    __tablename__ = "grillas_medicas"
+    id = Column(Integer, primary_key=True)
+    empresa_id = Column(Integer, ForeignKey("empresa.id"), nullable=False)
+    medico_id = Column(Integer, ForeignKey("medicos.id"), nullable=False)
+    dia_semana = Column(Integer, nullable=False)
+    hora_inicio = Column(DateTime, nullable=False)
+    hora_fin = Column(DateTime, nullable=False)
+    activo = Column(Boolean, default=True)
+    created_at = Column(TIMESTAMPTZ, server_default=func.now())
+    updated_at = Column(TIMESTAMPTZ, server_default=func.now())
+    medico = relationship("Medico")
+
+class BloqueoGrilla(Base):
+    __tablename__ = "bloqueos_grilla"
+    id = Column(Integer, primary_key=True)
+    empresa_id = Column(Integer, ForeignKey("empresa.id"), nullable=False)
+    medico_id = Column(Integer, ForeignKey("medicos.id"), nullable=False)
+    fecha_desde = Column(Date, nullable=False)
+    fecha_hasta = Column(Date, nullable=False)
+    hora_inicio = Column(DateTime)
+    hora_fin = Column(DateTime)
+    motivo = Column(String(200))
+    created_at = Column(TIMESTAMPTZ, server_default=func.now())
+    medico = relationship("Medico")
+
+class DuracionPrestacion(Base):
+    __tablename__ = "duracion_prestaciones"
+    id = Column(Integer, primary_key=True)
+    empresa_id = Column(Integer, ForeignKey("empresa.id"), nullable=False)
+    especialidad = Column(String(100), nullable=False)
+    duracion_minutos = Column(Integer, nullable=False, default=30)
+    sobre_turnos_permitidos = Column(Integer, default=0)
+    created_at = Column(TIMESTAMPTZ, server_default=func.now())
+    updated_at = Column(TIMESTAMPTZ, server_default=func.now())
+
 class HistoriaClinica(Base):
     __tablename__ = "historia_clinica"
     id = Column(Integer, primary_key=True)

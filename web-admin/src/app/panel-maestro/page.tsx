@@ -7,6 +7,7 @@ import {
   ChevronDown, ChevronUp, Edit2, X, RefreshCw, Activity,
   BarChart3, CreditCard, Package, FileText, LogOut, Copy, KeyRound, ExternalLink,
 } from "lucide-react";
+import InfrastructureTab from "./InfrastructureTab";
 
 const API = "/api";
 
@@ -91,13 +92,14 @@ function Badge({ text, color }: { text: string; color: string }) {
 }
 
 /* ─── Tabs ───────────────────────────────────────────── */
-type TabId = "empresas" | "nueva" | "sistema";
+type TabId = "empresas" | "nueva" | "sistema" | "infraestructura";
 
 function Tabs({ active, onChange }: { active: TabId; onChange: (t: TabId) => void }) {
   const tabs: { id: TabId; label: string }[] = [
     { id: "empresas", label: "Empresas clientes" },
     { id: "nueva",    label: "Agregar empresa" },
     { id: "sistema",  label: "Sistema" },
+    { id: "infraestructura", label: "Infraestructura" },
   ];
   return (
     <div style={{
@@ -762,11 +764,18 @@ export default function PanelMaestro() {
   const cargar = useCallback(async () => {
     setLoading(true);
     try {
-      const r = await fetchAuth(`${API}/empresas/`);
+      const r = await fetchAuth(`${API}/empresas`);
+      if (!r.ok) {
+        console.error("Error cargando empresas:", r.status, r.statusText);
+        return;
+      }
       const d = await r.json();
       setEmpresas(d.empresas || []);
-    } catch {/* ignore */}
-    setLoading(false);
+    } catch (err) {
+      console.error("Error cargando empresas:", err);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => { cargar(); }, [cargar]);
@@ -879,6 +888,9 @@ export default function PanelMaestro() {
 
         {/* Tab: Sistema */}
         {tab === "sistema" && <SystemStatus empresas={empresas} />}
+
+        {/* Tab: Infraestructura */}
+        {tab === "infraestructura" && <InfrastructureTab />}
 
         {/* Edit modal */}
         {editingEmpresa && (

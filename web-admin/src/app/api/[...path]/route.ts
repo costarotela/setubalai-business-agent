@@ -37,11 +37,17 @@ async function proxy(req: NextRequest, { params }: { params: Promise<{ path: str
 
   const res = await fetch(url, init);
 
-  // Handle 307 trailing-slash redirects without losing auth headers + body
+  // Handle 307/308 trailing-slash redirects — resolve relative location against API_BASE
   if (res.status === 307 || res.status === 308) {
     const loc = res.headers.get("location");
     if (loc) {
-      const res2 = await fetch(loc, init);
+      let targetUrl: string;
+      if (loc.startsWith("http://") || loc.startsWith("https://")) {
+        targetUrl = loc;
+      } else {
+        targetUrl = `${API_BASE}${loc}`;
+      }
+      const res2 = await fetch(targetUrl, init);
       const data2 = await res2.text();
       return new NextResponse(data2, {
         status: res2.status,

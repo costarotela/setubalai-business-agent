@@ -353,6 +353,106 @@ def crear_medico(
     db.refresh(m)
     return _dict_medico(m)
 
+# ===== CALENDARIO TURNO (agregado 2026-05-28) =====
+
+def _dict_calendario_turno(v, paciente=None, medico=None):
+    """Version enriquecida de visita para el calendario dashboard."""
+    fh = v.fecha_hora
+    fecha_str = fh.strftime("%Y-%m-%d") if fh else None
+    hora_str = fh.strftime("%H:%M") if fh else ""
+    pac_nombre = ""
+    pac_apellido = ""
+    pac_os = None
+    if paciente:
+        pac_nombre = paciente.nombre or ""
+        pac_apellido = paciente.apellido or ""
+        pac_os = getattr(paciente, "obra_social", None)
+    med_nombre = ""
+    med_apellido = ""
+    med_especialidades = []
+    if medico:
+        med_nombre = medico.nombre or ""
+        med_apellido = medico.apellido or ""
+        med_especialidades = medico.especialidades or []
+    return {
+        "id": v.id,
+        "fecha_hora": str(fh) if fh else None,
+        "fecha": fecha_str,
+        "hora": hora_str,
+        "duracion_minutos": v.duracion_minutos or 30,
+        "paciente_id": v.paciente_nuevo_id or v.paciente_id,
+        "paciente_nombre": pac_nombre,
+        "paciente_apellido": pac_apellido,
+        "obra_social": pac_os,
+        "medico_id": v.medico_id,
+        "medico_nombre": med_nombre,
+        "medico_apellido": med_apellido,
+        "especialidades": med_especialidades,
+        "estado": v.estado or "pendiente",
+        "motivo": v.motivo_consulta or v.tipo_visita or "",
+        "tipo_visita": v.tipo_visita or "",
+        "cancelacion_motivo": v.cancelacion_motivo or None,
+        "reprogramado_a_visita_id": v.reprogramado_a_visita_id,
+        "created_at": str(v.created_at) if v.created_at else None,
+    }
+
+
+@router.get("/calendario")
+def turnos_calendario(
+    request: Request,
+    mes: str = Query(..., description="Mes en formato YYYY-MM, ej: 2026-06"),
+    db: Session = Depends(get_db),
+    empresa_id: int = Depends(resolve_empresa_id)
+):
+    """Retorna todos los turnos del mes especificado para la empresa."""
+    from sqlalchemy import extract
+    try:
+        parts = mes.split("-")
+        year = int(parts[0])
+        month = int(parts[1])
+    except (ValueError, IndexError):
+        raise HTTPException(400, "Formato invalido. Usar YYYY-MM")
+    query = (
+        db.query(Visita)
+        .outerjoin(
+            Paciente,
+            (Visita.paciente_nuevo_id.isnot(None)) & (Visita.paciente_nuevo_id == Paciente.id)
+        )
+        .outerjoin(Medico, Visita.medico_id == Medico.id)
+        .filter(
+            Visita.empresa_id == empresa_id,
+            extract('year', Visita.fecha_hora) == year,
+            extract('month', Visita.fecha_hora) == month,
+        )
+        .order_by(Visita.fecha_hora.asc())
+    )
+    resultados = query.all()
+    turnos = []
+    for v in resultados:
+        if v.paciente_nuevo_id:
+            from models import Paciente as P
+            paciente = db.query(P).filter(P.id == v.paciente_nuevo_id).first() if not (hasattr(v, 'paciente_nuevo') and v.paciente_nuevo) else v.paciente_nuevo
+        elif v.paciente_id:
+            from models import Cliente
+            cliente = db.query(Cliente).filter(Cliente.id == v.paciente_id).first()
+            if cliente:
+                class FakePaciente:
+                    nombre = cliente.nombre or ""
+                    apellido = cliente.apellido or ""
+                    obra_social = getattr(cliente, 'obra_social', None)
+                paciente = FakePaciente()
+            else:
+                paciente = None
+        else:
+            paciente = None
+        turno = _dict_calendario_turno(v, paciente=paciente, medico=v.medico)
+        turno["paciente_completo"] = f"{turno['paciente_apellido']}, {turno['paciente_nombre']}".strip(", ") or "Desconocido"
+        turno["medico_completo"] = f"Dr/a. {turno['medico_nombre']} {turno['medico_apellido']}".strip() or ""
+        turno["medico_display"] = f"{turno['medico_apellido']}, {turno['medico_nombre']}".strip(", ") or ""
+        turnos.append(turno)
+    return {"mes": mes, "total": len(turnos), "turnos": turnos}
+
+
 # ===== TURNOS (VISITAS) =====
 
 @router.get("/turnos/", response_model=List[dict])

@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { TrendingUp, TrendingDown, DollarSign, Users, AlertCircle, CheckCircle, Clock, ArrowUpRight } from "lucide-react";
 
 const API = "/api";
@@ -47,23 +48,34 @@ const ESTADO_LABEL: Record<string, string> = {
 };
 
 export default function DashboardPage() {
+  const router = useRouter();
   const [dash, setDash] = useState<any>(null);
   const [pendientes, setPendientes] = useState<any[]>([]);
   const [clientes, setClientes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const token = localStorage.getItem("setubalai_token_v2");
+    if (!token) {
+      router.push("/login");
+      return;
+    }
+
+    const headers = { Authorization: `Bearer ${token}` };
     Promise.all([
-      fetch(`${API}/reportes/dashboard`).then(r => r.json()),
-      fetch(`${API}/cobros/pendientes`).then(r => r.json()),
-      fetch(`${API}/clientes`).then(r => r.json()),
+      fetch(`${API}/reportes/dashboard`, { headers }).then(r => r.ok ? r.json() : Promise.reject()),
+      fetch(`${API}/cobros/pendientes`, { headers }).then(r => r.ok ? r.json() : Promise.reject()),
+      fetch(`${API}/clientes`, { headers }).then(r => r.ok ? r.json() : Promise.reject()),
     ]).then(([d, p, c]) => {
       setDash(d);
       setPendientes(p?.facturas?.slice(0, 5) || []);
       setClientes(c?.clientes?.slice(0, 5) || []);
       setLoading(false);
-    }).catch(() => setLoading(false));
-  }, []);
+    }).catch(() => {
+      localStorage.removeItem("setubalai_token_v2");
+      router.push("/login");
+    });
+  }, [router]);
 
   if (loading) return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh" }}>

@@ -56,9 +56,10 @@ const SALUD_MENU = [
   {
     label: "Administración",
     items: [
-      { name: "Nomencladores",    path: "/nomencladores",    icon: Building2 },
-      { name: "Obras Sociales",   path: "/obras-sociales",   icon: DollarSign },
-      { name: "Configuración",    path: "/configuracion",    icon: Settings   },
+      { name: "Nomencladores",    path: "/nomencladores",      icon: Building2 },
+      { name: "Obras Sociales",   path: "/obras-sociales",     icon: DollarSign },
+      { name: "Config. Agenda",   path: "/configuracion/agenda", icon: UserCog   },
+      { name: "Configuración",    path: "/configuracion",      icon: Settings   },
     ],
   },
 ];

@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SetubalAI — Propuesta para Centros Médicos</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0a0b0d; color: #e4e5e7; font-family: 'Inter', -apple-system, sans-serif; padding: 40px 60px; max-width: 1200px; margin: 0 auto; }
+  h1 { font-size: 36px; margin-bottom: 8px; }
+  h2 { font-size: 22px; color: #6b8afd; margin: 50px 0 20px; border-bottom: 1px solid #1e1f22; padding-bottom: 8px; }
+  .subtitle { color: #62666d; font-size: 14px; margin-bottom: 40px; }
+  .hero { background: linear-gradient(135deg, #1a2040, #0a0b0d); border: 1px solid #2a2b3d; border-radius: 16px; padding: 40px; margin-bottom: 40px; }
+  .hero h1 { color: #f7f8f8; }
+  .hero p { color: #8b8d91; font-size: 16px; margin-top: 12px; line-height: 1.6; }
+  .section { margin-bottom: 50px; }
+  .section-title { font-size: 18px; font-weight: 700; color: #6b8afd; margin-bottom: 16px; }
+  
+  /* Comparison Grid */
+  .comparison { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .comp-card { border-radius: 12px; padding: 28px; }
+  .comp-card.before { background: #1a1213; border: 1px solid #3d1a1a; }
+  .comp-card.after { background: #121a15; border: 1px solid #1a3d20; }
+  .comp-card h3 { font-size: 18px; margin-bottom: 16px; }
+  .comp-card.before h3 { color: #d46b6b; }
+  .comp-card.after h3 { color: #6bd46b; }
+  .comp-card li { font-size: 14px; color: #8b8d91; padding: 8px 0; padding-left: 20px; position: relative; list-style: none; }
+  .comp-card.before li::before { content: "✗"; color: #d46b6b; position: absolute; left: 0; font-weight: 700; }
+  .comp-card.after li::before { content: "✓"; color: #6bd46b; position: absolute; left: 0; font-weight: 700; }
+  
+  /* Flow Steps */
+  .flow { display: flex; flex-direction: column; gap: 0; }
+  .flow-step { display: flex; gap: 20px; padding: 20px 0; border-bottom: 1px solid #1a1b1d; }
+  .step-num { width: 36px; height: 36px; min-width: 36px; background: #6b8afd; color: #0a0b0d; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 800; margin-top: 2px; }
+  .step-content { flex: 1; }
+  .step-title { font-size: 16px; font-weight: 700; color: #f7f8f8; margin-bottom: 6px; }
+  .step-desc { font-size: 13px; color: #8b8d91; line-height: 1.6; }
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; margin-right: 4px; margin-bottom: 4px; }
+  .tg { background: #1a2a3d; color: #5ea8d3; border: 1px solid #3a6a9d; }
+  .ai { background: #2a2210; color: #d4a84b; border: 1px solid #9a7a3a; }
+  .mcp { background: #102a1a; color: #6bd46b; border: 1px solid #3a9d3d; }
+  .db { background: #2a1028; color: #b366b3; border: 1px solid #7a3d7a; }
+  .dash { background: #2a2a10; color: #d4c84b; border: 1px solid #9a9a3d; }
+  .rule { background: #3d1a1a; color: #d46b6b; border: 1px solid #9d3a3a; }
+  
+  /* Architecture */
+  .arch-flow { display: flex; align-items: center; gap: 12px; margin: 24px 0; flex-wrap: wrap; }
+  .arch-box { background: #141517; border: 1px solid #2a2b2d; border-radius: 10px; padding: 16px 20px; text-align: center; min-width: 150px; }
+  .arch-box h4 { font-size: 14px; margin-bottom: 4px; }
+  .arch-box p { font-size: 11px; color: #62666d; }
+  .arch-box.tg { border-color: #5ea8d3; }
+  .arch-box.ai { border-color: #d4a84b; }
+  .arch-box.mcp { border-color: #6bd46b; }
+  .arch-box.db { border-color: #b366b3; }
+  .arch-box.dash { border-color: #d4c84b; }
+  .arrow { color: #6b8afd; font-size: 28px; }
+  
+  /* Stats */
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin: 30px 0; }
+  .stat { background: #141517; border: 1px solid #2a2b2d; border-radius: 10px; padding: 24px; text-align: center; }
+  .stat .num { font-size: 36px; font-weight: 800; color: #6b8afd; }
+  .stat .label { font-size: 12px; color: #8b8d91; margin-top: 6px; }
+  
+  /* Chat simulation */
+  .chat-sim { background: #141517; border: 1px solid #2a2b2d; border-radius: 12px; padding: 20px; margin: 20px 0; max-width: 600px; }
+  .chat-msg { margin-bottom: 12px; max-width: 80%; }
+  .chat-msg.user { margin-left: auto; }
+  .chat-bubble { padding: 10px 16px; border-radius: 16px; font-size: 14px; line-height: 1.5; }
+  .chat-msg.bot .chat-bubble { background: #2a3b50; color: #e4e5e7; border-top-left-radius: 4px; }
+  .chat-msg.user .chat-bubble { background: #5ea8d3; color: #0a0b0d; border-top-right-radius: 4px; }
+  .chat-label { font-size: 11px; color: #62666d; margin-bottom: 2px; }
+  .chat-msg.user .chat-label { text-align: right; }
+  
+  .quote { border-left: 3px solid #6b8afd; padding: 16px 20px; margin: 20px 0; background: #0f1012; font-style: italic; font-size: 15px; color: #8b8d91; }
+  
+  .table-compare { width: 100%; border-collapse: collapse; margin: 20px 0; }
+  .table-compare th, .table-compare td { padding: 12px 16px; text-align: left; border-bottom: 1px solid #1a1b1d; font-size: 14px; }
+  .table-compare th { background: #141517; color: #6b8afd; font-weight: 600; }
+  .table-compare td:first-child { color: #e4e5e7; }
+  .table-compare td:nth-child(2) { color: #d46b6b; }
+  .table-compare td:nth-child(3) { color: #6bd46b; }
+  
+  .highlight-box { background: #1a2040; border: 1px solid #3a4a7d; border-radius: 10px; padding: 24px; margin: 20px 0; }
+  .highlight-box h3 { color: #6b8afd; margin-bottom: 12px; }
+  .highlight-box p { color: #8b8d91; font-size: 14px; line-height: 1.6; }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>🏥 Agente IA para Centros Médicos Multiespecialidad</h1>
+  <p>Un solo agente autónomo reemplaza toda la logística de turnos, atención, y gestión de pacientes.<br>24/7. Sin intervención humana. Con datos reales para la toma de decisiones.</p>
+</div>
+
+<!-- STATS -->
+<div class="stats">
+  <div class="stat">
+    <div class="num">24/7</div>
+    <div class="label">Disponibilidad sin humanos</div>
+  </div>
+  <div class="stat">
+    <div class="num">&lt;10%</div>
+    <div class="label">Ausentismo con recordatorios IA</div>
+  </div>
+  <div class="stat">
+    <div class="num">100%</div>
+    <div class="label">Historia clínica digital unificada</div>
+  </div>
+</div>
+
+<!-- COMPARISON -->
+<h2>Lo que sufren hoy vs. lo que obtienen con SetubalAI</h2>
+<div class="comparison">
+  <div class="comp-card before">
+    <h3>✗ Centro médico tradicional</h3>
+    <ul>
+      <li>1-3 personas respondiendo turnos a mano (WhatsApp + teléfono + mostrador)</li>
+      <li>20-30% de no-show (pacientes que no van sin avisar) = plata perdida</li>
+      <li>Turnos duplicados: un paciente agenda 2 veces sin que nadie lo note</li>
+      <li>Historia clínica fragmentada: cada médico tiene sus notas separadas</li>
+      <li>Sin datos de gestión: no saben cuántos pacientes, cuántos no vinieron</li>
+      <li>Software de turnos genérico (TurnosOnline, Doctoralia) = calendarios glorificados</li>
+      <li>Paciente frustrado: tiene que llamar en horario laboral, esperar, repetir</li>
+    </ul>
+  </div>
+  <div class="comp-card after">
+    <h3>✓ Con SetubalAI</h3>
+    <ul>
+      <li>Agente IA que funciona 24/7 desde Telegram/WhatsApp — 0 personas en turno</li>
+      <li>Recordatorio automático T-24h + detección de no-show → &lt;10% ausentismo</li>
+      <li>Bloqueo automático: 1 turno por especialidad por paciente</li>
+      <li>Historia clínica unificada por paciente — cualquier médico ve todo</li>
+      <li>Dashboard con métricas reales: ocupación, ausentismo, especialidades top</li>
+      <li>Agente que entiende al paciente, identifica, agenda, y resuelve solo</li>
+      <li>Paciente feliz: agenda en 2 minutos desde su celular, a cualquier hora</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ARCHITECTURE -->
+<h2>Arquitectura del Ecosistema</h2>
+<div class="arch-flow">
+  <div class="arch-box tg">
+    <h4>📱 Telegram / WhatsApp</h4>
+    <p>Paciente escribe</p>
+  </div>
+  <div class="arrow">→</div>
+  <div class="arch-box ai">
+    <h4>🤖 Hermes Agent</h4>
+    <p>IA entiende y resuelve</p>
+  </div>
+  <div class="arrow">→</div>
+  <div class="arch-box mcp">
+    <h4>⚡ MCP Server (9 tools)</h4>
+    <p>Pacientes, médicos, turnos, slots</p>
+  </div>
+  <div class="arrow">→</div>
+  <div class="arch-box db">
+    <h4>🗄️ PostgreSQL</h4>
+    <p>Multi-tenant, datos aislados</p>
+  </div>
+  <div class="arrow">→</div>
+  <div class="arch-box dash">
+    <h4>👑 Dashboard Web</h4>
+    <p>Clínica consulta y opera</p>
+  </div>
+</div>
+
+<!-- CHAT SIMULATION -->
+<h2>Simulación real de una conversación</h2>
+<div class="chat-sim">
+  <div class="chat-msg user">
+    <div class="chat-label">Paciente (María)</div>
+    <div class="chat-bubble">Hola, quiero sacar un turno para cardiología</div>
+  </div>
+  <div class="chat-msg bot">
+    <div class="chat-label">Agente IA</div>
+    <div class="chat-bubble">Hola María 👋 Te tengo registrado con DNI 30123456, obra social OSDE. ¿Para qué especialidad querés turno?</div>
+  </div>
+  <div class="chat-msg user">
+    <div class="chat-label">Paciente</div>
+    <div class="chat-bubble">Eso, para cardiología con el Dr. Rodríguez</div>
+  </div>
+  <div class="chat-msg bot">
+    <div class="chat-label">Agente IA</div>
+    <div class="chat-bubble">El Dr. Carlos Rodríguez atiende cardiología los lunes y miércoles de 14:00 a 20:00.<br><br>Estos son los turnos disponibles para la semana que viene:<br>🕐 Mié 27/05 — 14:45 | 15:30 | 16:15 | 17:00 | 17:45<br>🕐 Lun 02/06 — 14:00 | 14:45 | 15:30 | 16:15<br><br>¿Cuál preferís?</div>
+  </div>
+  <div class="chat-msg user">
+    <div class="chat-label">Paciente</div>
+    <div class="chat-bubble">El mié 27 a las 15:30</div>
+  </div>
+  <div class="chat-msg bot">
+    <div class="chat-label">Agente IA</div>
+    <div class="chat-bubble">✅ <strong>Turno confirmado:</strong><br><br>🗓️ Miércoles 27 de mayo — 15:30hs<br>👨‍⚕️ Dr. Carlos Rodríguez — Cardiología<br>🏥 Centro Médico Santa Clara<br><br>recordá traer DNI y carnet de OSDE.<br>⚠️ Podés cancelar o modificar con al menos 24hs de anticipación.</div>
+  </div>
+</div>
+
+<!-- FLOW STEPS -->
+<h2>Flujo completo — Paso a paso</h2>
+<div class="flow">
+  <div class="flow-step">
+    <div class="step-num">1</div>
+    <div class="step-content">
+      <div class="step-title">Paciente inicia conversación</div>
+      <div class="step-desc">
+        <span class="tag tg">Telegram</span>
+        El paciente escribe un mensaje natural. No formularios, no apps, no esperas. "Quiero turno", "Necesito cardíologo", "Mi hijo tiene fiebre".
+      </div>
+    </div>
+  </div>
+  <div class="flow-step">
+    <div class="step-num">2</div>
+    <div class="step-content">
+      <div class="step-title">Agente identifica al paciente</div>
+      <div class="step-desc">
+        <span class="tag ai">Agente</span><span class="tag mcp">med_buscar_paciente</span><span class="tag mcp">med_crear_paciente</span>
+        Por Telegram ID → busca en DB. Si existe: ya tiene datos (DNI, obra social). Si es nuevo: pide datos mínimos y crea el registro. <strong>Todo automático, sin personal.</strong>
+      </div>
+    </div>
+  </div>
+  <div class="flow-step">
+    <div class="step-num">3</div>
+    <div class="step-content">
+      <div class="step-title">Agente ofrece especialidades → paciente elige</div>
+      <div class="step-desc">
+        <span class="tag mcp">med_especialidades_disponibles</span>
+        El agente muestra las especialidades del centro. El paciente elige de forma natural.
+      </div>
+    </div>
+  </div>
+  <div class="flow-step">
+    <div class="step-num">4</div>
+    <div class="step-content">
+      <div class="step-title">Lista médicos disponibles</div>
+      <div class="step-desc">
+        <span class="tag mcp">med_listar_medicos</span>
+        Filtra médicos por especialidad. Muestra nombre, matrícula, horarios de atención. El paciente selecciona.
+      </div>
+    </div>
+  </div>
+  <div class="flow-step">
+    <div class="step-num">5</div>
+    <div class="step-content">
+      <div class="step-title">Busca slots disponibles y presenta al paciente</div>
+      <div class="step-desc">
+        <span class="tag mcp">med_buscar_slots_disponibles</span>
+        El agente lee la grilla del médico (horarios_atencion), excluye turnos ocupados de la DB, y presenta solo slots reales. Presenta en formato legible: "🕐 Mié 27/05 — 14:45 | 15:30 | 16:15..."
+      </div>
+    </div>
+  </div>
+  <div class="flow-step">
+    <div class="step-num">6</div>
+    <div class="step-content">
+      <div class="step-title">Confirma y crea turno en DB</div>
+      <div class="step-desc">
+        <span class="tag mcp">med_crear_turno</span><span class="tag db">PostgreSQL</span>
+        Valida todo antes de crear: paciente ✓, médico ✓, slot libre ✓, no duplica especialidad ✓. Graba en el sistema multi-tenant de la clínica.
+      </div>
+    </div>
+  </div>
+  <div class="flow-step">
+    <div class="step-num">7</div>
+    <div class="step-content">
+      <div class="step-title">Dashboard → la clínica ve el turno nuevo</div>
+      <div class="step-desc">
+        <span class="tag dash">Dashboard Web</span>
+        En el Panel de Turnos aparece instantáneamente: "María González | Dr. Rodríguez | Cardiología | Mié 27 15:30 | PENDIENTE". La clínica puede ver, imprimir, gestionar.
+      </div>
+    </div>
+  </div>
+  <div class="flow-step">
+    <div class="step-num">8</div>
+    <div class="step-content">
+      <div class="step-title">Cancelar / modificar (regla 24h)</div>
+      <div class="step-desc">
+        <span class="tag mcp">med_cancelar_turno</span><span class="tag rule">24h</span>
+        <strong>Siempre se puede cancelar.</strong> Si cancela con +24h → reprograma normalmente. Si cancela con -24h → reprograma sin prioridad, solo disponibilidad residual. No se bloquea jamás, pero hay incentivo para respetar la agenda.
+      </div>
+    </div>
+  </div>
+  <div class="flow-step">
+    <div class="step-num">9</div>
+    <div class="step-content">
+      <div class="step-title">Médico registra atención (presencial)</div>
+      <div class="step-desc">
+        <span class="tag dash">Dashboard Web</span>
+        Cuando el paciente llega, el médico abre la app web, registra: diagnóstico, signos vitales, prácticas, receta. Todo queda en la historia clínica unificada. El agente ya hizo todo el trabajo sucio.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- VALUE PROPOSITION -->
+<h2>Propuesta de valor para el director de clínica</h2>
+<div class="quote">
+  "Señor director: hoy usted tiene 3 personas respondiendo turnos por teléfono, WhatsApp y mostrador. Pierde un 25% de sus pacientes porque no van sin avisar. Su software no previene que un paciente agenda 2 veces. Su historia clínica está fragmentada. SetubalAI reemplaza las 3 personas con un agente que funciona 24/7, no se enferma, no se equivoca, y le da datos para gestionar de verdad."
+</div>
+
+<div class="highlight-box">
+  <h3>¿Por qué SetubalAI y no software de turnos?</h3>
+  <p>Los software de turnos son herramientas pasivas: un calendario donde el personal carga información manualmente. SetubalAI es <strong>proactivo y autónomo</strong>: entiende lo que el paciente quiere, lo identifica, busca disponibilidad, agenda, confirma, recuerda, y reacciona ante cancelaciones — todo sin una persona tocando un teclado. El centro médico no compra software, compra <strong>la eliminación de un departamento operativo completo</strong>.</p>
+</div>
+
+<!-- TABLE COMPARISON -->
+<h2>Comparativa directa</h2>
+<table class="table-compare">
+  <tr>
+    <th>Función</th>
+    <th>Software Tradicional</th>
+    <th>SetubalAI</th>
+  </tr>
+  <tr>
+    <td>Agendamiento de turnos</td>
+    <td>Calendario estático, carga manual</td>
+    <td>Agente IA conversa y agenda solo</td>
+  </tr>
+  <tr>
+    <td>Horario de atención</td>
+    <td>Horario laboral de recepcionista</td>
+    <td>24/7, sin descanso</td>
+  </tr>
+  <tr>
+    <td>Paciente nuevo</td>
+    <td>Personal carga datos manualmente</td>
+    <td>Agente pide datos y registra solo</td>
+  </tr>
+  <tr>
+    <td>Prevención duplicados</td>
+    <td>No existe</td>
+    <td>1 turno por especialidad por paciente</td>
+  </tr>
+  <tr>
+    <td>Cancelación/reprogramación</td>
+    <td>Paciente llama, personal reagenda</td>
+    <td>Agente resuelve 24/7 con regla 24h</td>
+  </tr>
+  <tr>
+    <td>Recordatorio</td>
+    <td>SMS genérico</td>
+    <td>Mensaje personalizado T-24h por Telegram</td>
+  <tr>
+    <td>Historia clínica</td>
+    <td>Papel o sistema separado</td>
+    <td>Unificada, digital, accesible cualquier médico</td>
+  </tr>
+  <tr>
+    <td>Métricas de gestión</td>
+    <td>Excel manual</td>
+    <td>Dashboard en tiempo real</td>
+  </tr>
+  <tr>
+    <td>Personal necesario</td>
+    <td>1-3 personas para turnos</td>
+    <td>0 personas — agente autónomo</td>
+  </tr>
+</table>
+
+<div class="highlight-box">
+  <h3>Demo en vivo disponible</h3>
+  <p>Centro Médico Santa Clara: paciente demo escribe por Telegram, el agente agenda turno, la clínica lo ve en el dashboard. 5 minutos, sin credenciales, sin instalación. Es así de simple.</p>
+</div>
+
+</body>
+</html>
