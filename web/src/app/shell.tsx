@@ -6,7 +6,7 @@ import {
   LayoutDashboard, Zap,
   Stethoscope, Calendar, FileText, ClipboardList, UserCog, Building2, Settings
 } from "lucide-react";
-import { AuthProvider } from "./auth-context";
+import { AuthProvider, useAuth } from "./auth-context";
 
 // === INTERFAZ SALUD (Clínicas, diagnóstico por imágenes, etc) ===
 const SALUD_MENU = [
@@ -45,12 +45,22 @@ const SALUD_MENU = [
 
 function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-
-  // ⚠️ AUTH DESHABILITADA TEMPORALMENTE - ACCESO DIRECTO SIN LOGIN
-  // Hardcoded a Centro Médico Santa Clara (empresa_id=16)
+  const { user, loading } = useAuth();
 
   if (pathname === "/login") {
     return <>{children}</>;
+  }
+
+  // Redirect to login if not authenticated
+  if (!loading && !user) {
+    if (typeof window !== "undefined") {
+      window.location.href = "/login";
+    }
+    return null;
+  }
+
+  if (loading) {
+    return <div>Cargando...</div>;
   }
 
   return (
@@ -74,10 +84,10 @@ function AppShell({ children }: { children: React.ReactNode }) {
             </div>
             <div>
               <div style={{ fontSize: 15, fontWeight: 600, color: "#f7f8f8" }}>
-                Admin (AUTH OFF)
+                {user?.nombre || "Usuario"}
               </div>
               <div style={{ fontSize: 11, color: "#62666d", marginTop: 2 }}>
-                Centro Médico Santa Clara
+                {user?.empresa?.nombre || "Empresa"}
               </div>
             </div>
           </div>
@@ -117,7 +127,14 @@ function AppShell({ children }: { children: React.ReactNode }) {
         </nav>
 
         <div style={{ padding: "12px 16px", borderTop: "1px solid rgba(255,255,255,0.06)", fontSize: 11, color: "#62666d" }}>
-          ⚠️ Autenticación deshabilitada
+          <button onClick={() => {
+            if (typeof window !== "undefined") {
+              localStorage.clear();
+              window.location.href = "/login";
+            }
+          }} style={{ background: "none", border: "none", color: "#62666d", cursor: "pointer", fontSize: 11 }}>
+            Cerrar sesión
+          </button>
         </div>
       </aside>
 

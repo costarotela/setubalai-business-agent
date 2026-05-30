@@ -18,6 +18,8 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:3011",
         "http://localhost:3012",
+        "http://100.72.101.29:3011",
+        "http://100.72.101.29:3012",
         "https://business.setubalai.org",
         "https://admin.setubalai.org",
     ],

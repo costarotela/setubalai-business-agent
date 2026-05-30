@@ -1,7 +1,7 @@
 "use client";
 import { useAuthFetch } from "../auth-context";
 import { useState, useEffect, useCallback } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 
 // ===== TYPES =====
 interface PacienteBasic {
@@ -53,11 +53,22 @@ const TABS = [
   { key: "turnos", label: "Turnos" },
 ];
 
+// Hook to safely read URL params at runtime only (avoids Next.js prerender error)
+function getPacienteIdFromUrl(): string | null {
+  if (typeof window === "undefined") return null;
+  return new URL(window.location.href).searchParams.get("id");
+}
+
+function usePacienteIdFromUrl(): string | null {
+  const [id, setId] = useState<string | null>(null);
+  useEffect(() => { setId(getPacienteIdFromUrl()); }, []);
+  return id;
+}
+
 export default function HistoriaClinicaPage() {
   const af = useAuthFetch();
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const pacienteId = searchParams?.get("id");
+  const pacienteId = usePacienteIdFromUrl();
 
   const [historias, setHistorias] = useState<HistoriaBasic[]>([]);
   const [loading, setLoading] = useState(true);
