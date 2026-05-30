@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const API_BASE = "http://127.0.0.1:3010";
+// Use env var for local dev pointing to VPS via Tailscale
+// In production: http://127.0.0.1:3010
+// In local dev: http://100.72.101.29:3010
+const API_BASE = process.env.API_BASE_URL || "http://127.0.0.1:3010";
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
   const p = await params;
