@@ -1,7 +1,14 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // No trailing slashes — FastAPI will 308 but proxy redirects follow it
+  async rewrites() {
+    return [
+      {
+        source: "/api/:path*",
+        destination: "http://localhost:3010/:path*",
+      },
+    ];
+  },
 };
 
 export default nextConfig;

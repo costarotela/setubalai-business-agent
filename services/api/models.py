@@ -216,6 +216,15 @@ class Paciente(Base):
     created_at = Column(TIMESTAMPTZ, server_default=func.now())
     updated_at = Column(TIMESTAMPTZ, server_default=func.now())
 
+class MedicoEspecialidades(Base):
+    """Relación many-to-many entre médicos y especialidades."""
+    __tablename__ = "medico_especialidades"
+    __table_args__ = {"schema": "setubalai"}
+    
+    medico_id = Column(Integer, ForeignKey("setubalai.medicos.id", ondelete="CASCADE"), primary_key=True)
+    especialidad_id = Column(Integer, ForeignKey("setubalai.especialidades_medicas.id", ondelete="CASCADE"), primary_key=True)
+
+
 class Medico(Base):
     __tablename__ = "medicos"
     id = Column(Integer, primary_key=True)
@@ -225,7 +234,6 @@ class Medico(Base):
     apellido = Column(String(200), nullable=False)
     matricula_provincial = Column(String(50))
     matricula_nacional = Column(String(50))
-    especialidades = Column(ARRAY(String))
     duracion_turno_minutos = Column(Integer, default=30)
     horarios_atencion = Column(JSONB, default={})
     activo = Column(Boolean, default=True)
@@ -280,11 +288,25 @@ class BloqueoGrilla(Base):
     created_at = Column(TIMESTAMPTZ, server_default=func.now())
     medico = relationship("Medico")
 
+class EspecialidadMedica(Base):
+    __tablename__ = "especialidades_medicas"
+    id = Column(Integer, primary_key=True)
+    empresa_id = Column(Integer, ForeignKey("empresa.id"), nullable=False)
+    nombre = Column(String(200), nullable=False)
+    codigo = Column(String(50))
+    descripcion = Column(Text)
+    duracion_turno_default = Column(Integer)
+    color_hex = Column(String(10))
+    requiere_equipos = Column(Boolean, default=False)
+    activa = Column(Boolean, default=True)
+    created_at = Column(TIMESTAMPTZ, server_default=func.now())
+    updated_at = Column(TIMESTAMPTZ, server_default=func.now())
+
 class DuracionPrestacion(Base):
     __tablename__ = "duracion_prestaciones"
     id = Column(Integer, primary_key=True)
     empresa_id = Column(Integer, ForeignKey("empresa.id"), nullable=False)
-    especialidad = Column(String(100), nullable=False)
+    especialidad_id = Column(Integer, ForeignKey("setubalai.especialidades_medicas.id"))
     duracion_minutos = Column(Integer, nullable=False, default=30)
     sobre_turnos_permitidos = Column(Integer, default=0)
     created_at = Column(TIMESTAMPTZ, server_default=func.now())
