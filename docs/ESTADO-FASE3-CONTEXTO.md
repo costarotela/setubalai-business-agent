@@ -135,6 +135,20 @@ GET /turnos/                      → 200, 47 items
 - Verificar que los slots se filtren por médico cuando se selecciona
 - Agregar SelectEspecialidadMedico en más páginas si es necesario
 
+---
+
+## 🔄 FASE 4 ADN CLÍNICO — COMPLETA ✅
+
+**Branch:** `feature/adn-clinico-refactor`
+**Main:** intacto
+
+### Qué se hizo (8 pasos):
+- Context: carga TODOS los médicos, medicosFiltrados derived
+- SelectEspecialidadMedico: variant global (Context) y local (forms)
+- ClinicaFilterBar: panel unificado de filtros (4 componentes nuevos)
+- Navegación reactiva: PatientLink, MedicoLink, BreadcrumbNav
+- Páginas actualizadas: turnos, calendario, agenda, medicos, pacientes
+
 # ─── FLUJO DESARROLLO / VERIFICACIÓN ─────────────────────────────────────────
 
 **Reglas:**
