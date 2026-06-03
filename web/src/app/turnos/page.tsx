@@ -207,6 +207,7 @@ export default function TurnosPage() {
           {/* Especialidad + Médico (dependientes) */}
           <div style={{ marginBottom: 12 }}>
             <SelectEspecialidadMedico
+              variant="local"
               onEspecialidadChange={(id) => setFormEspecialidad(id ?? null)}
               onMedicoChange={(id) => setFormMedico(id ? String(id) : "")}
               showLabels={true}

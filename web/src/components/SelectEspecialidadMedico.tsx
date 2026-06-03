@@ -1,21 +1,23 @@
 "use client";
 /**
- * SelectEspecialidadMedico — Listas dependientes reutilizables
+ * SelectEspecialidadMedico — Selects dependientes de especialidad → médico.
  *
- * Jerarquía: especialidad → médico (se refresca automáticamente)
+ * Two variants:
+ *   variant="global" (default): Lee y escribe en FiltrosClinicaContext.
+ *     Un cambio aquí se refleja en TODAS las páginas clínicas.
+ *     Para usar en ClinicaFilterBar y filtros de páginas.
  *
- * Consume el FiltrosClinicaContext (datos cargados UNA VEZ por toda la app).
+ *   variant="local": Estado interno propio, NO toca el Context global.
+ *     Devuelve callbacks onEspecialidadChange / onMedicoChange.
+ *     Para formularios donde se necesita selección sin afectar la app.
  *
- * Uso:
- *   <SelectEspecialidadMedico
- *     onEspecialidadChange={(id) => setEsp(id)}
- *     onMedicoChange={(id) => setMed(id)}
- *     horizontal
- *     showLabels
- *   />
+ * SelectSoloEspecialidad: solo el select de especialidad (mismas variantes).
  */
 
+import { useState, useMemo, type ReactNode } from "react";
 import { useFiltrosClinica } from "../contexts/FiltrosClinicaContext";
+
+// ─── Shared styles ─────────────────────────────────────────────────
 
 const selectStyle: React.CSSProperties = {
   width: "100%",
@@ -36,22 +38,51 @@ const labelStyle: React.CSSProperties = {
   letterSpacing: "0.05em",
 };
 
-interface Props {
-  onEspecialidadChange?: (id: number | null) => void;
-  onMedicoChange?: (id: number | null) => void;
+// ─── Common types ──────────────────────────────────────────────────
+
+interface CommonProps {
   showLabels?: boolean;
   className?: string;
-  /** Si true, renderiza ambos selects en grid 1fr 1fr horizontal */
   horizontal?: boolean;
 }
 
-export function SelectEspecialidadMedico({
-  onEspecialidadChange,
-  onMedicoChange,
-  showLabels = true,
+// ─── GLOBAL variant (reads/writes Context) ─────────────────────────
+
+interface GlobalProps extends CommonProps {
+  variant?: "global";
+  onEspecialidadChange?: never;
+  onMedicoChange?: never;
+}
+
+// ─── LOCAL variant (owns state, returns callbacks) ─────────────────
+
+interface LocalProps extends CommonProps {
+  variant: "local";
+  onEspecialidadChange?: (id: number | null) => void;
+  onMedicoChange?: (id: number | null) => void;
+}
+
+type SelectProps = GlobalProps | LocalProps;
+
+// ─── EspecialidadMedico (especialidad + médico) ────────────────────
+
+export function SelectEspecialidadMedico(props: SelectProps) {
+  const { showLabels = true, className, horizontal = false } = props;
+
+  if (props.variant === "local") {
+    return <SelectLocal {...props} />;
+  }
+
+  return <SelectGlobal showLabels={showLabels} className={className} horizontal={horizontal} />;
+}
+
+// ─── SelectGlobal — reads/writes Context ───────────────────────────
+
+function SelectGlobal({
+  showLabels,
   className,
-  horizontal = false,
-}: Props) {
+  horizontal,
+}: CommonProps) {
   const f = useFiltrosClinica();
 
   const wrapperStyle: React.CSSProperties = horizontal
@@ -68,7 +99,7 @@ export function SelectEspecialidadMedico({
 
   return (
     <div className={className} style={wrapperStyle}>
-      {/* ── Especialidad ── */}
+      {/* Especialidad */}
       <div>
         {showLabels && <label style={labelStyle}>Especialidad</label>}
         <select
@@ -76,20 +107,17 @@ export function SelectEspecialidadMedico({
           onChange={(e) => {
             const val = e.target.value ? parseInt(e.target.value) : null;
             f.setEspecialidadId(val);
-            onEspecialidadChange?.(val);
           }}
           style={selectStyle}
         >
           <option value="">Seleccionar…</option>
           {f.especialidades.map((esp) => (
-            <option key={esp.id} value={esp.id}>
-              {esp.nombre}
-            </option>
+            <option key={esp.id} value={esp.id}>{esp.nombre}</option>
           ))}
         </select>
       </div>
 
-      {/* ── Médico (dependiente de especialidad) ── */}
+      {/* Médico (dependiente) */}
       <div>
         {showLabels && <label style={labelStyle}>Médico</label>}
         <select
@@ -97,7 +125,6 @@ export function SelectEspecialidadMedico({
           onChange={(e) => {
             const val = e.target.value ? parseInt(e.target.value) : null;
             f.setMedicoId(val);
-            onMedicoChange?.(val);
           }}
           style={{
             ...selectStyle,
@@ -108,12 +135,12 @@ export function SelectEspecialidadMedico({
         >
           {!f.selectedEspecialidadId ? (
             <option value="">Seleccionar especialidad primero…</option>
-          ) : f.medicos.length === 0 ? (
+          ) : f.medicosFiltrados.length === 0 ? (
             <option value="">Sin médicos en esta especialidad</option>
           ) : (
             <>
-              <option value="">Seleccionar…</option>
-              {f.medicos.map((m) => (
+              <option value="">Todos</option>
+              {f.medicosFiltrados.map((m) => (
                 <option key={m.id} value={m.id}>
                   Dr/a. {m.nombre} {m.apellido}
                 </option>
@@ -126,21 +153,155 @@ export function SelectEspecialidadMedico({
   );
 }
 
-/**
- * SelectSoloEspecialidad — solo el select de especialidad sin médico
- * Para páginas que solo necesitan filtrar por especialidad.
- */
-export function SelectSoloEspecialidad({
-  onEspecialidadChange,
+// ─── SelectLocal — own state, returns callbacks ────────────────────
+
+function SelectLocal({
   showLabels = true,
   className,
-}: {
+  horizontal = false,
+  onEspecialidadChange,
+  onMedicoChange,
+}: LocalProps) {
+  const f = useFiltrosClinica();
+
+  // State interno propio — NO toca el Context global
+  const [localEspId, setLocalEspId] = useState<number | null>(null);
+  const [localMedId, setLocalMedId] = useState<number | null>(null);
+
+  const wrapperStyle: React.CSSProperties = horizontal
+    ? { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }
+    : { display: "flex", flexDirection: "column", gap: 12 };
+
+  const medicosFiltrados = useMemo(() => {
+    if (!localEspId || f.medicos.length === 0) return f.medicos;
+    const esp = f.especialidades.find(e => e.id === localEspId);
+    if (!esp) return f.medicos;
+    return f.medicos.filter(m => {
+      if (m.especialidades.length === 0) return true;
+      return m.especialidades.some(
+        (es: string | { nombre?: string }) => {
+          if (typeof es === "string") return es === esp.nombre;
+          if (es.nombre) return es.nombre === esp.nombre;
+          return false;
+        }
+      );
+    });
+  }, [f.medicos, f.especialidades, localEspId]);
+
+  if (f.loading) {
+    return <div style={{ padding: "10px 14px", fontSize: 13, color: "#62666d" }}>Cargando…</div>;
+  }
+
+  if (f.error) {
+    return <div style={{ padding: "10px 14px", fontSize: 13, color: "#ef4444" }}>{f.error}</div>;
+  }
+
+  return (
+    <div className={className} style={wrapperStyle}>
+      {/* Especialidad */}
+      <div>
+        {showLabels && <label style={labelStyle}>Especialidad</label>}
+        <select
+          value={localEspId ?? ""}
+          onChange={(e) => {
+            const val = e.target.value ? parseInt(e.target.value) : null;
+            setLocalEspId(val);
+            setLocalMedId(null); // Reset médico
+            onEspecialidadChange?.(val);
+          }}
+          style={selectStyle}
+        >
+          <option value="">Seleccionar…</option>
+          {f.especialidades.map((esp) => (
+            <option key={esp.id} value={esp.id}>{esp.nombre}</option>
+          ))}
+        </select>
+      </div>
+
+      {/* Médico */}
+      <div>
+        {showLabels && <label style={labelStyle}>Médico</label>}
+        <select
+          value={localMedId ?? ""}
+          onChange={(e) => {
+            const val = e.target.value ? parseInt(e.target.value) : null;
+            setLocalMedId(val);
+            onMedicoChange?.(val);
+          }}
+          style={{
+            ...selectStyle,
+            opacity: localEspId ? 1 : 0.5,
+            cursor: localEspId ? "pointer" : "not-allowed",
+          }}
+          disabled={!localEspId}
+        >
+          {!localEspId ? (
+            <option value="">Seleccionar especialidad primero…</option>
+          ) : medicosFiltrados.length === 0 ? (
+            <option value="">Sin médicos en esta especialidad</option>
+          ) : (
+            <>
+              <option value="">Todos</option>
+              {medicosFiltrados.map((m) => (
+                <option key={m.id} value={m.id}>
+                  Dr/a. {m.nombre} {m.apellido}
+                </option>
+              ))}
+            </>
+          )}
+        </select>
+      </div>
+    </div>
+  );
+}
+
+// ─── SelectSoloEspecialidad — solo especialidad ─────────────────────
+
+interface SoloProps {
+  variant?: "global" | "local";
   onEspecialidadChange?: (id: number | null) => void;
   showLabels?: boolean;
   className?: string;
-}) {
+}
+
+export function SelectSoloEspecialidad({
+  variant = "global",
+  onEspecialidadChange,
+  showLabels = true,
+  className,
+}: SoloProps) {
   const f = useFiltrosClinica();
 
+  if (variant === "local") {
+    // Local state
+    const [localEspId, setLocalEspId] = useState<number | null>(null);
+
+    if (f.loading) {
+      return <div style={{ padding: "10px 14px", fontSize: 13, color: "#62666d" }}>Cargando…</div>;
+    }
+
+    return (
+      <div className={className}>
+        {showLabels && <label style={labelStyle}>Especialidad</label>}
+        <select
+          value={localEspId ?? ""}
+          onChange={(e) => {
+            const val = e.target.value ? parseInt(e.target.value) : null;
+            setLocalEspId(val);
+            onEspecialidadChange?.(val);
+          }}
+          style={selectStyle}
+        >
+          <option value="">Seleccionar…</option>
+          {f.especialidades.map((esp) => (
+            <option key={esp.id} value={esp.id}>{esp.nombre}</option>
+          ))}
+        </select>
+      </div>
+    );
+  }
+
+  // Global — reads/writes Context
   if (f.loading) {
     return <div style={{ padding: "10px 14px", fontSize: 13, color: "#62666d" }}>Cargando…</div>;
   }
@@ -153,15 +314,12 @@ export function SelectSoloEspecialidad({
         onChange={(e) => {
           const val = e.target.value ? parseInt(e.target.value) : null;
           f.setEspecialidadId(val);
-          onEspecialidadChange?.(val);
         }}
         style={selectStyle}
       >
         <option value="">Seleccionar…</option>
         {f.especialidades.map((esp) => (
-          <option key={esp.id} value={esp.id}>
-            {esp.nombre}
-          </option>
+          <option key={esp.id} value={esp.id}>{esp.nombre}</option>
         ))}
       </select>
     </div>

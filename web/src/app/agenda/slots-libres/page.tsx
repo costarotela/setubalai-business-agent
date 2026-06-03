@@ -1,7 +1,8 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Calendar, Clock, User, CheckCircle, AlertCircle, Loader2, Filter } from "lucide-react";
 import { useAuth } from "../../auth-context";
+import { useFiltrosClinica } from "../../../contexts/FiltrosClinicaContext";
 import { SelectEspecialidadMedico } from "../../../components/SelectEspecialidadMedico";
 
 interface Slot {
@@ -14,27 +15,13 @@ interface Slot {
   duracion_minutos: number;
 }
 
-interface Especialidad {
-  id: number;
-  nombre: string;
-  codigo: string;
-  color_hex: string;
-  activa: boolean;
-  duracion_turno_default: number;
-}
-
 const API = process.env.NEXT_PUBLIC_API_URL || "/api";
 
 export default function SlotsLibresPage() {
   const { token, user } = useAuth();
-  const [especialidades, setEspecialidades] = useState<Especialidad[]>([]);
+  const f = useFiltrosClinica();
   const [slots, setSlots] = useState<Slot[]>([]);
   const [loading, setLoading] = useState(false);
-  const [loadingEsp, setLoadingEsp] = useState(true);
-  
-  // Filtros
-  const [especialidadId, setEspecialidadId] = useState<number | null>(null);
-  const [medicoId, setMedicoId] = useState<number | null>(null);
   const [fechaInicio, setFechaInicio] = useState(() => {
     const today = new Date();
     return today.toISOString().split('T')[0];
@@ -54,21 +41,18 @@ export default function SlotsLibresPage() {
     setTimeout(() => setToast(null), 4000);
   }, []);
 
-  // Especialidades y médicos ahora se cargan via FiltrosClinicaContext (Context Provider global)
-  // El select de especialidad fue reemplazado por <SelectEspecialidadMedico>
-
-  // Cargar slots
+  // Cargar slots (lee directamente del Context global)
   const fetchSlots = useCallback(async () => {
-    if (!especialidadId) return;
+    if (!f.selectedEspecialidadId) return;
     
     try {
       setLoading(true);
       const params = new URLSearchParams({
         empresa_id: String(user?.empresa_id || ""),
-        especialidad_id: String(especialidadId),
+        especialidad_id: String(f.selectedEspecialidadId),
         fecha_desde: fechaInicio,
         fecha_hasta: fechaFin,
-        ...(medicoId ? { medico_id: String(medicoId) } : {}),
+        ...(f.selectedMedicoId ? { medico_id: String(f.selectedMedicoId) } : {}),
       });
       
       const res = await fetch(`${API}/agenda/slots-libres?${params}`, {
@@ -86,13 +70,13 @@ export default function SlotsLibresPage() {
     } finally {
       setLoading(false);
     }
-  }, [especialidadId, medicoId, fechaInicio, fechaFin, token, user, showToast]);
+  }, [f.selectedEspecialidadId, f.selectedMedicoId, fechaInicio, fechaFin, token, user, showToast, f.selectedEspecialidadId, f.selectedMedicoId]);
 
   useEffect(() => {
-    if (especialidadId) {
+    if (f.selectedEspecialidadId) {
       fetchSlots();
     }
-  }, [especialidadId, medicoId, fechaInicio, fechaFin, fetchSlots]);
+  }, [f.selectedEspecialidadId, f.selectedMedicoId, fechaInicio, fechaFin, fetchSlots]);
 
   const handleReservar = (slot: Slot) => {
     setSelectedSlot(slot);
@@ -115,7 +99,9 @@ export default function SlotsLibresPage() {
 
   const fechasOrdenadas = Object.keys(slotsPorFecha).sort();
 
-  const especialidadSeleccionada = especialidades.find(e => e.id === especialidadId);
+  const especialidadSeleccionada = f.selectedEspecialidadId
+    ? f.especialidades.find(e => e.id === f.selectedEspecialidadId)
+    : undefined;
 
   return (
     <div style={{ minHeight: "100vh", background: "#08090a", padding: "24px 32px" }}>
@@ -175,12 +161,10 @@ export default function SlotsLibresPage() {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16 }}>
           {/* Especialidad + Médico (dependientes via Context Provider) */}
           <div style={{ gridColumn: "1 / 4" }}>
-            <SelectEspecialidadMedico
-              onEspecialidadChange={(id) => setEspecialidadId(id)}
-              onMedicoChange={(id) => setMedicoId(id)}
-              showLabels={true}
-              horizontal={true}
-            />
+          <SelectEspecialidadMedico
+            showLabels={true}
+            horizontal={true}
+          />
           </div>
 
           {/* Fecha Inicio */}
@@ -243,7 +227,7 @@ export default function SlotsLibresPage() {
               width: 12,
               height: 12,
               borderRadius: 3,
-              background: especialidadSeleccionada.color_hex,
+              background: especialidadSeleccionada.color_hex || "#7170ff",
             }} />
             <span style={{ fontSize: 13, color: "#8a8f98" }}>
               Mostrando turnos para <strong style={{ color: "#f7f8f8" }}>{especialidadSeleccionada.nombre}</strong>
@@ -260,7 +244,7 @@ export default function SlotsLibresPage() {
       )}
 
       {/* Grilla de Slots */}
-      {!loading && !loadingEsp && (
+      {!loading && !f.loading && (
         <div>
           {fechasOrdenadas.length === 0 ? (
             <div style={{
@@ -275,7 +259,7 @@ export default function SlotsLibresPage() {
                 No hay slots disponibles
               </h3>
               <p style={{ fontSize: 14, color: "#8a8f98", margin: 0 }}>
-                {especialidadId 
+                {f.selectedEspecialidadId 
                   ? "No se encontraron turnos disponibles para los filtros seleccionados."
                   : "Selecciona una especialidad para ver los turnos disponibles."}
               </p>
