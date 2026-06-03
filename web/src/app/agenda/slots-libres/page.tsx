@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Calendar, Clock, User, CheckCircle, AlertCircle, Loader2, Filter } from "lucide-react";
 import { useAuth } from "../../auth-context";
+import { SelectEspecialidadMedico } from "../../../components/SelectEspecialidadMedico";
 
 interface Slot {
   medico_id: number;
@@ -33,6 +34,7 @@ export default function SlotsLibresPage() {
   
   // Filtros
   const [especialidadId, setEspecialidadId] = useState<number | null>(null);
+  const [medicoId, setMedicoId] = useState<number | null>(null);
   const [fechaInicio, setFechaInicio] = useState(() => {
     const today = new Date();
     return today.toISOString().split('T')[0];
@@ -52,31 +54,8 @@ export default function SlotsLibresPage() {
     setTimeout(() => setToast(null), 4000);
   }, []);
 
-  // Cargar especialidades
-  useEffect(() => {
-    const fetchEspecialidades = async () => {
-      try {
-        setLoadingEsp(true);
-        const res = await fetch(`${API}/especialidades/`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "X-Empresa-Id": String(user?.empresa_id || ""),
-          },
-        });
-        if (!res.ok) throw new Error("Error al cargar especialidades");
-        const data = await res.json();
-        setEspecialidades(data.especialidades || []);
-        if (data.especialidades && data.especialidades.length > 0) {
-          setEspecialidadId(data.especialidades[0].id);
-        }
-      } catch (err: any) {
-        showToast(err.message, "error");
-      } finally {
-        setLoadingEsp(false);
-      }
-    };
-    fetchEspecialidades();
-  }, [token, user, showToast]);
+  // Especialidades y médicos ahora se cargan via FiltrosClinicaContext (Context Provider global)
+  // El select de especialidad fue reemplazado por <SelectEspecialidadMedico>
 
   // Cargar slots
   const fetchSlots = useCallback(async () => {
@@ -89,6 +68,7 @@ export default function SlotsLibresPage() {
         especialidad_id: String(especialidadId),
         fecha_desde: fechaInicio,
         fecha_hasta: fechaFin,
+        ...(medicoId ? { medico_id: String(medicoId) } : {}),
       });
       
       const res = await fetch(`${API}/agenda/slots-libres?${params}`, {
@@ -106,13 +86,13 @@ export default function SlotsLibresPage() {
     } finally {
       setLoading(false);
     }
-  }, [especialidadId, fechaInicio, fechaFin, token, user, showToast]);
+  }, [especialidadId, medicoId, fechaInicio, fechaFin, token, user, showToast]);
 
   useEffect(() => {
     if (especialidadId) {
       fetchSlots();
     }
-  }, [especialidadId, fechaInicio, fechaFin, fetchSlots]);
+  }, [especialidadId, medicoId, fechaInicio, fechaFin, fetchSlots]);
 
   const handleReservar = (slot: Slot) => {
     setSelectedSlot(slot);
@@ -193,41 +173,14 @@ export default function SlotsLibresPage() {
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16 }}>
-          {/* Especialidad */}
-          <div>
-            <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#f7f8f8", marginBottom: 8 }}>
-              Especialidad
-            </label>
-            {loadingEsp ? (
-              <div style={{ padding: "10px 14px", fontSize: 14, color: "#62666d" }}>
-                Cargando...
-              </div>
-            ) : (
-              <select
-                value={especialidadId || ""}
-                onChange={(e) => setEspecialidadId(Number(e.target.value))}
-                style={{
-                  width: "100%",
-                  padding: "10px 14px",
-                  background: "#08090a",
-                  border: "1px solid rgba(255,255,255,0.08)",
-                  borderRadius: 8,
-                  fontSize: 14,
-                  color: "#f7f8f8",
-                  outline: "none",
-                  cursor: "pointer",
-                }}
-              >
-                {especialidades.length === 0 && (
-                  <option value="">No hay especialidades</option>
-                )}
-                {especialidades.map((esp) => (
-                  <option key={esp.id} value={esp.id}>
-                    {esp.nombre} ({esp.codigo})
-                  </option>
-                ))}
-              </select>
-            )}
+          {/* Especialidad + Médico (dependientes via Context Provider) */}
+          <div style={{ gridColumn: "1 / 4" }}>
+            <SelectEspecialidadMedico
+              onEspecialidadChange={(id) => setEspecialidadId(id)}
+              onMedicoChange={(id) => setMedicoId(id)}
+              showLabels={true}
+              horizontal={true}
+            />
           </div>
 
           {/* Fecha Inicio */}

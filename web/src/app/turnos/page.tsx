@@ -1,5 +1,7 @@
 "use client";
 import { useAuthFetch } from "../auth-context";
+import { SelectEspecialidadMedico } from "../../components/SelectEspecialidadMedico";
+import { useFiltrosClinica } from "../../contexts/FiltrosClinicaContext";
 import { useState, useEffect } from "react";
 
 interface Turno {
@@ -26,6 +28,7 @@ interface Medico {
 
 export default function TurnosPage() {
   const af = useAuthFetch();
+  const filtros = useFiltrosClinica();
   const [turnos, setTurnos] = useState<Turno[]>([]);
   const [medicos, setMedicos] = useState<Medico[]>([]);
   const [loading, setLoading] = useState(true);
@@ -199,20 +202,12 @@ export default function TurnosPage() {
                 ))}
               </select>
             </div>
-            <div>
-              <label style={{fontSize: 11, color: "#62666d", textTransform: "uppercase", letterSpacing: "0.05em"}}>Médico</label>
-              <select value={formMedico} onChange={e => setFormMedico(e.target.value)}
-                style={{
-                  width: "100%", padding: "10px 12px", borderRadius: 8, marginTop: 4,
-                  background: "#0f1011", border: "1px solid rgba(255,255,255,0.08)",
-                  color: "#f7f8f8", fontSize: 13,
-                }}>
-                <option value="">Seleccionar...</option>
-                {medicos.map(m => (
-                  <option key={m.id} value={m.id}>Dr/a. {m.nombre} {m.apellido}</option>
-                ))}
-              </select>
-            </div>
+            {/* Médico: seleccionado mediante filtro especialidad→médico */}
+            <SelectEspecialidadMedico
+              onMedicoChange={(id) => setFormMedico(id ? String(id) : "")}
+              showLabels={false}
+              horizontal={false}
+            />
           </div>
           <div style={{display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12}}>
             <div>
@@ -243,8 +238,9 @@ export default function TurnosPage() {
                   background: "#0f1011", border: "1px solid rgba(255,255,255,0.08)",
                   color: "#f7f8f8", fontSize: 13,
                 }}>
-                {["Consulta General", "Consulta Cardiología", "Consulta Traumatología", "Consulta Dermatología", "Consulta ORL", "Estudio Radiografía", "Estudio Ecocardiograma", "Estudio Anatomía Patológica"].map(t => (
-                  <option key={t} value={t}>{t}</option>
+                <option value="">Seleccionar tipo...</option>
+                {filtros.practicasFiltradas.map(p => (
+                  <option key={p.id} value={p.descripcion}>{p.descripcion}</option>
                 ))}
               </select>
             </div>

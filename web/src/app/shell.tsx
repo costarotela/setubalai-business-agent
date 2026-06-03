@@ -7,6 +7,7 @@ import {
   Stethoscope, Calendar, ClipboardList
 } from "lucide-react";
 import { AuthProvider, useAuth } from "./auth-context";
+import { FiltrosClinicaProvider } from "../contexts/FiltrosClinicaContext";
 
 // === MENÚ CLÍNICA MULTIESPECIALIDAD ===
 const CLINICA_MENU = [
@@ -152,7 +153,9 @@ function AppShell({ children }: { children: React.ReactNode }) {
 export default function ShellProvider({ children }: { children: React.ReactNode }) {
   return (
     <AuthProvider>
-      <AppShell>{children}</AppShell>
+      <FiltrosClinicaProvider>
+        <AppShell>{children}</AppShell>
+      </FiltrosClinicaProvider>
     </AuthProvider>
   );
 }
