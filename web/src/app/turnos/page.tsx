@@ -38,6 +38,7 @@ export default function TurnosPage() {
 
   // Form states
   const [formPaciente, setFormPaciente] = useState("");
+  const [formEspecialidad, setFormEspecialidad] = useState<number | null>(null);
   const [formMedico, setFormMedico] = useState("");
   const [formFecha, setFormFecha] = useState("");
   const [formHora, setFormHora] = useState("");
@@ -202,11 +203,14 @@ export default function TurnosPage() {
                 ))}
               </select>
             </div>
-            {/* Médico: seleccionado mediante filtro especialidad→médico */}
+          </div>
+          {/* Especialidad + Médico (dependientes) */}
+          <div style={{ marginBottom: 12 }}>
             <SelectEspecialidadMedico
+              onEspecialidadChange={(id) => setFormEspecialidad(id ?? null)}
               onMedicoChange={(id) => setFormMedico(id ? String(id) : "")}
-              showLabels={false}
-              horizontal={false}
+              showLabels={true}
+              horizontal={true}
             />
           </div>
           <div style={{display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12}}>

@@ -95,6 +95,17 @@ export function FiltrosClinicaProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Reset al cambiar token (cambio de sesión)
+  useEffect(() => {
+    setEspecialidades([]);
+    setMedicos([]);
+    setPracticas([]);
+    setSelectedEspecialidadId(null);
+    setSelectedMedicoId(null);
+    setLoading(true);
+    setError(null);
+  }, [token]);
+
   // ── Cargar especialidades + prácticas UNA VEZ al montar ──────────────────
   useEffect(() => {
     if (!token) { setLoading(false); return; } // no fetch sin auth
