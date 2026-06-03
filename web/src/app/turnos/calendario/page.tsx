@@ -201,8 +201,8 @@ export default function CalendarioPage() {
 
   const diaStr = (d: number | null) => d ? `${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}` : null;
 
-  const btnFiltro = (label: string, isActive: boolean, onClick: () => void, color?: string) => (
-    <button onClick={onClick} style={{
+  const btnFiltro = (label: string, key: string, isActive: boolean, onClick: () => void, color?: string) => (
+    <button key={key} onClick={onClick} style={{
       padding: "5px 12px", borderRadius: 8, fontSize: 11, fontWeight: 600,
       background: isActive ? (color ? `${color}22` : "rgba(113,112,255,0.15)") : "rgba(255,255,255,0.03)",
       color: isActive ? (color || "#a5a4ff") : "#6b7280",
@@ -270,8 +270,8 @@ export default function CalendarioPage() {
           <div style={{ width: 1, height: 20, background: "rgba(255,255,255,0.06)" }} />
           
           {/* Profesionales */}
-          {btnFiltro("Todos", filtroProfesional === null, () => setFiltroProfesional(null))}
-          {profesionales.slice(0, 6).map(p => btnFiltro(p, filtroProfesional === p, () => setFiltroProfesional(p)))}
+          {btnFiltro("Todos", "todos-prof", filtroProfesional === null, () => setFiltroProfesional(null))}
+          {profesionales.slice(0, 6).map(p => btnFiltro(p, `prof-${p}`, filtroProfesional === p, () => setFiltroProfesional(p)))}
           {profesionales.length > 6 && (
             <span style={{ fontSize: 10, color: "#4b5563" }}>+{profesionales.length - 6} más</span>
           )}
@@ -279,9 +279,9 @@ export default function CalendarioPage() {
           <div style={{ width: 1, height: 20, background: "rgba(255,255,255,0.06)" }} />
           
           {/* Estados */}
-          {btnFiltro("Todos", filtroEstado === null, () => setFiltroEstado(null))}
-          {["pendiente", "completado", "en-curso", "cancelado"].map(e => 
-            estadEnFiltro(e) && btnFiltro(e, filtroEstado === e, () => setFiltroEstado(e), ESTADO_COLOR[e]?.text)
+          {btnFiltro("Todos", "todos-estado", filtroEstado === null, () => setFiltroEstado(null))}
+          {[["pendiente", "completado", "en-curso", "cancelado"]].flat().map(e => 
+            estadEnFiltro(e) && btnFiltro(e, `estado-${e}`, filtroEstado === e, () => setFiltroEstado(e), ESTADO_COLOR[e]?.text)
           )}
 
           {/* Limpiar filtros */}
