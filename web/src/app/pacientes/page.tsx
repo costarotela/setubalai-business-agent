@@ -1,5 +1,6 @@
 "use client";
 import { useAuthFetch } from "../auth-context";
+import { useFiltrosClinica } from "../../contexts/FiltrosClinicaContext";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import BreadcrumbNav from "../../components/BreadcrumbNav";
@@ -18,6 +19,7 @@ interface Paciente {
 
 export default function PacientesPage() {
   const af = useAuthFetch();
+  const f = useFiltrosClinica();
   const router = useRouter();
   const [pacientes, setPacientes] = useState<Paciente[]>([]);
   const [loading, setLoading] = useState(true);
@@ -43,6 +45,55 @@ export default function PacientesPage() {
   return (
     <div style={{padding: "32px"}}>
       <BreadcrumbNav items={[{ label: "Pacientes" }]} />
+
+      {/* Contexto clínico activo */}
+      <div style={{
+        background: "#0f1011", border: "1px solid rgba(255,255,255,0.06)",
+        borderRadius: 12, padding: "16px 20px", marginBottom: 24,
+      }}>
+        <div style={{ fontSize: 12, color: "#62666d", marginBottom: 10 }}>
+          <span style={{ fontWeight: 600 }}>Contexto clínico:</span>
+          {f.selectedEspecialidadId && (
+            <span style={{ color: "#7170ff", marginLeft: 8 }}>
+              {f.especialidades.find(e => e.id === f.selectedEspecialidadId)?.nombre}
+            </span>
+          )}
+          {f.selectedMedicoId && (
+            <span style={{ color: "#10b981", marginLeft: 8 }}>
+              → Dr/a. {f.medicosFiltrados.find(m => m.id === f.selectedMedicoId)?.nombre} {f.medicosFiltrados.find(m => m.id === f.selectedMedicoId)?.apellido}
+            </span>
+          )}
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <div>
+            <label style={{ fontSize: 11, color: "#62666d", textTransform: "uppercase" }}>Especialidad</label>
+            <select
+              value={f.selectedEspecialidadId ?? ""}
+              onChange={(e) => f.setEspecialidadId(e.target.value ? parseInt(e.target.value) : null)}
+              style={{ width: "100%", padding: "8px 10px", borderRadius: 6, background: "#08090a", border: "1px solid rgba(255,255,255,0.08)", color: "#f7f8f8", fontSize: 13 }}
+            >
+              <option value="">--</option>
+              {f.especialidades.map(esp => <option key={esp.id} value={esp.id}>{esp.nombre}</option>)}
+            </select>
+          </div>
+          <div>
+            <label style={{ fontSize: 11, color: "#62666d", textTransform: "uppercase" }}>Médico</label>
+            <select
+              value={f.selectedMedicoId ?? ""}
+              onChange={(e) => f.setMedicoId(e.target.value ? parseInt(e.target.value) : null)}
+              disabled={!f.selectedEspecialidadId}
+              style={{
+                width: "100%", padding: "8px 10px", borderRadius: 6, background: "#08090a",
+                border: "1px solid rgba(255,255,255,0.08)", color: "#f7f8f8", fontSize: 13,
+                opacity: f.selectedEspecialidadId ? 1 : 0.5,
+              }}
+            >
+              <option value="">Todos</option>
+              {f.medicosFiltrados.map(m => <option key={m.id} value={m.id}>{m.nombre} {m.apellido}</option>)}
+            </select>
+          </div>
+        </div>
+      </div>
 
       <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24}}>
         <div>

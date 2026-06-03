@@ -122,7 +122,7 @@ export function FiltrosClinicaProvider({ children }: { children: ReactNode }) {
   const [medicos, setMedicos] = useState<Medico[]>([]);
   const [practicas, setPracticas] = useState<Practica[]>([]);
 
-  // Selección global (null = sin selección, las páginas pueden filtrar localmente)
+  // Selección global — SIEMPRE hay una seleccionada por defecto
   const [selectedEspecialidadId, setSelectedEspecialidadId] = useState<number | null>(null);
   const [selectedMedicoId, setSelectedMedicoId] = useState<number | null>(null);
 
@@ -155,9 +155,30 @@ export function FiltrosClinicaProvider({ children }: { children: ReactNode }) {
     ])
       .then(([espData, medData, pracData]) => {
         if (cancelled) return;
-        setEspecialidades(formatEspecialidades(espData));
-        setMedicos(formatMedicos(medData));
-        setPracticas(formatPracticas(pracData));
+        const espArr = formatEspecialidades(espData);
+        const medArr = formatMedicos(medData);
+        const pracArr = formatPracticas(pracData);
+        setEspecialidades(espArr);
+        setMedicos(medArr);
+        setPracticas(pracArr);
+
+        // ── AUTO-SELECCIÓN: primera especialidad + primer médico ──
+        if (espArr.length > 0) {
+          setSelectedEspecialidadId(espArr[0].id);
+          // Seleccionar primer médico de esa especialidad
+          const firstEsp = espArr[0];
+          const firstMed = medArr.find(m =>
+            m.especialidades.length === 0 ||
+            m.especialidades.some((es: string | { nombre?: string }) => {
+              if (typeof es === "string") return es === firstEsp.nombre;
+              if (es.nombre) return es.nombre === firstEsp.nombre;
+              return false;
+            })
+          );
+          if (firstMed) {
+            setSelectedMedicoId(firstMed.id);
+          }
+        }
       })
       .catch(err => {
         if (cancelled) return;

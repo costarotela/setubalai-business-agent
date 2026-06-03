@@ -93,7 +93,9 @@ export default function TurnosPage() {
     }
   };
 
-  const filtered = filtro === "todos" ? turnos : turnos.filter(t => t.estado === filtro);
+  const filtered = (filtro === "todos" ? turnos : turnos.filter(t => t.estado === filtro))
+    // Filtrar por médico seleccionado en Context (ADN clínico)
+    .filter(t => !filtros.selectedMedicoId || t.medico_id === filtros.selectedMedicoId);
 
   const handleCrear = async () => {
     if (!formFecha || !formHora || !formPaciente || !formMedico) return;
