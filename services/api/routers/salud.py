@@ -9,7 +9,8 @@ from database import get_db
 from models import (
     Paciente, Medico, Visita, HistoriaClinica,
     PracticaMedica, NomencladorPractica, AtencionMedica, Usuario,
-    Receta, EstudioAdjunto
+    Receta, EstudioAdjunto,
+    MedicoEspecialidades, EspecialidadMedica,
 )
 from auth import decode_token, get_current_user
 from pydantic import BaseModel
@@ -17,6 +18,13 @@ from typing import Optional, List
 from datetime import datetime
 
 router = APIRouter(tags=["Salud"])
+
+# Helper: get medico's especialidad names from M:N table
+def _get_medico_esp(db, medico_id) -> list:
+    esps = db.query(EspecialidadMedica).join(
+        MedicoEspecialidades, EspecialidadMedica.id == MedicoEspecialidades.especialidad_id
+    ).filter(MedicoEspecialidades.medico_id == medico_id).all()
+    return [e.nombre for e in esps]
 
 # ===== CONTROL DE ACCESO MÉDICO =====
 # Si el usuario tiene medico_id vinculado, solo puede ver pacientes que atendió.
@@ -117,8 +125,8 @@ def _dict_paciente(p):
         "created_at": str(p.created_at) if p.created_at else None,
     }
 
-def _dict_medico(m):
-    esp = m.especialidades or []
+def _dict_medico(m, db=None):
+    esp = _get_medico_esp(db, m.id) if db else []
     return {
         "id": m.id,
         "nombre": m.nombre or "",
@@ -266,7 +274,7 @@ def historial_paciente(paciente_id: int, db: Session = Depends(get_db), empresa_
             "id": a.id,
             "fecha": str(a.fecha_hora_inicio)[:16] if a.fecha_hora_inicio else "",
             "medico": f"Dr/a. {med.nombre} {med.apellido}" if med else "Desconocido",
-            "especialidad": (med.especialidades or ["General"])[0],
+            "especialidad": _get_medico_esp(db, med.id)[0] if med else "General",  # type: ignore
             "diagnostico": a.diagnostico or "",
             "estado": a.estado or "",
             "presion_arterial": a.presion_arterial or "",
@@ -331,14 +339,24 @@ def historial_paciente(paciente_id: int, db: Session = Depends(get_db), empresa_
 @router.get("/medicos/", response_model=List[dict])
 def listar_medicos(
     request: Request,
+    especialidad_id: Optional[int] = None,
     db: Session = Depends(get_db),
     empresa_id: int = Depends(resolve_empresa_id)
 ):
-    medicos = db.query(Medico).filter(
-        Medico.empresa_id == empresa_id,
-        Medico.activo == True
-    ).order_by(Medico.apellido).all()
-    return [_dict_medico(m) for m in medicos]
+    if especialidad_id:
+        medicos = db.query(Medico).join(
+            MedicoEspecialidades, Medico.id == MedicoEspecialidades.medico_id
+        ).filter(
+            Medico.empresa_id == empresa_id,
+            Medico.activo == True,
+            MedicoEspecialidades.especialidad_id == especialidad_id
+        ).order_by(Medico.apellido).all()
+    else:
+        medicos = db.query(Medico).filter(
+            Medico.empresa_id == empresa_id,
+            Medico.activo == True
+        ).order_by(Medico.apellido).all()
+    return [_dict_medico(m, db) for m in medicos]
 
 @router.post("/medicos/", status_code=201)
 def crear_medico(
@@ -351,11 +369,11 @@ def crear_medico(
     db.add(m)
     db.commit()
     db.refresh(m)
-    return _dict_medico(m)
+    return _dict_medico(m, db)
 
 # ===== CALENDARIO TURNO (agregado 2026-05-28) =====
 
-def _dict_calendario_turno(v, paciente=None, medico=None):
+def _dict_calendario_turno(v, paciente=None, medico=None, db=None):
     """Version enriquecida de visita para el calendario dashboard."""
     fh = v.fecha_hora
     fecha_str = fh.strftime("%Y-%m-%d") if fh else None
@@ -369,11 +387,10 @@ def _dict_calendario_turno(v, paciente=None, medico=None):
         pac_os = getattr(paciente, "obra_social", None)
     med_nombre = ""
     med_apellido = ""
-    med_especialidades = []
+    med_especialidades = _get_medico_esp(db, medico.id) if db and medico else []  # type: ignore
     if medico:
         med_nombre = medico.nombre or ""
         med_apellido = medico.apellido or ""
-        med_especialidades = medico.especialidades or []
     return {
         "id": v.id,
         "fecha_hora": str(fh) if fh else None,
@@ -445,7 +462,7 @@ def turnos_calendario(
                 paciente = None
         else:
             paciente = None
-        turno = _dict_calendario_turno(v, paciente=paciente, medico=v.medico)
+        turno = _dict_calendario_turno(v, paciente=paciente, medico=v.medico, db=db)
         turno["paciente_completo"] = f"{turno['paciente_apellido']}, {turno['paciente_nombre']}".strip(", ") or "Desconocido"
         turno["medico_completo"] = f"Dr/a. {turno['medico_nombre']} {turno['medico_apellido']}".strip() or ""
         turno["medico_display"] = f"{turno['medico_apellido']}, {turno['medico_nombre']}".strip(", ") or ""
@@ -550,7 +567,100 @@ def editar_turno(
     db.refresh(v)
     return _dict_visita(v)
 
-# ===== PRÁCTICAS MÉDICAS =====
+
+# ===== NUEVOS ENDPOINTS (FASE 2 - Jun 2026) =====
+
+@router.put("/turnos/{turno_id}/estado")
+def cambiar_estado_turno(
+    turno_id: int,
+    request: Request,
+    nuevo_estado: str = Query(..., description="pendiente, en-curso, completado, cancelado"),
+    db: Session = Depends(get_db),
+    empresa_id: int = Depends(resolve_empresa_id)
+):
+    """Cambia el estado de un turno. Usado por botones ▶Iniciar y ✅Completar en calendario."""
+    estados_validos = ["pendiente", "en-curso", "en_curso", "completado", "cancelado"]
+    if nuevo_estado not in estados_validos:
+        raise HTTPException(400, f"Estado inválido. Válidos: {estados_validos}")
+    
+    v = db.query(Visita).filter(Visita.id == turno_id, Visita.empresa_id == empresa_id).first()
+    if not v:
+        raise HTTPException(404, "Turno no encontrado")
+    
+    estado_anterior = v.estado
+    v.estado = nuevo_estado.replace("_", "-")  # normalize en-curso
+    db.commit()
+    db.refresh(v)
+    
+    return {
+        "ok": True,
+        "turno_id": turno_id,
+        "estado_anterior": estado_anterior,
+        "estado_nuevo": v.estado,
+        "mensaje": f"Turno #{turno_id} cambiado de '{estado_anterior}' a '{v.estado}'"
+    }
+
+
+@router.get("/agenda/timeline")
+def agenda_timeline(
+    request: Request,
+    fecha: str = Query(..., description="YYYY-MM-DD"),
+    especialidad_id: Optional[int] = None,
+    medico_id: Optional[int] = None,
+    db: Session = Depends(get_db),
+    empresa_id: int = Depends(resolve_empresa_id)
+):
+    """Timeline del día con turnos ordenados por hora. Usado por vista recepcionista."""
+    try:
+        fd = datetime.strptime(fecha, "%Y-%m-%d")
+    except ValueError:
+        raise HTTPException(400, "fecha debe ser YYYY-MM-DD")
+    
+    fh_start = fd.replace(hour=0, minute=0, second=0)
+    fh_end = fd.replace(hour=23, minute=59, second=59)
+    
+    q = db.query(Visita).filter(
+        Visita.empresa_id == empresa_id,
+        Visita.fecha_hora >= fh_start,
+        Visita.fecha_hora <= fh_end
+    )
+    if especialidad_id:
+        q = q.join(Medico, Visita.medico_id == Medico.id).join(MedicoEspecialidades).filter(
+            MedicoEspecialidades.especialidad_id == especialidad_id
+        )
+    if medico_id:
+        q = q.filter(Visita.medico_id == medico_id)
+    
+    visitas = q.order_by(Visita.fecha_hora).all()
+    
+    result = []
+    for v in visitas:
+        d = _dict_visita(v)
+        paciente = db.query(Paciente).filter(Paciente.id == v.paciente_nuevo_id).first()
+        medico = db.query(Medico).filter(Medico.id == v.medico_id).first()
+        if paciente:
+            d["paciente_nombre"] = f"{paciente.nombre} {paciente.apellido}"
+            d["paciente_dni"] = paciente.dni
+            d["obra_social"] = paciente.obra_social
+        if medico:
+            d["medico_nombre"] = f"Dr/a. {medico.nombre} {medico.apellido}"
+            esp_result = db.query(MedicoEspecialidades).filter(
+                MedicoEspecialidades.medico_id == medico.id
+            ).all()
+            d["especialidades"] = [
+                db.query(EspecialidadMedica).filter(
+                    EspecialidadMedica.id == me.especialidad_id
+                ).first().nombre for me in esp_result if db.query(EspecialidadMedica).filter(
+                    EspecialidadMedica.id == me.especialidad_id
+                ).first()
+            ]
+        result.append(d)
+    
+    return {
+        "fecha": fecha,
+        "total": len(result),
+        "turnos": result
+    }
 # Protegido: solo médicos con acceso al paciente o admin
 
 @router.get("/practicas_medicas/", response_model=List[dict])

@@ -3,7 +3,7 @@ load_dotenv()
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routers import auth, clientes, productos, cobros, proveedores, empresas, categorias, reportes, salud, configuracion_agenda, catalogo_publico, especialidades, turnos
+from routers import auth, clientes, productos, cobros, proveedores, empresas, categorias, reportes, salud, configuracion_agenda, catalogo_publico, especialidades, turnos, obras_sociales
 from routers.auth import router as auth_router
 import os
 
@@ -22,6 +22,7 @@ app.add_middleware(
         "http://100.72.101.29:3012",
         "https://business.setubalai.org",
         "https://admin.setubalai.org",
+        "https://dev.setubalai.org",
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -44,6 +45,7 @@ app.include_router(salud.router)
 app.include_router(configuracion_agenda.router)
 app.include_router(especialidades.router)
 app.include_router(turnos.router)
+app.include_router(obras_sociales.router)
 
 
 @app.get("/")

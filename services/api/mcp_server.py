@@ -28,8 +28,17 @@ from models import (
     Paciente, Medico, Visita, AtencionMedica,
     HistoriaClinica, PracticaMedica, NomencladorPractica,
     Receta, EstudioAdjunto, NotificacionProgramada,
+    MedicoEspecialidades, EspecialidadMedica,
 )
 from tenancy import resolve_empresa_id
+from utils.slots_calculator import calcular_slots_libres
+
+# Helper: get medico's specialidad names from M:N table
+def _get_medico_esp(db, medico_id: int) -> list[str]:
+    esps = db.query(EspecialidadMedica).join(
+        MedicoEspecialidades, EspecialidadMedica.id == MedicoEspecialidades.especialidad_id
+    ).filter(MedicoEspecialidades.medico_id == medico_id).all()
+    return [e.nombre for e in esps]
 
 # Crear servidor MCP
 mcp = FastMCP(
@@ -501,24 +510,16 @@ def _get_slots_for_day(horarios, dt_utc, occupied_slots, duracion_min):
 @mcp.tool()
 def med_especialidades_disponibles(empresa_id: int = 16) -> dict:
     """Lista todas las especialidades médicas disponibles en el centro."""
-    from sqlalchemy import distinct
     db = next(get_db())
     try:
-        rows = db.query(distinct(Medico.especialidades)).filter(
-            Medico.empresa_id == empresa_id,
-            Medico.activo == True
-        ).all()
-        # especialidades es ARRAY, need to unnest
-        all_rows = db.query(Medico).filter(
-            Medico.empresa_id == empresa_id,
-            Medico.activo == True
-        ).all()
-        specs = set()
-        for m in all_rows:
-            if m.especialidades:
-                for s in m.especialidades:
-                    specs.add(s)
-        return {"especialidades": sorted(specs)}
+        esps = db.query(EspecialidadMedica).filter(
+            EspecialidadMedica.empresa_id == empresa_id,
+            EspecialidadMedica.activa == True
+        ).order_by(EspecialidadMedica.nombre).all()
+        return {
+            "total": len(esps),
+            "especialidades": [{"id": e.id, "nombre": e.nombre, "color_hex": e.color_hex} for e in esps]
+        }
     finally:
         db.close()
 
@@ -648,14 +649,13 @@ def med_listar_medicos(
             Medico.empresa_id == empresa_id,
             Medico.activo == activo
         )
+        medics_actual = q.all()
         if especialidad:
-            # PostgreSQL array contains
-            medics_actual = []
-            for m in q.all():
-                if m.especialidades and especialidad in m.especialidades:
-                    medics_actual.append(m)
-        else:
-            medics_actual = q.all()
+            # Filter by especialidad using M:N table
+            medics_actual = [
+                m for m in medics_actual
+                if especialidad in _get_medico_esp(db, m.id)  # type: ignore
+            ]
 
         result = []
         for m in medics_actual:
@@ -663,9 +663,8 @@ def med_listar_medicos(
                 "id": m.id,
                 "nombre": m.nombre,
                 "apellido": m.apellido,
-                "especialidades": m.especialidades or [],
+                "especialidades": _get_medico_esp(db, m.id),  # type: ignore
                 "duracion_turno_minutos": m.duracion_turno_minutos,
-                "horarios_atencion": m.horarios_atencion,
                 "matricula_provincial": m.matricula_provincial,
                 "matricula_nacional": m.matricula_nacional,
             })
@@ -676,63 +675,55 @@ def med_listar_medicos(
 
 @mcp.tool()
 def med_buscar_slots_disponibles(
-    medico_id: int,
-    fecha_desde: str,  # YYYY-MM-DD
-    fecha_hasta: str,   # YYYY-MM-DD
+    especialidad_id: Optional[int] = None,
+    medico_id: Optional[int] = None,
+    fecha_desde: str = "",  # YYYY-MM-DD
+    fecha_hasta: str = "",   # YYYY-MM-DD
     empresa_id: int = 16
 ) -> dict:
-    """Busca slots disponibles para un médico en un rango de fechas.
-    Considera horarios_atencion del médico y turnos ya agendados.
-    Retorna slots en formato ISO."""
+    """Busca slots disponibles en un rango de fechas.
+    
+    Usa el MISMO algoritmo que el operador web (calcular_slots_libres).
+    Lee grillas_medicas (tabla relacional), NO JSONB obsoleto.
+    
+    - Si da especialidad_id: muestra TODOS los médicos de esa especialidad con sus slots
+    - Si da medico_id: muestra slots de ese médico específico
+    - Si da ambos: filtra por ambos
+    """
     db = next(get_db())
     try:
-        medico = db.query(Medico).filter(
-            Medico.id == medico_id,
-            Medico.empresa_id == empresa_id
-        ).first()
-        if not medico:
-            return {"ok": False, "error": f"Médico #{medico_id} no encontrado"}
+        if not fecha_desde or not fecha_hasta:
+            return {"ok": False, "error": "Debe proporcionar fecha_desde y fecha_hasta en formato YYYY-MM-DD"}
 
-        duracion = medico.duracion_turno_minutos
-        horarios = medico.horarios_atencion or {}
+        slots = calcular_slots_libres(
+            db=db,
+            empresa_id=empresa_id,
+            especialidad_id=especialidad_id,
+            medico_id=medico_id,
+            fecha_desde=date.fromisoformat(fecha_desde),
+            fecha_hasta=date.fromisoformat(fecha_hasta),
+        )
 
-        # Get existing turnos
-        try:
-            fd = datetime.strptime(fecha_desde, "%Y-%m-%d").replace(tzinfo=timezone.utc)
-            fh = datetime.strptime(fecha_hasta, "%Y-%m-%d").replace(
-                hour=23, minute=59, second=59, tzinfo=timezone.utc
-            )
-        except ValueError:
-            return {"ok": False, "error": "Fechas deben ser YYYY-MM-DD"}
-
-        turnos = db.query(Visita).filter(
-            Visita.empresa_id == empresa_id,
-            Visita.medico_id == medico_id,
-            Visita.fecha_hora >= fd,
-            Visita.fecha_hora <= fh,
-            Visita.estado.in_(["pendiente", "confirmado", "en_curso", "en-curso"])
-        ).all()
-
-        occupied = [t.fecha_hora for t in turnos if t.fecha_hora]
-
-        slots = []
-        delta = timedelta(days=1)
-        current_date = fd.replace(hour=0, minute=0, second=0, microsecond=0)
-        end_date = fh.replace(hour=0, minute=0, second=0, microsecond=0)
-
-        while current_date <= end_date:
-            day_slots = _get_slots_for_day(horarios, current_date, occupied, duracion)
-            for s in day_slots:
-                slots.append(s)
-            current_date += delta
+        if medico_id:
+            med = db.query(Medico).filter(
+                Medico.id == medico_id,
+                Medico.empresa_id == empresa_id
+            ).first()
+            medico_nombre = f"{med.nombre} {med.apellido}" if med else f"Médico #{medico_id}"
+        else:
+            medico_nombre = "Todos los médicos"
 
         return {
             "ok": True,
-            "medico": f"{medico.nombre} {medico.apellido}",
-            "duracion_minutos": duracion,
+            "especialidad_id": especialidad_id,
+            "medico_nombre": medico_nombre,
+            "fecha_desde": fecha_desde,
+            "fecha_hasta": fecha_hasta,
             "total_slots": len(slots),
             "slots": slots
         }
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
     finally:
         db.close()
 
@@ -783,18 +774,20 @@ def med_crear_turno(
         if existing:
             return {"ok": False, "error": "Ese horario ya está ocupado"}
 
-        # Check patient doesn't already have a pending turn
+        # Check patient doesn't already have a pending turno for same especialidad
+        esp_nombres = _get_medico_esp(db, medico_id)  # type: ignore
         dup = db.query(Visita).filter(
             Visita.paciente_nuevo_id == paciente_id,
             Visita.estado.in_(["pendiente", "confirmado"]),
         ).all()
         for d in dup:
-            d_medico = db.query(Medico).filter(Medico.id == d.medico_id).first()
-            if d_medico and d_medico.especialidades:
-                if set(medico.especialidades) & set(d_medico.especialidades):
+            d_med_esp = _get_medico_esp(db, d.medico_id)  # type: ignore
+            if set(esp_nombres) & set(d_med_esp):
+                dup_med = db.query(Medico).filter(Medico.id == d.medico_id).first()
+                if dup_med:
                     return {
                         "ok": False,
-                        "error": f"Ya tenés un turno pendiente con Dr/a. {d_medico.apellido} ({', '.join(d_medico.especialidades)}). No se pueden tener 2 turnos para la misma especialidad."
+                        "error": f"Ya tenés un turno pendiente con Dr/a. {dup_med.apellido} ({', '.join(d_med_esp)}). No se pueden tener 2 turnos para la misma especialidad."
                     }
 
         duracion = medico.duracion_turno_minutos
@@ -813,7 +806,7 @@ def med_crear_turno(
         db.commit()
         db.refresh(v)
 
-        especialidad = medico.especialidades[0] if medico.especialidades else "General"
+        especialidad = _get_medico_esp(db, medico_id)[0] if _get_medico_esp(db, medico_id) else "General"
         return {
             "ok": True,
             "turno_id": v.id,
@@ -866,9 +859,11 @@ def med_listar_turnos(
         for t in turnos:
             paciente = db.query(Paciente).filter(Paciente.id == t.paciente_nuevo_id).first()
             medico = db.query(Medico).filter(Medico.id == t.medico_id).first()
-            esp = medico.especialidades[0] if medico and medico.especialidades else ""
+            esp = _get_medico_esp(db, medico.id)[0] if medico else ""  # type: ignore
             result.append({
                 "id": t.id,
+                "medico_id": t.medico_id,
+                "paciente_id": t.paciente_nuevo_id,
                 "paciente": f"{paciente.nombre} {paciente.apellido}" if paciente else "?",
                 "medico": f"{medico.nombre} {medico.apellido}" if medico else "?",
                 "especialidad": esp,
@@ -877,6 +872,7 @@ def med_listar_turnos(
                 "estado": t.estado,
                 "motivo_consulta": str(t.motivo_consulta or "")[:100],
                 "tipo_visita": t.tipo_visita,
+                "cant_reprogramaciones": getattr(t, 'cant_reprogramaciones', 0),
             })
         return {"total": len(result), "turnos": result}
     finally:
@@ -971,17 +967,48 @@ def med_modificar_turno(
             return {"ok": False, "error": "No se puede modificar un turno cancelado"}
 
         now_utc = datetime.now(timezone.utc)
+        
+        # ─── ANTI-ABUSE: Límite de reprogramaciones ───
+        cant_rep = turno.cant_reprogramaciones if turno.cant_reprogramaciones else 0
+        if cant_rep >= 3:
+            return {
+                "ok": False,
+                "error": (
+                    f"Este turno ya fue reprogramado {cant_rep} veces (máximo 3). "
+                    f"Para cambios adicionales, contactá directamente con la recepción."
+                )
+            }
+        
+        # ─── ANTI-ABUSE: Cooldown 1 hora entre reprogramaciones ───
+        if turno.ultima_reprogramacion:
+            ultima = turno.ultima_reprogramacion
+            if ultima.tzinfo is None:
+                ultima = ultima.replace(tzinfo=timezone.utc)
+            desde_ultima = (now_utc - ultima).total_seconds()
+            if desde_ultima < 3600:
+                mins_restantes = int((3600 - desde_ultima) / 60)
+                return {
+                    "ok": False,
+                    "error": (
+                        f"Debés esperar al menos 1 hora entre reprogramaciones. "
+                        f"Podés reprogramar nuevamente en {mins_restantes} minutos."
+                    )
+                }
+        
+        # ─── ANTI-ABUSE: Mínimo 24h de anticipación al turno original ───
         fh_original = turno.fecha_hora
-        modifica_con_anticipacion = True
-        turno_fecha_str = "N/A"
-
         if fh_original:
             if fh_original.tzinfo is None:
                 fh_original = fh_original.replace(tzinfo=timezone.utc)
-            turno_fecha_str = fh_original.strftime("%d/%m/%Y a las %H:%M")
             diff = (fh_original - now_utc).total_seconds()
             if diff < 86400:
-                modifica_con_anticipacion = False
+                return {
+                    "ok": False,
+                    "error": (
+                        f"No se puede reprogramar con menos de 24 horas de anticipación. "
+                        f"Para cambios de último momento, contactá con recepción."
+                    )
+                }
 
         try:
             new_fh = datetime.fromisoformat(nueva_fecha_hora)
@@ -1003,20 +1030,21 @@ def med_modificar_turno(
         old_fh = turno.fecha_hora
         turno.fecha_hora = new_fh
         turno.updated_at = now_utc
+        turno.cant_reprogramaciones = cant_rep + 1
+        turno.ultima_reprogramacion = now_utc
         db.commit()
 
-        if modifica_con_anticipacion:
-            reprogramacion_msg = f"Turno reprogramado de {old_fh.strftime('%d/%m %H:%M')} a {new_fh.strftime('%d/%m %H:%M')}"
-        else:
-            reprogramacion_msg = (
-                f"Turno reprogramado de {old_fh.strftime('%d/%m %H:%M')} a {new_fh.strftime('%d/%m %H:%M')}. "
-                f"Modificaste con menos de 24h, se asignó disponibilidad sin prioridad."
-            )
+        turno_fecha_str = old_fh.strftime("%d/%m/%Y a las %H:%M")
+        reprogramacion_msg = (
+            f"Turno reprogramado de {old_fh.strftime('%d/%m %H:%M')} "
+            f"a {new_fh.strftime('%d/%m %H:%M')} "
+            f"({cant_rep + 1}/3 reprogramaciones utilizadas)"
+        )
 
         return {
             "ok": True,
             "turno_id": turno_id,
-            "modifica_con_anticipacion": modifica_con_anticipacion,
+            "cant_reprogramaciones": cant_rep + 1,
             "fecha_anterior": str(old_fh),
             "fecha_nueva": str(new_fh),
             "mensaje": reprogramacion_msg

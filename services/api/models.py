@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, Boolean, DECIMAL, Date, DateTime, ARRAY, JSON, ForeignKey
+from sqlalchemy import Column, Integer, String, Text, Boolean, DECIMAL, Date, DateTime, ARRAY, JSON, ForeignKey, BigInteger
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy import DateTime as TIMESTAMPTZ
 from sqlalchemy.orm import relationship
@@ -213,6 +213,7 @@ class Paciente(Base):
     plan = Column(String(100))
     vigencia_afiliacion = Column(Date)
     activo = Column(Boolean, default=True)
+    telegram_chat_id = Column(BigInteger, nullable=True)
     created_at = Column(TIMESTAMPTZ, server_default=func.now())
     updated_at = Column(TIMESTAMPTZ, server_default=func.now())
 
@@ -258,6 +259,8 @@ class Visita(Base):
     fecha_cancelacion = Column(TIMESTAMPTZ)
     cancelado_por_usuario_id = Column(Integer, ForeignKey("usuarios.id"))
     reprogramado_a_visita_id = Column(Integer, ForeignKey("visitas.id"))
+    cant_reprogramaciones = Column(Integer, default=0)
+    ultima_reprogramacion = Column(TIMESTAMPTZ)
     created_at = Column(TIMESTAMPTZ, server_default=func.now())
     updated_at = Column(TIMESTAMPTZ, server_default=func.now())
     medico = relationship("Medico")
@@ -299,6 +302,19 @@ class EspecialidadMedica(Base):
     color_hex = Column(String(10))
     requiere_equipos = Column(Boolean, default=False)
     activa = Column(Boolean, default=True)
+    created_at = Column(TIMESTAMPTZ, server_default=func.now())
+    updated_at = Column(TIMESTAMPTZ, server_default=func.now())
+
+class ObraSocial(Base):
+    __tablename__ = "obras_sociales"
+    id = Column(Integer, primary_key=True)
+    empresa_id = Column(Integer, ForeignKey("empresa.id"), nullable=False)
+    nombre = Column(String(200), nullable=False)
+    codigo = Column(String(50), unique=True, nullable=False)
+    rnic = Column(String(50))
+    tipo = Column(String(20), default="OS")  # OS, PREPAGA, PARTICULAR
+    cobertura_default = Column(DECIMAL(5,2), default=100.00)
+    activo = Column(Boolean, default=True)
     created_at = Column(TIMESTAMPTZ, server_default=func.now())
     updated_at = Column(TIMESTAMPTZ, server_default=func.now())
 

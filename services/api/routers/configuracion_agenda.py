@@ -333,11 +333,24 @@ def listar_duraciones(
     current_user = Depends(get_current_user)
 ):
     """Lista duraciones de turno por especialidad"""
-    duraciones = db.query(DuracionPrestacion).filter(
+    from models import EspecialidadMedica
+    results = db.query(DuracionPrestacion, EspecialidadMedica.nombre).outerjoin(
+        EspecialidadMedica,
+        DuracionPrestacion.especialidad_id == EspecialidadMedica.id
+    ).filter(
         DuracionPrestacion.empresa_id == current_user.empresa_id
-    ).order_by(DuracionPrestacion.especialidad).all()
+    ).order_by(DuracionPrestacion.especialidad_id).all()
     
-    return duraciones
+    return [
+        DuracionPrestacionResponse(
+            id=d.id,
+            empresa_id=d.empresa_id,
+            especialidad=especialidad or "Sin asignar",
+            duracion_minutos=d.duracion_minutos,
+            sobre_turnos_permitidos=d.sobre_turnos_permitidos,
+        )
+        for d, especialidad in results
+    ]
 
 @router.put("/duracion-prestaciones/{duracion_id}", response_model=DuracionPrestacionResponse)
 def actualizar_duracion(

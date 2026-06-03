@@ -241,6 +241,32 @@ seed_9()
 seed_10()
 seed_11()
 
+# ── Seed usuarios admin para empresa 16 (clínica) ──
+print("\n=== Usuarios empresa 16 (clínica) ===")
+from auth import hash_password
+from models import Usuario
+admin_16 = db.query(Usuario).filter(Usuario.email == "admin@centromedicosantaclara.com.ar").first()
+if admin_16:
+    admin_16.password_hash = hash_password("Pablo2024!")
+    admin_16.activo = True
+    admin_16.rol = "admin"
+    db.commit()
+    print("  ✅ admin@centromedicosantaclara.com.ar password='Pablo2024!'")
+else:
+    print("  ⚠️ Usuario admin de la clínica no existe — se crea en POST /empresas/")
+
+# Verify all users with empresa_id=16 have known passwords
+users_16 = db.query(Usuario).filter(Usuario.empresa_id == 16).all()
+for u in users_16:
+    from auth import verify_password
+    ok = verify_password("Pablo2024!", u.password_hash or "") if u.password_hash else False
+    if ok:
+        print(f"  ✅ {u.email} → password OK")
+    elif u.password_hash and verify_password("Admin123!45", u.password_hash):
+        print(f"  ⚠️ {u.email} → tiene password antigua (Admin123!45)")
+    else:
+        print(f"  ❌ {u.email} → password DESCONOCIDA (no puede hacer login)")
+
 print("\n" + "="*50)
 print("RESUMEN FINAL")
 print("="*50)

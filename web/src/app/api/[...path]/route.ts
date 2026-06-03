@@ -23,7 +23,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ p
 }
 
 async function proxy(req: NextRequest, params: { path: string[] }) {
-  const pathStr = params.path.join("/");
+  const pathStr = params.path.join("/").replace(/\/+$/, ""); // strip trailing slashes
   const search = req.nextUrl.search || "";
   const url = `${API_BASE}/${pathStr}${search}`;
 

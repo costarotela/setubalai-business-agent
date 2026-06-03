@@ -99,10 +99,15 @@ def calcular_slots_libres(
                 hora_fin = grilla.hora_fin
                 
                 while hora_actual < hora_fin:
-                    # Verificar si hay turno ocupado
+                    # Verificar si este SLOT específico está ocupado
+                    # Un slot está ocupado si hay una visita cuyo fecha_hora cae dentro del rango del slot
+                    slot_inicio_dt = datetime.combine(fecha_actual, hora_actual)
+                    slot_fin_dt = slot_inicio_dt + timedelta(minutes=duracion_minutos)
+
                     turno_existente = db.query(Visita).filter(
                         Visita.medico_id == medico.id,
-                        Visita.fecha_hora.cast(Date) == fecha_actual,
+                        Visita.fecha_hora >= slot_inicio_dt,
+                        Visita.fecha_hora < slot_fin_dt,
                         Visita.estado.in_(['confirmado', 'pendiente'])
                     ).first()
                     

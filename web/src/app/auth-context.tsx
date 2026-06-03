@@ -99,7 +99,8 @@ export function useAuthFetch() {
     };
     if (token) headers["Authorization"] = `Bearer ${token}`;
 
-    const r = await fetch(url, { ...options, headers });
+    const targetUrl = url.startsWith("/") && !url.startsWith("/api") ? `${API}${url}` : url;
+    const r = await fetch(targetUrl, { ...options, headers });
 
     // Token expirado → logout automático
     if (r.status === 401) {

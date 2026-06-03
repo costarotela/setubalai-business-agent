@@ -23,7 +23,7 @@ export default function PacientesPage() {
   const [search, setSearch] = useState("");
 
   useEffect(() => {
-    af("/api/pacientes/")
+    af("/api/pacientes")
       .then(r => r.json())
       .then(setPacientes)
       .catch(err => console.error("Error cargando pacientes:", err))
