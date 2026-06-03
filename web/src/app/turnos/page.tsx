@@ -1,5 +1,8 @@
 "use client";
 import { useAuthFetch } from "../auth-context";
+import BreadcrumbNav from "../../components/BreadcrumbNav";
+import PatientLink from "../../components/PatientLink";
+import MedicoLink from "../../components/MedicoLink";
 import { SelectEspecialidadMedico } from "../../components/SelectEspecialidadMedico";
 import { useFiltrosClinica } from "../../contexts/FiltrosClinicaContext";
 import { useState, useEffect } from "react";
@@ -146,6 +149,8 @@ export default function TurnosPage() {
 
   return (
     <div style={{padding: "32px"}}>
+      <BreadcrumbNav items={[{ label: "Turnos" }]} />
+
       <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24}}>
         <div>
           <h1 style={{fontSize: 24, fontWeight: 700, margin: 0}}>📅 Turnos</h1>
@@ -305,8 +310,12 @@ export default function TurnosPage() {
                       {esHoy ? "HOY" : esPasado ? "Pasado" : new Date(fecha).toLocaleDateString("es-AR")}
                     </td>
                     <td style={{padding: "10px 16px", fontSize: 13, fontFamily: "monospace", color: "#8a8f98"}}>{hora}</td>
-                    <td style={{padding: "10px 16px", fontSize: 13}}>{t.paciente_nombre}</td>
-                    <td style={{padding: "10px 16px", fontSize: 13, color: "#8a8f98"}}>{t.medico_nombre}</td>
+                    <td style={{padding: "10px 16px", fontSize: 13}}>
+                      <PatientLink id={t.paciente_id} nombre={t.paciente_nombre || "Sin paciente"} />
+                    </td>
+                    <td style={{padding: "10px 16px", fontSize: 13, color: "#8a8f98"}}>
+                      <MedicoLink id={t.medico_id} nombre={t.medico_nombre || ""} />
+                    </td>
                     <td style={{padding: "10px 16px", fontSize: 12, color: "#8a8f98"}}>{t.servicio}</td>
                     <td style={{padding: "10px 16px"}}>
                       <span style={{
