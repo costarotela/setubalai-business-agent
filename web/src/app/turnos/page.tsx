@@ -2,11 +2,7 @@
 import { useAuthFetch } from "../auth-context";
 import { SelectEspecialidadMedico } from "../../components/SelectEspecialidadMedico";
 import { useFiltrosClinica } from "../../contexts/FiltrosClinicaContext";
-import ClinicaFilterBar from "../../components/ClinicaFilterBar";
-import PatientLink from "../../components/PatientLink";
-import MedicoLink from "../../components/MedicoLink";
-import BreadcrumbNav from "../../components/BreadcrumbNav";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 
 interface Turno {
   id: number;
@@ -94,7 +90,7 @@ export default function TurnosPage() {
     }
   };
 
-  // ...existing code...
+  const filtered = filtro === "todos" ? turnos : turnos.filter(t => t.estado === filtro);
 
   const handleCrear = async () => {
     if (!formFecha || !formHora || !formPaciente || !formMedico) return;
@@ -148,31 +144,8 @@ export default function TurnosPage() {
 
   const hoy = new Date().toISOString().split("T")[0];
 
-  // ── Filtros clínicos (Context global) ──────────────────────────────────
-  const turnosFiltradosClinico = useMemo(() => {
-    let result = turnos;
-
-    // Filtrar por médico (si está seleccionado en Context)
-    if (filtros.selectedMedicoId) {
-      result = result.filter(t => t.medico_id === filtros.selectedMedicoId);
-    }
-
-    return result;
-  }, [turnos, filtros.selectedMedicoId]);
-
-  // ── Filtro por estado ─────────────────────────────────────────────────
-  const filtered = filtro === "todos"
-    ? turnosFiltradosClinico
-    : turnosFiltradosClinico.filter(t => t.estado === filtro);
-
   return (
     <div style={{padding: "32px"}}>
-      {/* Breadcrumbs */}
-      <BreadcrumbNav items={[
-        { label: "Turnos" },
-      ]} />
-
-      {/* Header */}
       <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24}}>
         <div>
           <h1 style={{fontSize: 24, fontWeight: 700, margin: 0}}>📅 Turnos</h1>
@@ -189,32 +162,24 @@ export default function TurnosPage() {
         </button>
       </div>
 
-      {/* Filtros clínicos + estado */}
-      <ClinicaFilterBar
-        title="Filtros de Turnos"
-        subtitle="Especialidad y médico se comparten en todo el sistema"
-        activeFilters={filtro !== "todos" ? [filtro] : undefined}
-      >
-        <div style={{ gridColumn: "1 / -1" }}>
-          <div style={{display: "flex", gap: 8}}>
-            {["todos", "pendiente", "en-curso", "completado", "cancelado"].map(f => (
-              <button
-                key={f}
-                onClick={() => setFiltro(f)}
-                style={{
-                  padding: "6px 14px", borderRadius: 6, fontSize: 12, fontWeight: 500,
-                  background: filtro === f ? "rgba(94,106,210,0.2)" : "#141517",
-                  color: filtro === f ? "#7170ff" : "#62666d",
-                  border: filtro === f ? "1px solid rgba(113,112,255,0.3)" : "1px solid rgba(255,255,255,0.06)",
-                  cursor: "pointer", textTransform: "capitalize",
-                }}
-              >
-                {f}
-              </button>
-            ))}
-          </div>
-        </div>
-      </ClinicaFilterBar>
+      {/* Filtros */}
+      <div style={{display: "flex", gap: 8, marginBottom: 16}}>
+        {["todos", "pendiente", "en-curso", "completado", "cancelado"].map(f => (
+          <button
+            key={f}
+            onClick={() => setFiltro(f)}
+            style={{
+              padding: "6px 14px", borderRadius: 6, fontSize: 12, fontWeight: 500,
+              background: filtro === f ? "rgba(94,106,210,0.2)" : "#141517",
+              color: filtro === f ? "#7170ff" : "#62666d",
+              border: filtro === f ? "1px solid rgba(113,112,255,0.3)" : "1px solid rgba(255,255,255,0.06)",
+              cursor: "pointer", textTransform: "capitalize",
+            }}
+          >
+            {f}
+          </button>
+        ))}
+      </div>
 
       {/* Form nuevo turno */}
       {showNuevo && (
@@ -340,12 +305,8 @@ export default function TurnosPage() {
                       {esHoy ? "HOY" : esPasado ? "Pasado" : new Date(fecha).toLocaleDateString("es-AR")}
                     </td>
                     <td style={{padding: "10px 16px", fontSize: 13, fontFamily: "monospace", color: "#8a8f98"}}>{hora}</td>
-                    <td style={{padding: "10px 16px", fontSize: 13}}>
-                      <PatientLink id={t.paciente_id} nombre={t.paciente_nombre || "Sin paciente"} />
-                    </td>
-                    <td style={{padding: "10px 16px", fontSize: 13, color: "#8a8f98"}}>
-                      <MedicoLink id={t.medico_id} nombre={t.medico_nombre || ""} />
-                    </td>
+                    <td style={{padding: "10px 16px", fontSize: 13}}>{t.paciente_nombre}</td>
+                    <td style={{padding: "10px 16px", fontSize: 13, color: "#8a8f98"}}>{t.medico_nombre}</td>
                     <td style={{padding: "10px 16px", fontSize: 12, color: "#8a8f98"}}>{t.servicio}</td>
                     <td style={{padding: "10px 16px"}}>
                       <span style={{
