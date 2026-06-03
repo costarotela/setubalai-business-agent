@@ -2,6 +2,7 @@
 import { useAuthFetch } from "../auth-context";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import BreadcrumbNav from "../../components/BreadcrumbNav";
 
 interface Paciente {
   id: number;
@@ -41,6 +42,8 @@ export default function PacientesPage() {
 
   return (
     <div style={{padding: "32px"}}>
+      <BreadcrumbNav items={[{ label: "Pacientes" }]} />
+
       <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24}}>
         <div>
           <h1 style={{fontSize: 22, fontWeight: 700, margin: 0}}>Pacientes</h1>
