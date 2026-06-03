@@ -208,6 +208,8 @@ def listar_pacientes(
     request: Request,
     buscar: Optional[str] = None,
     obra_social: Optional[str] = None,
+    especialidad_id: Optional[int] = None,
+    medico_id: Optional[int] = None,
     limit: int = Query(200, le=500),
     offset: int = 0,
     db: Session = Depends(get_db),
@@ -225,6 +227,27 @@ def listar_pacientes(
         ))
     if obra_social:
         q = q.filter(Paciente.obra_social.ilike(f"%{obra_social}%"))
+    
+    # Filtrar por médico: pacientes que tienen visitas con ese médico
+    if medico_id:
+        paciente_ids = db.query(Visita.paciente_nuevo_id).filter(
+            Visita.medico_id == medico_id,
+            Visita.paciente_nuevo_id.isnot(None)
+        ).distinct().subquery()
+        q = q.filter(Paciente.id.in_(db.query(paciente_ids.c.paciente_nuevo_id)))
+    
+    # Filtrar por especialidad: pacientes que tienen visitas con médicos de esa especialidad
+    if especialidad_id:
+        # Buscar médicos de esa especialidad
+        medico_ids_sub = db.query(MedicoEspecialidades.medico_id).filter(
+            MedicoEspecialidades.especialidad_id == especialidad_id
+        ).distinct().subquery()
+        paciente_ids = db.query(Visita.paciente_nuevo_id).filter(
+            Visita.medico_id.in_(db.query(medico_ids_sub.c.medico_id)),
+            Visita.paciente_nuevo_id.isnot(None)
+        ).distinct().subquery()
+        q = q.filter(Paciente.id.in_(db.query(paciente_ids.c.paciente_nuevo_id)))
+    
     pacientes = q.order_by(Paciente.apellido, Paciente.nombre).offset(offset).limit(limit).all()
     return [_dict_paciente(p) for p in pacientes]
 
@@ -418,10 +441,13 @@ def _dict_calendario_turno(v, paciente=None, medico=None, db=None):
 def turnos_calendario(
     request: Request,
     mes: str = Query(..., description="Mes en formato YYYY-MM, ej: 2026-06"),
+    especialidad_id: Optional[int] = None,
+    medico_id: Optional[int] = None,
+    estado: Optional[str] = None,
     db: Session = Depends(get_db),
     empresa_id: int = Depends(resolve_empresa_id)
 ):
-    """Retorna todos los turnos del mes especificado para la empresa."""
+    """Retorna todos los turnos del mes especificado para la empresa, con filtros reactivos."""
     from sqlalchemy import extract
     try:
         parts = mes.split("-")
@@ -441,8 +467,19 @@ def turnos_calendario(
             extract('year', Visita.fecha_hora) == year,
             extract('month', Visita.fecha_hora) == month,
         )
-        .order_by(Visita.fecha_hora.asc())
     )
+    # Filtro reactivo por especialidad
+    if especialidad_id:
+        query = query.join(
+            MedicoEspecialidades, MedicoEspecialidades.medico_id == Visita.medico_id
+        ).filter(MedicoEspecialidades.especialidad_id == especialidad_id)
+    # Filtro reactivo por médico
+    if medico_id:
+        query = query.filter(Visita.medico_id == medico_id)
+    # Filtro por estado
+    if estado:
+        query = query.filter(Visita.estado == estado)
+    query = query.order_by(Visita.fecha_hora.asc())
     resultados = query.all()
     turnos = []
     for v in resultados:
@@ -476,11 +513,21 @@ def turnos_calendario(
 def listar_turnos(
     request: Request,
     db: Session = Depends(get_db),
-    empresa_id: int = Depends(resolve_empresa_id)
+    empresa_id: int = Depends(resolve_empresa_id),
+    especialidad_id: Optional[int] = None,
+    medico_id: Optional[int] = None,
+    estado: Optional[str] = None
 ):
-    visitas = db.query(Visita).filter(
-        Visita.empresa_id == empresa_id
-    ).order_by(Visita.fecha_hora.asc()).limit(200).all()
+    q = db.query(Visita).filter(Visita.empresa_id == empresa_id)
+    if especialidad_id:
+        q = q.join(
+            MedicoEspecialidades, MedicoEspecialidades.medico_id == Visita.medico_id
+        ).filter(MedicoEspecialidades.especialidad_id == especialidad_id)
+    if medico_id:
+        q = q.filter(Visita.medico_id == medico_id)
+    if estado:
+        q = q.filter(Visita.estado == estado)
+    visitas = q.order_by(Visita.fecha_hora.asc()).limit(200).all()
 
     # Enriquecer con nombres
     result = []

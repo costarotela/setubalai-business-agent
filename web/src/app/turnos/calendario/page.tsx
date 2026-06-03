@@ -90,12 +90,15 @@ export default function CalendarioPage() {
   // Día seleccionado (panel lateral)
   const [diaSeleccionado, setDiaSeleccionado] = useState<string | null>(null);
 
-  // ── Fetch datos del mes ─────────────────────────────────────────────────
+  // ── Fetch datos del mes — refresca AUTOMÁTICAMENTE al cambiar contexto ──
   const cargar = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const r = await af(`/api/calendario?mes=${mesQuery}`);
+      const params = new URLSearchParams({ mes: mesQuery });
+      if (filtros.selectedEspecialidadId) params.set("especialidad_id", String(filtros.selectedEspecialidadId));
+      if (filtros.selectedMedicoId) params.set("medico_id", String(filtros.selectedMedicoId));
+      const r = await af(`/api/calendario?${params.toString()}`);
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       const data: CalendarioResponse = await r.json();
       setTurnos(data.turnos || []);
@@ -105,7 +108,7 @@ export default function CalendarioPage() {
     } finally {
       setLoading(false);
     }
-  }, [mesQuery, af]);
+  }, [mesQuery, filtros.selectedEspecialidadId, filtros.selectedMedicoId, af]);
 
   useEffect(() => { cargar(); setDiaSeleccionado(null); }, [cargar]);
 

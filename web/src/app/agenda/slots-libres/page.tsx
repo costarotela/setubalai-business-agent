@@ -70,13 +70,13 @@ export default function SlotsLibresPage() {
     } finally {
       setLoading(false);
     }
-  }, [f.selectedEspecialidadId, f.selectedMedicoId, fechaInicio, fechaFin, token, user, showToast, f.selectedEspecialidadId, f.selectedMedicoId]);
+  }, [f.selectedEspecialidadId, f.selectedMedicoId, fechaInicio, fechaFin, token, user?.empresa_id, showToast]);
 
   useEffect(() => {
     if (f.selectedEspecialidadId) {
       fetchSlots();
     }
-  }, [f.selectedEspecialidadId, f.selectedMedicoId, fechaInicio, fechaFin, fetchSlots]);
+  }, [f.selectedEspecialidadId, f.selectedMedicoId, fechaInicio, fechaFin]);
 
   const handleReservar = (slot: Slot) => {
     setSelectedSlot(slot);
