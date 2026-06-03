@@ -1,8 +1,13 @@
-## ✅ RESUMEN FINAL (para nueva sesión)
+# 📋 ESTADO DEL PROYECTO — SetubalAI Clínica Multi-Especialidad
+> **Fecha actualización:** 2026-06-03
+> **Branch actual:** `feature/adn-clinico-refactor` (desde `feature/context-provider-filtros`)
+> **Main:** intacto, sin cambios de FASE 3+
 
-### FASE 3 CONTEXT PROVIDER — COMPLETA ✅
+---
 
-**Branch:** `feature/context-provider-filtros`
+## ✅ FASE 3 CONTEXT PROVIDER — COMPLETA ✅
+
+**Branch:** `feature/context-provider-filtros` (mergeado a `feature/adn-clinico-refactor`)
 **Main:** intacto
 
 ---
@@ -130,9 +135,20 @@ GET /turnos/                      → 200, 47 items
 - Verificar que los slots se filtren por médico cuando se selecciona
 - Agregar SelectEspecialidadMedico en más páginas si es necesario
 
-### VERIFICACIÓN RÁPIDA:
+# ─── FLUJO DESARROLLO / VERIFICACIÓN ─────────────────────────────────────────
+
+**Reglas:**
+1. SIEMPRE rama separada, main intacto
+2. ANTES de tocar: verificar DB con curl, endpoints reales, NO asumir
+3. Flujo: plan → 1 cambio → verificar → siguiente. NUNCA codear sin analizar
+4. dev.setubalai.org = ver cambios en real; localhost:3013 = dev local
+5. Context Provider (Opción B) obligatoria para datos globales
+6. NUNCA "listo" sin curl→200
+7. 1 comando/vez
+
+### Verificación rápida
 ```bash
-cd ~/setubalai-agente && git checkout feature/context-provider-filtros
+cd ~/setubalai-agente && git checkout feature/adn-clinico-refactor
 cd web && PORT=3013 npm run dev
 # Todas las páginas: 200
 # Build: 0 errores

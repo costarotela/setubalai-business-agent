@@ -1,20 +1,12 @@
 "use client";
 /**
- * FiltrosClinicaContext — Datos de la clínica, cargados UNA VEZ al montar.
+ * FiltrosClinicaContext — ÚNICA fuente de verdad para estado clínico global.
  *
- * Jerarquía sagrada:
- *   empresa_id → especialidades → médicos → slots/prácticas
+ * Jerarquía:
+ *   empresa_id → especialidades → médicos (todos cacheados) → prácticas
  *
- * Este provider carga las especialidades y nomenclador de la clínica
- * al inicio, cachea todo, y expone un hook para que cualquier
- * componente consuma los datos sin refetch.
- *
- * Al cambiar la especialidad seleccionada → recarga médicos filtrados.
- *
- * Uso:
- *   <FiltrosClinicaProvider>
- *     <AppShell>{children}</AppShell>
- *   </FiltrosClinicaProvider>
+ * Carga UNA VEZ al montar (post-login), cachea todo, expone selección
+ * global persistente entre páginas.
  */
 
 import {
@@ -48,33 +40,32 @@ export interface Medico {
 export interface Practica {
   id: number;
   descripcion: string;
-  tipo: string;       // "Consulta" | "Estudio"
+  tipo: string;
   especialidad_requerida: string | null;
   precio_particular: number | null;
   requiere_autorizacion: boolean;
   activo: boolean;
 }
 
-interface FiltrosState {
-  // Datos cargados UNA VEZ al montar
+export interface FiltrosState {
+  // Datos cacheados (cargar UNA VEZ)
   especialidades: Especialidad[];
+  medicos: Medico[];         // TODOS los médicos, no filtrados
   practicas: Practica[];
 
-  // Datos dependientes (se recargan al cambiar especialidad)
-  medicos: Medico[];
-
-  // Selecciones del usuario
+  // Selección global (persiste entre páginas)
   selectedEspecialidadId: number | null;
   selectedMedicoId: number | null;
 
-  // Actions
+  // Actions mutables
   setEspecialidadId: (id: number | null) => void;
   setMedicoId: (id: number | null) => void;
 
-  // Nomenclador filtrado por especialidad seleccionada
-  practicasFiltradas: Practica[];
+  // Derived data (memoizados)
+  medicosFiltrados: Medico[];      // filtrados por especialidad seleccionada
+  practicasFiltradas: Practica[];  // filtradas por especialidad seleccionada
 
-  // UI
+  // UI state
   loading: boolean;
   error: string | null;
 }
@@ -83,19 +74,62 @@ interface FiltrosState {
 
 const Context = createContext<FiltrosState | null>(null);
 
+// ─── Helpers de format ─────────────────────────────────────────────────
+
+function formatEspecialidades(data: unknown): Especialidad[] {
+  const arr = (data as any)?.especialidades || (data as any) || [];
+  if (!Array.isArray(arr)) return [];
+  return arr.map((e: any) => ({
+    id: e.id,
+    nombre: e.nombre || "",
+    codigo: e.codigo || null,
+    color_hex: e.color_hex || null,
+    duracion_turno_default: e.duracion_turno_default || null,
+  }));
+}
+
+function formatMedicos(data: unknown): Medico[] {
+  const arr = Array.isArray(data) ? data : [];
+  return arr.map((m: any) => ({
+    id: m.id,
+    nombre: m.nombre || "",
+    apellido: m.apellido || "",
+    especialidades: Array.isArray(m.especialidades) ? m.especialidades : [],
+  }));
+}
+
+function formatPracticas(data: unknown): Practica[] {
+  const arr = Array.isArray(data) ? data : [];
+  return arr.map((p: any) => ({
+    id: p.id,
+    descripcion: p.descripcion || p.nombre || "",
+    tipo: p.tipo || "Consulta",
+    especialidad_requerida: p.especialidad_requerida || null,
+    precio_particular: p.precio_particular || null,
+    requiere_autorizacion: !!p.requiere_autorizacion,
+    activo: p.activo !== false,
+  }));
+}
+
+// ─── Provider ────────────────────────────────────────────────────────────
+
 export function FiltrosClinicaProvider({ children }: { children: ReactNode }) {
   const { token } = useAuth();
   const af = useAuthFetch();
 
+  // Datos raw
   const [especialidades, setEspecialidades] = useState<Especialidad[]>([]);
   const [medicos, setMedicos] = useState<Medico[]>([]);
   const [practicas, setPracticas] = useState<Practica[]>([]);
+
+  // Selección global (null = sin selección, las páginas pueden filtrar localmente)
   const [selectedEspecialidadId, setSelectedEspecialidadId] = useState<number | null>(null);
   const [selectedMedicoId, setSelectedMedicoId] = useState<number | null>(null);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Reset al cambiar token (cambio de sesión)
+  // Reset al cambiar token
   useEffect(() => {
     setEspecialidades([]);
     setMedicos([]);
@@ -106,49 +140,24 @@ export function FiltrosClinicaProvider({ children }: { children: ReactNode }) {
     setError(null);
   }, [token]);
 
-  // ── Cargar especialidades + prácticas UNA VEZ al montar ──────────────────
+  // ── Cargar especialidades, TODOS los médicos, y prácticas UNA VEZ ──
   useEffect(() => {
-    if (!token) { setLoading(false); return; } // no fetch sin auth
+    if (!token) { setLoading(false); return; }
 
     let cancelled = false;
     setLoading(true);
     setError(null);
 
     Promise.all([
-      af("/especialidades/", { cache: "no-store" }).then(r => r.json()),
-      af("/nomenclador_practicas/", { cache: "no-store" }).then(r => r.json()),
+      af("/especialidades/").then(r => r.json()),
+      af("/medicos/").then(r => r.json()),
+      af("/nomenclador_practicas/").then(r => r.json()),
     ])
-      .then(([espData, pracData]) => {
+      .then(([espData, medData, pracData]) => {
         if (cancelled) return;
-
-        // Especialidades: { total, especialidades: [...] }
-        const espArr = espData?.especialidades || espData || [];
-        const formattedEsps: Especialidad[] = espArr.map((e: any) => ({
-          id: e.id,
-          nombre: e.nombre,
-          codigo: e.codigo || null,
-          color_hex: e.color_hex || null,
-          duracion_turno_default: e.duracion_turno_default || null,
-        }));
-        setEspecialidades(formattedEsps);
-
-        // Auto-seleccionar primera especialidad (orden alfabético) → dispara carga de médicos
-        if (formattedEsps.length > 0 && !cancelled) {
-          setSelectedEspecialidadId(formattedEsps[0].id);
-        }
-
-        // Prácticas (nomenclador): array directo
-        const pracArr = Array.isArray(pracData) ? pracData : [];
-        const formattedPrac: Practica[] = pracArr.map((p: any) => ({
-          id: p.id,
-          descripcion: p.descripcion || p.nombre || "",
-          tipo: p.tipo || "Consulta",
-          especialidad_requerida: p.especialidad_requerida || null,
-          precio_particular: p.precio_particular || null,
-          requiere_autorizacion: !!p.requiere_autorizacion,
-          activo: p.activo !== false,
-        }));
-        setPracticas(formattedPrac);
+        setEspecialidades(formatEspecialidades(espData));
+        setMedicos(formatMedicos(medData));
+        setPracticas(formatPracticas(pracData));
       })
       .catch(err => {
         if (cancelled) return;
@@ -162,66 +171,55 @@ export function FiltrosClinicaProvider({ children }: { children: ReactNode }) {
     return () => { cancelled = true; };
   }, [af, token]);
 
-  // ── Cargar médicos al cambiar especialidad ───────────────────────────────
-  useEffect(() => {
-    if (!selectedEspecialidadId || !token) {
-      setMedicos([]);
-      return;
-    }
-
-    let cancelled = false;
-
-    af(`/medicos/?especialidad_id=${selectedEspecialidadId}`)
-      .then(r => r.json())
-      .then(data => {
-        if (cancelled) return;
-        const medArr = Array.isArray(data) ? data : [];
-        const formattedMeds: Medico[] = medArr.map((m: any) => ({
-          id: m.id,
-          nombre: m.nombre,
-          apellido: m.apellido,
-          especialidades: Array.isArray(m.especialidades) ? m.especialidades : [],
-        }));
-        setMedicos(formattedMeds);
-      })
-      .catch(err => {
-        if (cancelled) return;
-        console.error("[FiltrosClinica] Error cargando médicos:", err);
-        setMedicos([]);
-      });
-
-    return () => { cancelled = true; };
-  }, [selectedEspecialidadId, af, token]);
-
-  // ── Actions ──────────────────────────────────────────────────────────────
+  // ── Actions ──────────────────────────────────────────────────────────
   const setEspecialidadId = useCallback((id: number | null) => {
     setSelectedEspecialidadId(id);
-    setSelectedMedicoId(null); // reset médico al cambiar especialidad
+    setSelectedMedicoId(null); // Reset médico al cambiar especialidad
   }, []);
 
   const setMedicoId = useCallback((id: number | null) => {
     setSelectedMedicoId(id);
   }, []);
 
-  // ── Nomenclador filtrado por especialidad (memo) ────────────────────────
+  // ── Derived data (memoizados) ────────────────────────────────────────
+  const medicosFiltrados = useMemo(() => {
+    if (!selectedEspecialidadId || medicos.length === 0) return medicos;
+    const esp = especialidades.find(e => e.id === selectedEspecialidadId);
+    if (!esp) return medicos;
+    // Filtrar médicos que tengan esta especialidad
+    // Un médico puede tener especialidades como string[] o como {id, nombre}[]
+    return medicos.filter(m => {
+      if (m.especialidades.length === 0) return true; // sin especialidad asignada → mostrar siempre
+      return m.especialidades.some(
+        (es: string | { id?: number; nombre?: string }) => {
+          if (typeof es === "string") return es === esp.nombre;
+          if (es.nombre) return es.nombre === esp.nombre;
+          if (es.id) return es.id === selectedEspecialidadId;
+          return false;
+        }
+      );
+    });
+  }, [medicos, selectedEspecialidadId, especialidades]);
+
   const practicasFiltradas = useMemo(() => {
     if (!selectedEspecialidadId) return practicas;
     const esp = especialidades.find(e => e.id === selectedEspecialidadId);
     if (!esp) return practicas;
-
     return practicas.filter(p =>
       !p.especialidad_requerida || p.especialidad_requerida === esp.nombre
     );
   }, [practicas, selectedEspecialidadId, especialidades]);
 
+  // ─── Value ────────────────────────────────────────────────────────────
   const value = useMemo<FiltrosState>(() => ({
     especialidades,
-    practicas,
     medicos,
+    practicas,
     selectedEspecialidadId,
     selectedMedicoId,
     setEspecialidadId,
     setMedicoId,
+    medicosFiltrados,
     practicasFiltradas,
     loading,
     error,
@@ -229,7 +227,7 @@ export function FiltrosClinicaProvider({ children }: { children: ReactNode }) {
     especialidades, medicos, practicas,
     selectedEspecialidadId, selectedMedicoId,
     setEspecialidadId, setMedicoId,
-    practicasFiltradas, loading, error,
+    medicosFiltrados, practicasFiltradas, loading, error,
   ]);
 
   return <Context.Provider value={value}>{children}</Context.Provider>;
