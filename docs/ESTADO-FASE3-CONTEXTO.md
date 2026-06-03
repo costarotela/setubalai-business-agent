@@ -1,4 +1,53 @@
-# ESTADO AL CIERRE DE SESIÓN — 2026-06-03
+## ✅ RESUMEN FINAL (para nueva sesión)
+
+### FASE 3 CONTEXT PROVIDER — COMPLETA ✅
+
+**Branch:** `feature/context-provider-filtros`
+**Main:** intacto
+
+---
+
+### Archivos modificados (3 nuevos + 4 modificados):
+
+**Nuevos:**
+1. `web/src/contexts/FiltrosClinicaContext.tsx` — Context global
+   - Carga especialidades+nomenclador al montar (con token)
+   - Auto-selecciona primera especialidad
+   - Carga médicos al cambiar especialidad
+   - Reset completo al cambiar token
+   - NO fetch sin auth (evita login loop)
+
+2. `web/src/components/SelectEspecialidadMedico.tsx` — componente reutilizable
+   - `SelectEspecialidadMedico` (especialidad + médico)
+   - `SelectSoloEspecialidad` (solo especialidad)
+
+**Modificados:**
+1. `shell.tsx` — monta `<FiltrosClinicaProvider>` dentro de `<AuthProvider>`
+2. `turnos/page.tsx` — select médico hardcodeado → `SelectEspecialidadMedico`, tipos hardcodeados → `practicasFiltradas`
+3. `agenda/slots-libres/page.tsx` — select manual → `SelectEspecialidadMedico`, filtro por médico en fetch
+4. `turnos/calendario/page.tsx` — botones hardcodeados → `SelectSoloEspecialidad`
+
+---
+
+### Verificaciones:
+
+| Check | Estado |
+|-------|--------|
+| Build 0 errores | ✅ |
+| /turnos | 200 ✅ |
+| /agenda/slots-libres | 200 ✅ |
+| /turnos/calendario | 200 ✅ |
+| /login (sin loop) | 200 ✅ |
+
+### Datos empresa_id=16:
+- 5 especialidades, 5 médicos, 18 prácticas, 47 turnos, 35 slots
+
+### Credenciales:
+`admin@centromedicosantaclara.com.ar` / `iwPakYAsVD3G4PZs`
+
+### PRÓXIMO (si se necesita):
+- Verificar visual en browser que los selects aparecen con datos reales
+- Más páginas con SelectEspecialidadMedico si hace falta
 
 ## RESUMEN EJECUTIVO (para nueva sesión)
 
