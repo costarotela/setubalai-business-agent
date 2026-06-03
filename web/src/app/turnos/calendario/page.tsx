@@ -2,7 +2,9 @@
 "use client";
 import { useAuthFetch } from "../../auth-context";
 import { useFiltrosClinica } from "../../../contexts/FiltrosClinicaContext";
-import { SelectSoloEspecialidad } from "../../../components/SelectEspecialidadMedico";
+import ClinicaFilterBar from "../../../components/ClinicaFilterBar";
+import PatientLink from "../../../components/PatientLink";
+import BreadcrumbNav from "../../../components/BreadcrumbNav";
 import { useState, useEffect, useCallback, useMemo } from "react";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -82,9 +84,7 @@ export default function CalendarioPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Filtros (derivados de los turnos, pero selección es estado)
-  const [filtroEspecialidad, setFiltroEspecialidad] = useState<string | null>(null);
-  const [filtroProfesional, setFiltroProfesional] = useState<string | null>(null);
+  // Filtros: especialidad y médico → Context global; estado → local
   const [filtroEstado, setFiltroEstado] = useState<string | null>(null);
 
   // Día seleccionado (panel lateral)
@@ -122,15 +122,23 @@ export default function CalendarioPage() {
     return [...set].filter(Boolean).sort();
   }, [turnos]);
 
-  // ── Filtros ─────────────────────────────────────────────────────────────
+  // ── Filtros (Context global: selectedEspecialidadId, selectedMedicoId) ──
   const turnosFiltrados = useMemo(() => {
     return turnos.filter(t => {
-      if (filtroEspecialidad && !t.especialidades.includes(filtroEspecialidad)) return false;
-      if (filtroProfesional && t.medico_display !== filtroProfesional) return false;
+      // Filtro especialidad (Context)
+      if (filtros.selectedEspecialidadId) {
+        const esp = filtros.especialidades.find(e => e.id === filtros.selectedEspecialidadId);
+        if (esp && !t.especialidades.includes(esp.nombre)) return false;
+      }
+      // Filtro médico (Context)
+      if (filtros.selectedMedicoId) {
+        if (t.medico_id !== filtros.selectedMedicoId) return false;
+      }
+      // Filtro estado (local)
       if (filtroEstado && t.estado !== filtroEstado) return false;
       return true;
     });
-  }, [turnos, filtroEspecialidad, filtroProfesional, filtroEstado]);
+  }, [turnos, filtros.selectedEspecialidadId, filtros.selectedMedicoId, filtros.especialidades, filtroEstado]);
 
   // ── Agrupar por día ─────────────────────────────────────────────────────
   const turnosPorDia = useMemo(() => {
@@ -216,6 +224,11 @@ export default function CalendarioPage() {
     <div style={{ position: "relative", minHeight: "100vh", background: "#08090d", color: "#e5e7eb" }}>
       {/* ── HEADER ── */}
       <div style={{ padding: "20px 28px 16px", borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
+        {/* Breadcrumbs */}
+        <BreadcrumbNav items={[
+          { label: "Calendario" },
+        ]} />
+
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
             <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0, color: "#f7f8f8" }}>
@@ -252,56 +265,34 @@ export default function CalendarioPage() {
           ))}
         </div>
 
-        {/* ── FILTROS DINÁMICOS ── */}
-        <div style={{ display: "flex", gap: 8, marginTop: 16, flexWrap: "wrap", alignItems: "center" }}>
-          <span style={{ fontSize: 10, color: "#4b5563", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".08em" }}>Filtros:</span>
-          
-          {/* Especialidades → componente reutilizable del Context */}
-          <SelectSoloEspecialidad
-            showLabels={false}
-            onEspecialidadChange={(id) => {
-              if (!id) { setFiltroEspecialidad(null); return; }
-              const esp = filtros.especialidades.find(e => e.id === id);
-              setFiltroEspecialidad(esp?.nombre || null);
-            }}
-            className="calendario-esp-filter"
-          />
-          
-          <div style={{ width: 1, height: 20, background: "rgba(255,255,255,0.06)" }} />
-          
-          {/* Profesionales */}
-          {btnFiltro("Todos", "todos-prof", filtroProfesional === null, () => setFiltroProfesional(null))}
-          {profesionales.slice(0, 6).map(p => btnFiltro(p, `prof-${p}`, filtroProfesional === p, () => setFiltroProfesional(p)))}
-          {profesionales.length > 6 && (
-            <span style={{ fontSize: 10, color: "#4b5563" }}>+{profesionales.length - 6} más</span>
-          )}
-
-          <div style={{ width: 1, height: 20, background: "rgba(255,255,255,0.06)" }} />
-          
-          {/* Estados */}
-          {btnFiltro("Todos", "todos-estado", filtroEstado === null, () => setFiltroEstado(null))}
-          {[["pendiente", "completado", "en-curso", "cancelado"]].flat().map(e => 
-            estadEnFiltro(e) && btnFiltro(e, `estado-${e}`, filtroEstado === e, () => setFiltroEstado(e), ESTADO_COLOR[e]?.text)
-          )}
-
-          {/* Limpiar filtros */}
-          {(filtroEspecialidad || filtroProfesional || filtroEstado) && (
-            <button onClick={() => { setFiltroEspecialidad(null); setFiltroProfesional(null); setFiltroEstado(null); }} style={{
-              fontSize: 10, color: "#ef4444", background: "none", border: "none", cursor: "pointer", fontWeight: 600,
-              marginLeft: 4,
-            }}>✕ Limpiar</button>
-          )}
-        </div>
-
-        {/* Resumen filtros activos */}
-        {(filtroEspecialidad || filtroProfesional || filtroEstado) && (
-          <div style={{ marginTop: 10, padding: "6px 12px", borderRadius: 8, background: "rgba(113,112,255,0.06)", border: "1px solid rgba(113,112,255,0.15)", fontSize: 11, color: "#a5a4ff" }}>
-            Mostrando {turnosFiltrados.length} de {turnos.length} turnos
-            {filtroEspecialidad ? ` · ${filtroEspecialidad}` : ""}
-            {filtroProfesional ? ` · ${filtroProfesional}` : ""}
-            {filtroEstado ? ` · ${filtroEstado}` : ""}
+        {/* ── CLINICA FILTER BAR ── */}
+        <ClinicaFilterBar
+          title="Filtros del Calendario"
+          subtitle="Especialidad y médico se comparten en todo el sistema"
+          activeFilters={filtroEstado ? [filtroEstado] : undefined}
+        >
+          <div style={{ gridColumn: "1 / -1" }}>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+              <span style={{ fontSize: 10, color: "#4b5563", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".08em" }}>Estado:</span>
+              <button onClick={() => setFiltroEstado(null)} style={{
+                padding: "5px 12px", borderRadius: 8, fontSize: 11, fontWeight: 600,
+                background: filtroEstado === null ? "rgba(113,112,255,0.15)" : "rgba(255,255,255,0.03)",
+                color: filtroEstado === null ? "#a5a4ff" : "#6b7280",
+                border: filtroEstado === null ? "1px solid rgba(113,112,255,0.3)" : "1px solid rgba(255,255,255,0.06)",
+                cursor: "pointer",
+              }}>Todos</button>
+              {[["pendiente", "completado", "en-curso", "cancelado"]].flat().map(e => (
+                <button key={e} onClick={() => setFiltroEstado(e === filtroEstado ? null : e)} style={{
+                  padding: "5px 12px", borderRadius: 8, fontSize: 11, fontWeight: 600,
+                  background: filtroEstado === e ? `${ESTADO_COLOR[e]?.text || "#6b7280"}22` : "rgba(255,255,255,0.03)",
+                  color: filtroEstado === e ? (ESTADO_COLOR[e]?.text || "#a5a4ff") : "#6b7280",
+                  border: filtroEstado === e ? `1px solid ${ESTADO_COLOR[e]?.text || "#6b7280"}40` : "1px solid rgba(255,255,255,0.06)",
+                  cursor: "pointer", textTransform: "capitalize",
+                }}>{e}</button>
+              ))}
+            </div>
           </div>
-        )}
+        </ClinicaFilterBar>
       </div>
 
       {/* ── CALENDAR GRID ── */}
@@ -367,7 +358,7 @@ export default function CalendarioPage() {
                             }}>
                               <span style={{ width: 5, height: 5, borderRadius: "50%", background: ec.text, flexShrink: 0 }} />
                               <span style={{ opacity: 0.7 }}>{t.hora}</span>
-                              <span>{t.paciente_completo.split(",")[0]}</span>
+                              <PatientLink id={t.paciente_id} nombre={t.paciente_completo.split(",")[0]} />
                             </div>
                           );
                         })}
@@ -437,7 +428,9 @@ export default function CalendarioPage() {
                     }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                         <div>
-                          <div style={{ fontSize: 14, fontWeight: 700, color: "#f7f8f8" }}>{t.paciente_completo}</div>
+                          <div style={{ fontSize: 14, fontWeight: 700, color: "#f7f8f8" }}>
+                            <PatientLink id={t.paciente_id} nombre={t.paciente_completo} />
+                          </div>
                           <div style={{ fontSize: 11, color: "#6b7280", marginTop: 2 }}>
                             {t.medico_completo} · {t.hora}hs
                           </div>
