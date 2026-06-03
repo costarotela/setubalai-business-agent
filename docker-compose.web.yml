@@ -1,0 +1,13 @@
+services:
+  web-clinica:
+    build:
+      context: ./web
+      args:
+        # Host Docker bridge IP (backend escucha en 0.0.0.0:3010)
+        API_BASE_URL: http://172.17.0.1:3010
+    ports:
+      - "3011:3000"
+    environment:
+      - API_BASE_URL=http://172.17.0.1:3010
+      - NODE_ENV=production
+    restart: unless-stopped

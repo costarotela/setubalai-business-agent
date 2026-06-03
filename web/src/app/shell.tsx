@@ -11,7 +11,7 @@ import { FiltrosClinicaProvider } from "../contexts/FiltrosClinicaContext";
 
 // === MENÚ CLÍNICA MULTIESPECIALIDAD ===
 const CLINICA_MENU = [
-  { name: "Agenda del Día",  path: "/agenda/dia",                 icon: Calendar       },
+  { name: "Agenda del Día",  path: "/agenda/slots-libres",                 icon: Calendar       },
   { name: "Dashboard",      path: "/dashboard",                 icon: LayoutDashboard },
   { name: "Pacientes",      path: "/pacientes",                 icon: Users            },
   { name: "Turnos",         path: "/turnos",                    icon: ClipboardList    },

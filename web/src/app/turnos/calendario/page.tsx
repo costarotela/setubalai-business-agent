@@ -1,6 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 import { useAuthFetch } from "../../auth-context";
+import { useFiltrosClinica } from "../../../contexts/FiltrosClinicaContext";
+import { SelectSoloEspecialidad } from "../../../components/SelectEspecialidadMedico";
 import { useState, useEffect, useCallback, useMemo } from "react";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -67,6 +69,7 @@ function mesLabel(year: number, month: number): string {
 // ─── Main Page ───────────────────────────────────────────────────────────────
 export default function CalendarioPage() {
   const af = useAuthFetch();
+  const filtros = useFiltrosClinica();
   const today = new Date();
 
   // Estado del mes
@@ -253,9 +256,16 @@ export default function CalendarioPage() {
         <div style={{ display: "flex", gap: 8, marginTop: 16, flexWrap: "wrap", alignItems: "center" }}>
           <span style={{ fontSize: 10, color: "#4b5563", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".08em" }}>Filtros:</span>
           
-          {/* Especialidades (dinámicas) */}
-          {btnFiltro("Todas", filtroEspecialidad === null, () => setFiltroEspecialidad(null))}
-          {especialidades.map(e => btnFiltro(e, filtroEspecialidad === e, () => setFiltroEspecialidad(e), specColor(e)))}
+          {/* Especialidades → componente reutilizable del Context */}
+          <SelectSoloEspecialidad
+            showLabels={false}
+            onEspecialidadChange={(id) => {
+              if (!id) { setFiltroEspecialidad(null); return; }
+              const esp = filtros.especialidades.find(e => e.id === id);
+              setFiltroEspecialidad(esp?.nombre || null);
+            }}
+            className="calendario-esp-filter"
+          />
           
           <div style={{ width: 1, height: 20, background: "rgba(255,255,255,0.06)" }} />
           

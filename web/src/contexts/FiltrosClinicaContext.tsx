@@ -26,7 +26,7 @@ import {
   useMemo,
   type ReactNode,
 } from "react";
-import { useAuthFetch } from "../app/auth-context";
+import { useAuthFetch, useAuth } from "../app/auth-context";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -84,6 +84,7 @@ interface FiltrosState {
 const Context = createContext<FiltrosState | null>(null);
 
 export function FiltrosClinicaProvider({ children }: { children: ReactNode }) {
+  const { token } = useAuth();
   const af = useAuthFetch();
 
   const [especialidades, setEspecialidades] = useState<Especialidad[]>([]);
@@ -96,6 +97,8 @@ export function FiltrosClinicaProvider({ children }: { children: ReactNode }) {
 
   // ── Cargar especialidades + prácticas UNA VEZ al montar ──────────────────
   useEffect(() => {
+    if (!token) { setLoading(false); return; } // no fetch sin auth
+
     let cancelled = false;
     setLoading(true);
     setError(null);
@@ -117,6 +120,11 @@ export function FiltrosClinicaProvider({ children }: { children: ReactNode }) {
           duracion_turno_default: e.duracion_turno_default || null,
         }));
         setEspecialidades(formattedEsps);
+
+        // Auto-seleccionar primera especialidad (orden alfabético) → dispara carga de médicos
+        if (formattedEsps.length > 0 && !cancelled) {
+          setSelectedEspecialidadId(formattedEsps[0].id);
+        }
 
         // Prácticas (nomenclador): array directo
         const pracArr = Array.isArray(pracData) ? pracData : [];
@@ -141,11 +149,11 @@ export function FiltrosClinicaProvider({ children }: { children: ReactNode }) {
       });
 
     return () => { cancelled = true; };
-  }, [af]);
+  }, [af, token]);
 
   // ── Cargar médicos al cambiar especialidad ───────────────────────────────
   useEffect(() => {
-    if (!selectedEspecialidadId) {
+    if (!selectedEspecialidadId || !token) {
       setMedicos([]);
       return;
     }
@@ -172,7 +180,7 @@ export function FiltrosClinicaProvider({ children }: { children: ReactNode }) {
       });
 
     return () => { cancelled = true; };
-  }, [selectedEspecialidadId, af]);
+  }, [selectedEspecialidadId, af, token]);
 
   // ── Actions ──────────────────────────────────────────────────────────────
   const setEspecialidadId = useCallback((id: number | null) => {

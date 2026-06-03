@@ -1,0 +1,53 @@
+version: "3.8"
+
+services:
+  # ==========================================
+  # PORTAINER — Interfaz visual Docker
+  # Accedé en: http://100.72.101.29:9000
+  # ==========================================
+  portainer:
+    image: portainer/portainer-ce:latest
+    container_name: portainer
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - portainer_data:/data
+    ports:
+      - "9000:9000"
+    # Exponer para que el túnel lo pueda enganchar
+
+  # ==========================================
+  # CLÍNICA — Npm run dev (NO build!)
+  # Volumen directo → hot reload instantáneo
+  # ==========================================
+  web-clinica-dev:
+    image: node:20-alpine
+    container_name: web-clinica-dev
+    working_dir: /app
+    # Montar el código directo → cada cambio en VPS = hot reload
+    volumes:
+      - ./web:/app
+      # Ignorar node_modules y .next del host (se instalan dentro del container)
+      - web_node_modules:/app/node_modules
+      - web_dotnext:/app/.next
+    environment:
+      - NODE_ENV=development
+      - HOSTNAME=0.0.0.0
+      - PORT=3000
+      # API_BASE_URL: como usamos network_mode:host, localhost = host
+    # Host network → el container ve el puerto 3010 del host directamente
+    network_mode: host
+    command: >
+      sh -c "
+        cd /app &&
+        npm install &&
+        npm run dev -- --port 3000
+      "
+    restart: unless-stopped
+
+volumes:
+  portainer_data:
+  web_node_modules:
+  web_dotnext:
