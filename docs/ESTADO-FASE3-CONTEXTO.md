@@ -1,6 +1,7 @@
 # 📋 ESTADO DEL PROYECTO — SetubalAI Clínica Multi-Especialidad
-> **Fecha actualización:** 2026-06-03
-> **Branch actual:** `feature/adn-clinico-refactor` (desde `feature/context-provider-filtros`)
+> **Fecha actualización:** 2026-06-04
+> **Branch actual:** `feature/refactorizacion-v04` (desde main)
+> **Último commit:** `e9ceecb` — FASE3: Scripts diagnose.sh + validate.sh refactor
 > **Main:** intacto, sin cambios de FASE 3+
 
 ---
@@ -149,21 +150,42 @@ GET /turnos/                      → 200, 47 items
 - Navegación reactiva: PatientLink, MedicoLink, BreadcrumbNav
 - Páginas actualizadas: turnos, calendario, agenda, medicos, pacientes
 
-# ─── FLUJO DESARROLLO / VERIFICACIÓN ─────────────────────────────────────────
+# ─── PENDIENTE (Jun 4 2026) ──────────────────────────────────────────────────
 
-**Reglas:**
-1. SIEMPRE rama separada, main intacto
-2. ANTES de tocar: verificar DB con curl, endpoints reales, NO asumir
-3. Flujo: plan → 1 cambio → verificar → siguiente. NUNCA codear sin analizar
-4. dev.setubalai.org = ver cambios en real; localhost:3013 = dev local
-5. Context Provider (Opción B) obligatoria para datos globales
-6. NUNCA "listo" sin curl→200
-7. 1 comando/vez
+### 🔥 PRIORIDAD 1: Sembrado Inteligente de Demo
 
-### Verificación rápida
-```bash
-cd ~/setubalai-agente && git checkout feature/adn-clinico-refactor
-cd web && PORT=3013 npm run dev
-# Todas las páginas: 200
-# Build: 0 errores
-```
+**Problema:** Solo 1 médico por especialidad (5 médicos / 5 especialidades). No se puede demostrar escalabilidad ni interacción real.
+
+**Lo que se necesita:**
+- Varios médicos por especialidad (3-5 por cada una = ~20-25 médicos)
+- Turnos generados automáticamente para mostrar agendas llenas
+- Información relacionada completa: estudios adjuntos, recetas, historia clínica, atenciones médicas
+- Datos que reflejen una clínica SaaS real donde pueda escalar a cualquier otra clínica
+
+### PRIORIDAD 2: Refactorización de páginas FASE 3/4
+
+- /turnos — ClinicaFilterBar crashea en runtime (solo en esta página)
+- /agenda/slots-libres — verificar interacción completa E2E
+- /turnos/calendario — agregar componente de filtro consistente con Agenda del Día
+- Componentes: ClinicaFilterBar, SelectEspecialidadMedico — asegurar consistencia en todas las páginas
+
+### PRIORIDAD 3: Mejorar scripts de diagnóstico
+
+- diagnose.sh — mejorar output de secciones de puertos y procesos
+- validate.sh — ya funciona (27 PASS), los scripts deben dar información valiosa, no solo PASS/FAIL
+
+---
+
+## 🛠️ FLUJO DE TRABAJO — DIAGNÓSTICO INTELIGENTE (Jun 4 2026)
+
+**Reglas:** NO correr validate.sh 27/27 en bucle. NO actuar automáticamente sin razonar. Elegir herramienta según el problema:
+
+| Problema | Herramienta |
+|----------|-------------|
+| dev.setubalai.org no carga | diagnose.sh §7 (Cloudflare) + §1 (puerto 3013) |
+| Página crashea | §11b skill (Turbopack stale chunks) |
+| Datos vacíos | curl endpoint + verificar empresa_id token |
+| Login 401 | diagnose.sh §9 (API check) + seed_datos_prueba.py |
+| Bot no responde | journalctl -u setubalai-clinic-bot -n 20 |
+| Refactor grande | validate.sh completo (27 checks) |
+| Sistema lento | diagnose.sh completo (RAM, disk, Docker, zombie) |
