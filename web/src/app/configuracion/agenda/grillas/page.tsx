@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useAuthFetch } from "@/app/auth-context";
+import { useFiltrosClinica } from "@/contexts/FiltrosClinicaContext";
 
 interface GrillaMedica {
   id: number;
@@ -19,6 +20,7 @@ const DIAS = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "
 
 export default function GrillasPage() {
   const authFetch = useAuthFetch();
+  const { selectedEspecialidadId, especialidades } = useFiltrosClinica();
   const [grillas, setGrillas] = useState<GrillaMedica[]>([]);
   const [medicos, setMedicos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -119,7 +121,16 @@ export default function GrillasPage() {
               </tr>
             </thead>
             <tbody>
-              {grillas.map((g) => {
+              {grillas
+    .filter(g => {
+      if (!selectedEspecialidadId) return true;
+      const esp = especialidades.find(e => e.id === selectedEspecialidadId);
+      if (!esp) return true;
+      const medico = medicos.find(m => m.id === g.medico_id) || g.medico;
+      const espNames = (medico?.especialidades || []);
+      return espNames.includes(esp.nombre);
+    })
+    .map((g) => {
                 const medico = medicos.find((m: any) => m.id === g.medico_id) || g.medico;
                 return (
                   <tr key={g.id} style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>

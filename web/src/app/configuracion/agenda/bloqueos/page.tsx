@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useAuthFetch } from "@/app/auth-context";
+import { useFiltrosClinica } from "@/contexts/FiltrosClinicaContext";
 
 interface Bloqueo {
   id: number;
@@ -16,6 +17,7 @@ const API = process.env.NEXT_PUBLIC_API_URL || "/api";
 
 export default function BloqueosPage() {
   const authFetch = useAuthFetch();
+  const { selectedEspecialidadId, especialidades } = useFiltrosClinica();
   const [bloqueos, setBloqueos] = useState<Bloqueo[]>([]);
   const [medicos, setMedicos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -81,7 +83,7 @@ export default function BloqueosPage() {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 32, paddingBottom: 24, borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
         <div>
           <h2 style={{ fontSize: 22, fontWeight: 600, color: "#f7f8f8", marginBottom: 8 }}>🚫 Bloqueos de Agenda</h2>
-          <p style={{ fontSize: 13, color: "#62666d", margin: 0 }}>{bloqueos.length} bloqueos registrados</p>
+          <p style={{ fontSize: 13, color: "#62666d", margin: 0 }}>{bloqueos.length} bloqueos registrados{selectedEspecialidadId && (() => { const esp = especialidades.find(e => e.id === selectedEspecialidadId); return esp ? ` — ${esp.nombre}` : ""; })()}</p>
         </div>
         <button onClick={openAdd} style={{ background: "rgba(34,197,94,0.15)", border: "1px solid rgba(34,197,94,0.3)", borderRadius: 8, padding: "10px 20px", color: "#22c55e", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>+ Nuevo Bloqueo</button>
       </div>
@@ -103,7 +105,16 @@ export default function BloqueosPage() {
               </tr>
             </thead>
             <tbody>
-              {bloqueos.map((b) => (
+              {bloqueos
+      .filter(b => {
+        if (!selectedEspecialidadId) return true;
+        const esp = especialidades.find(e => e.id === selectedEspecialidadId);
+        if (!esp) return true;
+        const medico = medicos.find(m => m.id === b.medico_id);
+        const espNames = medico?.especialidades || [];
+        return espNames.includes(esp.nombre);
+      })
+      .map((b) => (
                 <tr key={b.id} style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
                   <td style={{ padding: "14px 20px" }}>
                     <div style={{ fontWeight: 500, color: "#f7f8f8" }}>Dr. {b.medico_apellido || "—"}</div>

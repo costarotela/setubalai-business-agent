@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useAuthFetch } from "@/app/auth-context";
+import { useFiltrosClinica } from "@/contexts/FiltrosClinicaContext";
 
 interface DuracionPrestacion {
   id: number;
@@ -19,8 +20,8 @@ const API = process.env.NEXT_PUBLIC_API_URL || "/api";
 
 export default function DuracionesPage() {
   const authFetch = useAuthFetch();
+  const { selectedEspecialidadId, especialidades } = useFiltrosClinica();
   const [duraciones, setDuraciones] = useState<DuracionPrestacion[]>([]);
-  const [especialidades, setEspecialidades] = useState<Especialidad[]>([]);
   const [loading, setLoading] = useState(true);
   const [editId, setEditId] = useState<number | null>(null);
   const [form, setForm] = useState({ especialidad_id: "", duracion_minutos: 30, sobre_turnos_permitidos: 0 });
@@ -107,14 +108,14 @@ export default function DuracionesPage() {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 32, paddingBottom: 24, borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
         <div>
           <h2 style={{ fontSize: 22, fontWeight: 600, color: "#f7f8f8", marginBottom: 8 }}>⏱️ Duración de Turnos</h2>
-          <p style={{ fontSize: 13, color: "#62666d", margin: 0 }}>{duraciones.length} especialidades configuradas</p>
+          <p style={{ fontSize: 13, color: "#62666d", margin: 0 }}>{duraciones.length} especialidades configuradas{selectedEspecialidadId && " (filtro activo)"}</p>
         </div>
         <button onClick={openCreate} style={{ background: "rgba(34,197,94,0.15)", border: "1px solid rgba(34,197,94,0.3)", borderRadius: 8, padding: "10px 20px", color: "#22c55e", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>+ Nueva Duración</button>
       </div>
 
       {duraciones.length === 0 ? (
         <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 12, padding: "40px 24px", textAlign: "center" }}>
-          <p style={{ color: "#62666d" }}>No hay duraciones configuradas.</p>
+          <p style={{ color: "#62666d" }}>No hay duraciones configuradas para esta especialidad.</p>
         </div>
       ) : (
         <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 12, overflow: "hidden" }}>
@@ -128,7 +129,14 @@ export default function DuracionesPage() {
               </tr>
             </thead>
             <tbody>
-              {duraciones.map((d) => (
+              {duraciones
+        .filter(d => {
+          if (!selectedEspecialidadId) return true;
+          const esp = especialidades.find(e => e.id === selectedEspecialidadId);
+          if (!esp) return true;
+          return d.especialidad === esp.nombre;
+        })
+        .map((d) => (
                 <tr key={d.id} style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
                   <td style={{ padding: "16px 20px", fontWeight: 500, color: "#f7f8f8" }}>{d.especialidad}</td>
                   <td style={{ padding: "16px 20px", textAlign: "center", color: "#c9cbcf" }}>{d.duracion_minutos} minutos</td>
