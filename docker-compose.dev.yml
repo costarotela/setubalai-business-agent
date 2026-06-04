@@ -35,7 +35,7 @@ services:
     environment:
       - NODE_ENV=development
       - HOSTNAME=0.0.0.0
-      - PORT=3000
+      - PORT=3013
       # API_BASE_URL: como usamos network_mode:host, localhost = host
     # Host network → el container ve el puerto 3010 del host directamente
     network_mode: host
@@ -43,7 +43,7 @@ services:
       sh -c "
         cd /app &&
         npm install &&
-        npm run dev -- --port 3000
+        npm run dev -- --port 3013
       "
     restart: unless-stopped
 
