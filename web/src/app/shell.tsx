@@ -3,26 +3,37 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Users, DollarSign,
-  LayoutDashboard, Zap,
-  Stethoscope, Calendar, ClipboardList
+  Zap,
+  Stethoscope, Calendar, ClipboardList,
+  Settings, BookOpen
 } from "lucide-react";
 import { AuthProvider, useAuth } from "./auth-context";
 import { FiltrosClinicaProvider } from "../contexts/FiltrosClinicaContext";
 
-// === MENÚ CLÍNICA MULTIESPECIALIDAD ===
+// === MENÚ CLÍNICA MULTIESPECIALIDAD (REFATORIZADO Jun 5 2026) ===
 const CLINICA_MENU = [
-  { name: "Agenda del Día",  path: "/agenda/slots-libres",                 icon: Calendar       },
-  { name: "Dashboard",      path: "/dashboard",                 icon: LayoutDashboard },
-  { name: "Pacientes",      path: "/pacientes",                 icon: Users            },
-  { name: "Turnos",         path: "/turnos",                    icon: ClipboardList    },
-  { name: "Calendario",     path: "/turnos/calendario",          icon: Calendar         },
-  { name: "Profesionales",  path: "/medicos",                   icon: Stethoscope      },
+  { name: "Calendario",     path: "/turnos/calendario",    icon: Calendar       },
+  { name: "Pacientes",      path: "/pacientes",            icon: Users          },
+  { name: "Turnos",         path: "/turnos",               icon: ClipboardList  },
 ] as const;
 
-const CONFIG_MENU = [
-  { name: "Especialidades",  path: "/configuracion/especialidades", icon: Stethoscope },
-  { name: "Agenda",          path: "/configuracion/agenda",         icon: Calendar    },
-  { name: "Obras Sociales",  path: "/obras-sociales",               icon: DollarSign  },
+// Soporte para subgrupos en Configuración
+type ConfigItem =
+  | { name: string; path: string; icon: React.ElementType }
+  | { name: string; children: { name: string; path: string; icon: React.ElementType }[] };
+
+const CONFIG_MENU: ConfigItem[] = [
+  {
+    name: "Clínica",
+    icon: Settings,
+    children: [
+      { name: "Especialidades", path: "/configuracion/especialidades", icon: Stethoscope },
+      { name: "Profesionales",  path: "/configuracion/profesionales",  icon: Users        },
+    ],
+  },
+  { name: "Agenda",         path: "/configuracion/agenda",   icon: Calendar    },
+  { name: "Obras Sociales", path: "/obras-sociales",         icon: DollarSign  },
+  { name: "Nomenclador",    path: "/nomencladores",          icon: BookOpen    },
 ];
 
 function AppShell({ children }: { children: React.ReactNode }) {
@@ -109,10 +120,48 @@ function AppShell({ children }: { children: React.ReactNode }) {
             Configuración
           </div>
           {CONFIG_MENU.map((item) => {
-            const Icon = item.icon;
-            const active = pathname === item.path;
+            // Subgrupo con children
+            if ("children" in item) {
+              return (
+                <div key={item.name} style={{ marginBottom: 6 }}>
+                  <div style={{
+                    display: "flex", alignItems: "center", gap: 10,
+                    padding: "5px 10px", borderRadius: 6,
+                    color: "#c9cdd4", fontSize: 12, fontWeight: 600,
+                    cursor: "default",
+                  }}>
+                    <item.icon size={13} />
+                    {item.name}
+                  </div>
+                  {item.children.map((child) => {
+                    const ChildIcon = child.icon;
+                    const active = pathname === child.path;
+                    return (
+                      <Link key={child.path} href={child.path} style={{ textDecoration: "none" }}>
+                        <div style={{
+                          display: "flex", alignItems: "center", gap: 10,
+                          padding: "6px 10px 6px 32px", borderRadius: 6, marginBottom: 1,
+                          background: active ? "rgba(94,106,210,0.10)" : "transparent",
+                          color: active ? "#7170ff" : "#62666d",
+                          fontSize: 12, fontWeight: active ? 500 : 400,
+                          cursor: "pointer",
+                          border: active ? "1px solid rgba(113,112,255,0.15)" : "1px solid transparent",
+                        }}>
+                          <ChildIcon size={13} />
+                          {child.name}
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              );
+            }
+            // Item normal
+            const nItem = item as { name: string; path: string; icon: React.ElementType };
+            const Icon = nItem.icon;
+            const active = pathname === nItem.path;
             return (
-              <Link key={item.path} href={item.path} style={{ textDecoration: "none" }}>
+              <Link key={nItem.path} href={nItem.path} style={{ textDecoration: "none" }}>
                 <div style={{
                   display: "flex", alignItems: "center", gap: 10,
                   padding: "7px 10px", borderRadius: 6, marginBottom: 1,
