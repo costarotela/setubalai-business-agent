@@ -7,15 +7,30 @@ Objetivo: Demo SaaS profesional con:
 - Historia clínica, atenciones, recetas, estudios vinculados
 
 Uso: cd /home/admin/setubalai-agente/services/api && ./venv/bin/python3 seed_demo_medica.py
+       Para fecha específica: ./venv/bin/python3 seed_demo_medica.py --fecha 2026-07-15
+       Para otra empresa:     ./venv/bin/python3 seed_demo_medica.py --empresa 20 --fecha 2026-08-01
 """
+import argparse
 import random
 from datetime import date, datetime, timedelta, timezone
 from database import SessionLocal, engine
 from sqlalchemy import text
 import json
+import sys
 
+# ── Argumentos ──────────────────────────────────────────────────────────
+parser = argparse.ArgumentParser(description="Seed demo médica para SetubalAI")
+parser.add_argument("--fecha", type=str, default=None,
+                    help="Fecha central de la demo (YYYY-MM-DD). Default: hoy.")
+parser.add_argument("--empresa", type=int, default=16,
+                    help="Empresa ID para sembrar. Default: 16.")
+args = parser.parse_args()
+
+TARGET_DATE = date.fromisoformat(args.fecha) if args.fecha else date.today()
+EMP = args.empresa
 AR = timezone(timedelta(hours=-3))  # America/Argentina/Buenos_Aires
-EMP = 16
+
+print(f"🎯 Seed demo médica — empresa_id={EMP}, fecha central={TARGET_DATE}")
 
 db = SessionLocal()
 
@@ -51,8 +66,7 @@ def ins(table, **kwargs):
         return None
 
 
-def today_ar():
-    return date.today()
+hoy = TARGET_DATE
 
 # ───────────────────────────────────────────────────────
 # 1. MÉDICOS NUEVOS POR ESPECIALIDAD
@@ -208,7 +222,7 @@ motivos = [
 ]
 
 estados_posibles = ["pendiente", "en-curso", "completado"]
-hoy = today_ar()
+# hoy ya está definido como TARGET_DATE al inicio del script
 
 # Agrupar médicos por especialidad para asignar turnos consistentes
 medicos_por_esp = {}
