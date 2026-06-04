@@ -34,14 +34,9 @@ export default function DuracionesPage() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [rD, rE] = await Promise.all([
-        authFetch("/configuracion-agenda/duracion-prestaciones/"),
-        authFetch("/especialidades/")
-      ]);
+      const rD = await authFetch("/configuracion-agenda/duracion-prestaciones/");
       const dataD = await rD.json();
-      const dataE = await rE.json();
       setDuraciones(Array.isArray(dataD) ? dataD : []);
-      setEspecialidades(Array.isArray(dataE) ? dataE : []);
     } catch (e) { console.error(e); }
     setLoading(false);
   };
