@@ -68,6 +68,18 @@ class BloqueoGrillaResponse(BaseModel):
     class Config:
         from_attributes = True
 
+class BloqueoGrillaUpdate(BaseModel):
+    fecha_desde: Optional[date] = None
+    fecha_hasta: Optional[date] = None
+    hora_inicio: Optional[time] = None
+    hora_fin: Optional[time] = None
+    motivo: Optional[str] = None
+
+class DuracionPrestacionCreate(BaseModel):
+    especialidad_id: Optional[int] = None
+    duracion_minutos: int = 30
+    sobre_turnos_permitidos: int = 1
+
 class DuracionPrestacionUpdate(BaseModel):
     duracion_minutos: int
     sobre_turnos_permitidos: Optional[int] = 0
@@ -323,6 +335,39 @@ def eliminar_bloqueo(
     
     return None
 
+@router.put("/bloqueos-grilla/{bloqueo_id}", response_model=BloqueoGrillaResponse)
+def actualizar_bloqueo(
+    bloqueo_id: int,
+    bloqueo_data: BloqueoGrillaUpdate,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    """Actualiza bloqueo de agenda"""
+    
+    bloqueo = db.query(BloqueoGrilla).filter(
+        BloqueoGrilla.id == bloqueo_id,
+        BloqueoGrilla.empresa_id == current_user.empresa_id
+    ).first()
+    
+    if not bloqueo:
+        raise HTTPException(status_code=404, detail="Bloqueo no encontrado")
+    
+    if bloqueo_data.fecha_desde is not None:
+        bloqueo.fecha_desde = bloqueo_data.fecha_desde
+    if bloqueo_data.fecha_hasta is not None:
+        bloqueo.fecha_hasta = bloqueo_data.fecha_hasta
+    if bloqueo_data.hora_inicio is not None:
+        bloqueo.hora_inicio = bloqueo_data.hora_inicio
+    if bloqueo_data.hora_fin is not None:
+        bloqueo.hora_fin = bloqueo_data.hora_fin
+    if bloqueo_data.motivo is not None:
+        bloqueo.motivo = bloqueo_data.motivo
+    
+    db.commit()
+    db.refresh(bloqueo)
+    
+    return enriquecer_bloqueo(bloqueo, db)
+
 # ============================================================================
 # ENDPOINTS: DURACIONES POR ESPECIALIDAD
 # ============================================================================
@@ -379,3 +424,41 @@ def actualizar_duracion(
     db.refresh(duracion_db)
     
     return duracion_db
+
+@router.post("/duracion-prestaciones/", status_code=201)
+def crear_duracion(
+    data: DuracionPrestacionCreate,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    """Crea una nueva duración de turno para una especialidad"""
+    from sqlalchemy import text
+    result = db.execute(text(
+        "INSERT INTO setubalai.duracion_prestaciones (empresa_id, especialidad_id, duracion_minutos, sobre_turnos_permitidos) "
+        "VALUES (:emp, :esp, :dur, :sobre) RETURNING id"
+    ), {"emp": current_user.empresa_id, "esp": data.especialidad_id, "dur": data.duracion_minutos, "sobre": data.sobre_turnos_permitidos})
+    db.commit()
+    new_id = result.scalar()
+    # Return via existing endpoint
+    d = db.execute(text(
+        "SELECT dp.id, dp.empresa_id, dp.duracion_minutos, dp.sobre_turnos_permitidos, e.nombre as esp "
+        "FROM setubalai.duracion_prestaciones dp LEFT JOIN setubalai.especialidades_medicas e ON dp.especialidad_id = e.id "
+        "WHERE dp.id = :id"
+    ), {"id": new_id}).mappings().first()
+    return {"id": d["id"], "empresa_id": d["empresa_id"], "especialidad": d["esp"] or "Sin asignar", "duracion_minutos": d["duracion_minutos"], "sobre_turnos_permitidos": d["sobre_turnos_permitidos"]}
+
+@router.delete("/duracion-prestaciones/{duracion_id}/")
+def borrar_duracion(
+    duracion_id: int,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    """Elimina una duración de turno de especialidad"""
+    from sqlalchemy import text
+    result = db.execute(text(
+        "DELETE FROM setubalai.duracion_prestaciones WHERE id = :id AND empresa_id = :emp"
+    ), {"id": duracion_id, "emp": current_user.empresa_id})
+    db.commit()
+    if result.rowcount == 0:
+        raise HTTPException(status_code=404, detail="Duración no encontrada")
+    return {"deleted": True, "id": duracion_id}
