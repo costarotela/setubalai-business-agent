@@ -392,7 +392,67 @@ def crear_medico(
     db.add(m)
     db.commit()
     db.refresh(m)
+    # Asignar especialidades si vienen en el payload
+    if data.especialidades:
+        for esp_id in data.especialidades:
+            me = MedicoEspecialidades(medico_id=m.id, especialidad_id=esp_id)
+            db.add(me)
+        db.commit()
+        db.refresh(m)
     return _dict_medico(m, db)
+
+@router.put("/medicos/{medico_id}/")
+def editar_medico(
+    medico_id: int,
+    data: MedicoCreate,
+    db: Session = Depends(get_db),
+    empresa_id: int = Depends(resolve_empresa_id)
+):
+    m = db.query(Medico).filter(Medico.id == medico_id, Medico.empresa_id == empresa_id).first()
+    if not m:
+        raise HTTPException(status_code=404, detail="Médico no encontrado")
+    for key, val in data.model_dump().items():
+        if key == "especialidades":
+            continue  # se maneja aparte
+        if val is not None:
+            setattr(m, key, val)
+    db.commit()
+    # Actualizar especialidades: borrar viejas, poner nuevas
+    if data.especialidades is not None:
+        db.query(MedicoEspecialidades).filter(
+            MedicoEspecialidades.medico_id == medico_id
+        ).delete()
+        for esp_id in data.especialidades:
+            db.add(MedicoEspecialidades(medico_id=medico_id, especialidad_id=esp_id))
+        db.commit()
+    db.refresh(m)
+    return _dict_medico(m, db)
+
+@router.delete("/medicos/{medico_id}/")
+def eliminar_medico(
+    medico_id: int,
+    db: Session = Depends(get_db),
+    empresa_id: int = Depends(resolve_empresa_id)
+):
+    m = db.query(Medico).filter(Medico.id == medico_id, Medico.empresa_id == empresa_id).first()
+    if not m:
+        raise HTTPException(status_code=404, detail="Médico no encontrado")
+    # Contar registros asociados para info de borrado
+    count_turnos = db.query(Visita).filter(Visita.medico_id == medico_id).count()
+    count_atenciones = db.query(AtencionMedica).filter(
+        AtencionMedica.medico_id == medico_id
+    ).count()
+    # CASCADE: al borrar el médico se borran visitas, atenciones, recetas, grillas, etc.
+    db.delete(m)
+    db.commit()
+    return {
+        "deleted": True,
+        "medico_id": medico_id,
+        "impacto": {
+            "turnos_eliminados": count_turnos,
+            "atenciones_eliminadas": count_atenciones,
+        },
+    }
 
 # ===== CALENDARIO TURNO (agregado 2026-05-28) =====
 
