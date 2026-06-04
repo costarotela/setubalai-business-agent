@@ -936,6 +936,59 @@ def listar_nomencladores(
     ).order_by(NomencladorPractica.codigo).all()
     return [_dict_nomenclador(n) for n in items]
 
+@router.post("/nomenclador_practicas/", status_code=201)
+def crear_nomenclador(
+    request: Request,
+    data: dict,
+    db: Session = Depends(get_db),
+    empresa_id: int = Depends(resolve_empresa_id)
+):
+    n = NomencladorPractica(**{
+        **{k: v for k, v in data.items() if hasattr(NomencladorPractica, k)},
+        "empresa_id": empresa_id,
+        "activo": data.get("activo", True),
+    })
+    db.add(n)
+    db.commit()
+    db.refresh(n)
+    return _dict_nomenclador(n)
+
+@router.put("/nomenclador_practicas/{np_id}/")
+def editar_nomenclador(
+    np_id: int,
+    data: dict,
+    db: Session = Depends(get_db),
+    empresa_id: int = Depends(resolve_empresa_id)
+):
+    n = db.query(NomencladorPractica).filter(
+        NomencladorPractica.id == np_id,
+        NomencladorPractica.empresa_id == empresa_id
+    ).first()
+    if not n:
+        raise HTTPException(status_code=404, detail="Práctica no encontrada")
+    for key, val in data.items():
+        if hasattr(NomencladorPractica, key) and key not in ("id", "empresa_id"):
+            setattr(n, key, val)
+    db.commit()
+    db.refresh(n)
+    return _dict_nomenclador(n)
+
+@router.delete("/nomenclador_practicas/{np_id}/")
+def borrar_nomenclador(
+    np_id: int,
+    db: Session = Depends(get_db),
+    empresa_id: int = Depends(resolve_empresa_id)
+):
+    n = db.query(NomencladorPractica).filter(
+        NomencladorPractica.id == np_id,
+        NomencladorPractica.empresa_id == empresa_id
+    ).first()
+    if not n:
+        raise HTTPException(status_code=404, detail="Práctica no encontrada")
+    db.delete(n)
+    db.commit()
+    return {"deleted": True, "id": np_id}
+
 # ===== RECETAS =====
 
 def _dict_receta(r):

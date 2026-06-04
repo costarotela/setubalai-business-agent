@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plan Refactorización SetubalAI — FASE SaaS Flexible</title>
+<style>
+  :root {
+    --bg: #0a0b0d; --surface: #141517; --border: rgba(255,255,255,0.06);
+    --accent: #5e6ad2; --green: #22c55e; --red: #ef4444; --yellow: #f59e0b; --blue: #3b82f6; --gray: #62666d; --light: #f7f8f8;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--light); line-height: 1.6; }
+  .container { max-width: 1200px; margin: 0 auto; padding: 32px 24px; }
+  
+  h1 { font-size: 2rem; font-weight: 800; margin-bottom: 8px; background: linear-gradient(135deg, #5e6ad2, #9b59b6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .subtitle { color: var(--gray); margin-bottom: 32px; font-size: 0.95rem; }
+  
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin-bottom: 20px; }
+  .card h2 { font-size: 1.2rem; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .card h3 { font-size: 1rem; font-weight: 600; margin: 16px 0 8px; color: var(--accent); }
+  
+  table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+  th { text-align: left; padding: 8px 12px; color: var(--gray); font-weight: 600; border-bottom: 1px solid var(--border); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; }
+  td { padding: 8px 12px; border-bottom: 1px solid rgba(255,255,255,0.03); }
+  tr:hover td { background: rgba(94,106,210,0.04); }
+  
+  .ok { color: var(--green); font-weight: 600; }
+  .fail { color: var(--red); font-weight: 600; }
+  .warn { color: var(--yellow); font-weight: 600; }
+  .info { color: var(--blue); }
+  
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; }
+  .badge.ok { background: rgba(34,197,94,0.15); color: var(--green); }
+  .badge.fail { background: rgba(239,68,68,0.15); color: var(--red); }
+  .badge.warn { background: rgba(245,158,11,0.15); color: var(--yellow); }
+  .badge.info { background: rgba(59,130,246,0.15); color: var(--blue); }
+  
+  .phase { border-left: 4px solid var(--accent); padding: 16px; margin: 12px 0; background: rgba(94,106,210,0.04); border-radius: 0 8px 8px 0; }
+  .phase h3 { margin-top: 0; }
+  .phase.pending { border-left-color: var(--gray); }
+  .phase .steps { margin-left: 20px; font-size: 0.9rem; }
+  .phase .steps li { margin: 4px 0; }
+  
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 768px) { .grid2 { grid-template-columns: 1fr; } }
+  
+  .arrow-list { display: flex; flex-direction: column; gap: 4px; }
+  .arrow-list .item { display: flex; align-items: center; gap: 8px; }
+  .arrow-list .item::before { content: '→'; color: var(--accent); font-weight: bold; }
+  
+  .highlight { background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.2); border-radius: 8px; padding: 16px; margin: 16px 0; }
+  .highlight.green { background: rgba(34,197,94,0.1); border-color: rgba(34,197,94,0.2); }
+  
+  .progress-bar { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; margin: 8px 0; }
+  .progress-bar .fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--green)); }
+  
+  code { background: rgba(255,255,255,0.06); padding: 2px 6px; border-radius: 4px; font-size: 0.85rem; font-family: 'Fira Code', monospace; }
+  pre { background: rgba(0,0,0,0.3); padding: 12px; border-radius: 8px; overflow-x: auto; font-size: 0.8rem; margin: 8px 0; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>🔧 Plan Refactorización — SetubalAI SaaS Flexible</h1>
+<p class="subtitle">Branch: <code>feature/refactorizacion-v04</code> · Main intacto · 2026-06-05 · Diagnóstico de alineación completo</p>
+
+<!-- ============ REALIDAD ACTUAL ============ -->
+<div class="card">
+  <h2>📊 Realidad Actual — Diagnóstico Completo</h2>
+  <p style="color: var(--gray); margin-bottom: 16px;">Resultado del audit real de backend + frontend + endpoints + páginas. Nada asumido, todo verificado.</p>
+  
+  <div class="grid2">
+    <div>
+      <h3>Backend — Endpoints de Configuración</h3>
+      <table>
+        <tr><th>Entidad</th><th>Ruta</th><th>GET</th><th>POST</th><th>PUT</th><th>DELETE</th></tr>
+        <tr><td>Especialidades</td><td><code>/especialidades/</code></td><td class="ok">✅</td><td class="ok">✅</td><td class="ok">✅</td><td class="ok">✅</td></tr>
+        <tr><td>Obras Sociales</td><td><code>/obras-sociales/</code></td><td class="ok">✅</td><td class="ok">✅</td><td class="ok">✅</td><td class="ok">✅</td></tr>
+        <tr><td>Grillas</td><td><code>/config-agenda/grillas/</code></td><td class="ok">✅</td><td class="ok">✅</td><td class="ok">✅</td><td class="ok">✅</td></tr>
+        <tr><td>Bloqueos</td><td><code>/config-agenda/bloqueos/</code></td><td class="ok">✅</td><td class="ok">✅</td><td class="fail">❌</td><td class="ok">✅</td></tr>
+        <tr><td>Duraciones</td><td><code>/config-agenda/duraciones/</code></td><td class="ok">✅</td><td class="fail">❌</td><td class="ok">✅</td><td class="fail">❌</td></tr>
+        <tr><td>Médicos</td><td><code>/medicos/</code></td><td class="ok">✅</td><td class="ok">✅</td><td class="fail">❌</td><td class="fail">❌</td></tr>
+        <tr><td>Nomenclador</td><td><code>/nomenclador_practicas/</code></td><td class="ok">✅</td><td class="fail">❌</td><td class="fail">❌</td><td class="fail">❌</td></tr>
+        <tr><td>Prestaciones</td><td><code>/config-agenda/prestaciones/</code></td><td class="ok">✅</td><td class="ok">✅</td><td class="ok">✅</td><td class="ok">✅</td></tr>
+      </table>
+    </div>
+    <div>
+      <h3>Frontend — Páginas de Configuración</h3>
+      <table>
+        <tr><th>Página</th><th>Auth</th><th>Fetch</th><th>Crear</th><th>Editar</th><th>Borrar</th></tr>
+        <tr><td>Especialidades</td><td class="ok">✅</td><td class="ok">✅</td><td class="ok">✅</td><td class="ok">✅</td><td class="ok">✅</td></tr>
+        <tr><td>Grillas</td><td class="ok">✅</td><td class="ok">✅</td><td class="fail">❌</td><td class="fail">❌</td><td class="fail">❌</td></tr>
+        <tr><td>Bloqueos</td><td class="ok">✅</td><td class="ok">✅</td><td class="ok">✅</td><td class="fail">❌</td><td class="fail">❌</td></tr>
+        <tr><td>Duraciones</td><td class="ok">✅</td><td class="ok">✅</td><td class="fail">❌</td><td class="fail">❌</td><td class="fail">❌</td></tr>
+        <tr><td>Prestaciones</td><td class="fail">❌</td><td class="fail">❌</td><td class="fail">❌</td><td class="fail">❌</td><td class="fail">❌</td></tr>
+        <tr><td>Profesionales</td><td class="ok">✅</td><td class="ok">✅</td><td class="fail">❌</td><td class="fail">❌</td><td class="fail">❌</td></tr>
+        <tr><td>Obras Sociales</td><td class="ok">✅</td><td class="ok">✅</td><td colspan="3" class="info">Verificar existente</td></tr>
+        <tr><td>Nomencladores</td><td class="ok">✅</td><td class="ok">✅</td><td colspan="3" class="fail">Solo lectura</td></tr>
+      </table>
+    </div>
+  </div>
+  
+  <div class="highlight" style="margin-top: 20px;">
+    <strong>⚠️ Hallazgos Críticos:</strong>
+    <ul style="margin-left: 20px; margin-top: 8px;">
+      <li><strong>Médicos sin PUT/DELETE en backend</strong> — No se puede editar ni borrar médicos (solo crear)</li>
+      <li><strong>Nomenclador solo lectura</strong> — No hay forma de crear prácticas personalizadas por clínica</li>
+      <li><strong>Duraciones sin POST/DELETE</strong> — No se pueden crear ni borrar duraciones nuevas</li>
+      <li><strong>Bloqueos sin PUT</strong> — No se puede editar un bloqueo existente</li>
+      <li><strong>Context Provider NO se usa en Configuración</strong> — Las páginas de Config no filtran por especialidad</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ============ CONTEXTO PROVIDER ============ -->
+<div class="card">
+  <h2>🔄 Context Provider — Estado y Extensión</h2>
+  <p style="color: var(--gray); margin-bottom: 12px;">El <code>FiltrosClinicaProvider</code> es el corazón de la personalización global. Se monta UNA VEZ en <code>shell.tsx</code> y permite filtrar todo el sistema por especialidad.</p>
+  
+  <div class="grid2">
+    <div class="highlight green">
+      <strong>✅ Ya lo usan:</strong>
+      <ul style="margin-left: 20px; margin-top: 8px;">
+        <li><code>/turnos</code> — filtra turnos por especialidad/médico</li>
+        <li><code>/pacientes</code> — filtra pacientes atendidos</li>
+        <li><code>/turnos/calendario</code> — filtra eventos del calendario</li>
+        <li><code>/agenda/slots-libres</code> — filtra slots disponibles</li>
+      </ul>
+    </div>
+    <div class="highlight">
+      <strong>⚠️ Necesitan agregarlo:</strong>
+      <ul style="margin-left: 20px; margin-top: 8px;">
+        <li><code>/configuracion/profesionales</code> → solo médicos de la especialidad</li>
+        <li><code>/configuracion/agenda/grillas</code> → solo grillas de esa especialidad</li>
+        <li><code>/configuracion/agenda/bloqueos</code> → solo bloqueos de esa especialidad</li>
+        <li><code>/configuracion/agenda/duraciones</code> → solo duraciones de esa especialidad</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ============ SIDEBAR ACTUAL vs PROPUESTO ============ -->
+<div class="card">
+  <h2>📐 Sidebar — Actual vs Propuesto</h2>
+  <div class="grid2">
+    <div>
+      <h3>Actual</h3>
+      <div class="arrow-list" style="color: var(--gray);">
+        <div class="item">Agenda del Día</div>
+        <div class="item">Dashboard</div>
+        <div class="item">Pacientes</div>
+        <div class="item">Turnos</div>
+        <div class="item">Calendario</div>
+        <div class="item">Profesionales</div>
+      </div>
+      <h3 style="margin-top:16px;">Configuración (actual)</h3>
+      <div class="arrow-list" style="color: var(--gray);">
+        <div class="item">Especialidades</div>
+        <div class="item">Agenda</div>
+        <div class="item">Obras Sociales</div>
+      </div>
+    </div>
+    <div>
+      <h3 style="color: var(--green);">Propuesto ✅</h3>
+      <div class="arrow-list">
+        <div class="item"><strong>📅 Calendario</strong> <span class="badge ok">fusiona Agenda del Día</span></div>
+        <div class="item"><strong>📋 Pacientes</strong></div>
+        <div class="item"><strong>📋 Turnos</strong></div>
+      </div>
+      <h3 style="margin-top:16px; color: var(--green);">⚙️ Configuración (propuesto)</h3>
+      <div class="arrow-list">
+        <div class="item" style="padding-left:16px; font-weight:700;">🏥 <strong>Clínica</strong></div>
+        <div class="item" style="padding-left:32px;">├─ Especialidades <span class="badge ok">CRUD completo</span></div>
+        <div class="item" style="padding-left:32px;">└─ Profesionales <span class="badge fail">NUEVA página + backend gap</span></div>
+        <div class="item" style="padding-left:16px; font-weight:700;">📅 <strong>Agenda</strong></div>
+        <div class="item" style="padding-left:32px;">├─ Grillas <span class="badge warn">completar CRUD</span></div>
+        <div class="item" style="padding-left:32px;">├─ Bloqueos <span class="badge warn">agregar PUT editar</span></div>
+        <div class="item" style="padding-left:32px;">├─ Duraciones <span class="badge fail">agregar POST/DELETE</span></div>
+        <div class="item" style="padding-left:32px;">└─ Prestaciones <span class="badge fail">desde cero</span></div>
+        <div class="item" style="padding-left:16px; font-weight:700;">💰 <strong>Obras Sociales</strong> <span class="badge warn">verificar existente</span></div>
+        <div class="item" style="padding-left:16px; font-weight:700;">📝 <strong>Nomenclador</strong> <span class="badge fail">agregar CRUD backend</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ FASES ============ -->
+<div class="card">
+  <h2>🚀 Fases de Implementación — Paso a Paso</h2>
+  <p style="color: var(--gray); margin-bottom: 16px;">Cada fase se valida con <code>diagnose-alineacion.py</code> + browser antes de continuar a la siguiente.</p>
+
+  <!-- FASE A -->
+  <div class="phase pending">
+    <h3>FASE A: Reestructurar Sidebar <span class="badge info">Solo UI</span></h3>
+    <p style="font-size: 0.85rem; color: var(--gray);">Archivo: <code>shell.tsx</code> — cambiar arrays CLINICA_MENU y CONFIG_MENU</p>
+    <ul class="steps">
+      <li>A.1 — Quitar "Agenda del Día", "Dashboard", "Profesionales" del menú principal</li>
+      <li>A.2 — Crear subgrupo "Clínica" con Especialidades + Profesionales</li>
+      <li>A.3 — Agregar "Nomenclador" al menú de Configuración</li>
+      <li><strong>Validación:</strong> Browser → sidebar correcto + cada link → 200 + <code>diagnose-alineacion.py</code> sin regresiones</li>
+    </ul>
+  </div>
+
+  <!-- FASE B -->
+  <div class="phase pending">
+    <h3>FASE B: CRUD Profesionales (Médicos) <span class="badge fail">Backend + Frontend</span></h3>
+    <p style="font-size: 0.85rem; color: var(--gray);">GAP: Backend solo tiene GET/POST. Faltan PUT editar y DELETE borrar. Frontend necesita nueva página.</p>
+    <ul class="steps">
+      <li>B.1 — <strong>Backend:</strong> Agregar <code>PUT /medicos/{id}/</code> y <code>DELETE /medicos/{id}/</code> en <code>salud.py</code></li>
+      <li>B.2 — <strong>Frontend:</strong> Crear <code>/configuracion/profesionales/page.tsx</code> — CRUD completo</li>
+      <li>B.3 — Campos: nombre, apellido, matrícula, especialidad(es), duración turno, horarios JSONB</li>
+      <li>B.4 — Borrado seguro: análisis previo de turnos, pacientes, atenciones + backup JSON</li>
+      <li><strong>Validación:</strong> Crear médico nuevo ✅ → Editar ✅ → Borrar con resumen ✅ → ClinicaFilterBar lo muestra ✅</li>
+    </ul>
+  </div>
+
+  <!-- FASE C -->
+  <div class="phase pending">
+    <h3>FASE C: Completar CRUD del Backend <span class="badge fail">Backend gaps</span></h3>
+    <p style="font-size: 0.85rem; color: var(--gray);">Los endpoints que necesitan POST/PUT/DELETE agregados</p>
+    <ul class="steps">
+      <li>C.1 — <strong>Nomenclador:</strong> POST/PUT/DELETE <code>/nomenclador_practicas/</code> en <code>salud.py</code></li>
+      <li>C.2 — <strong>Duraciones:</strong> POST crear + DELETE borrar en <code>configuracion_agenda.py</code></li>
+      <li>C.3 — <strong>Bloqueos:</strong> PUT editar en <code>configuracion_agenda.py</code></li>
+      <li><strong>Validación:</strong> curl a cada endpoint → 200 + JSON correcto → <code>diagnose-alineacion.py</code> sin ❌</li>
+    </ul>
+  </div>
+
+  <!-- FASE D -->
+  <div class="phase pending">
+    <h3>FASE D: Frontend — Páginas de Agenda <span class="badge warn">4 páginas</span></h3>
+    <ul class="steps">
+      <li>D.1 — <strong>Grillas</strong> (126 líneas) → agregar botones crear, editar, borrar</li>
+      <li>D.2 — <strong>Bloqueos</strong> (115 líneas) → agregar botón editar + borrar</li>
+      <li>D.3 — <strong>Duraciones</strong> (209 líneas, sin tabla) → tabla completa + crear + editar + borrar</li>
+      <li>D.4 — <strong>Prestaciones</strong> (97 líneas, sin datos) → tabla + CRUD completo desde cero</li>
+      <li><strong>Validación:</strong> Cada página → CRUD E2E funcional ✅</li>
+    </ul>
+  </div>
+
+  <!-- FASE E -->
+  <div class="phase pending">
+    <h3>FASE E: Verificar/Completar Obras Sociales <span class="badge warn">Verificar existente</span></h3>
+    <p style="font-size: 0.85rem; color: var(--gray);">Backend CRUD ya existe. Frontend de 126KB necesita verificar que tiene crear/editar/borrar.</p>
+    <ul class="steps">
+      <li>E.1 — Leer <code>/obras-sociales/page.tsx</code> — verificar funcionalidad actual</li>
+      <li>E.2 — Completar lo que falte</li>
+      <li><strong>Validación:</strong> Crear OS nueva ✅ → Editar ✅ → Borrar ✅</li>
+    </ul>
+  </div>
+
+  <!-- FASE F -->
+  <div class="phase pending">
+    <h3>FASE F: Context Provider en Configuración <span class="badge info">Personalización global</span></h3>
+    <p style="font-size: 0.85rem; color: var(--gray);">El punto clave: cuando selecciono Cardiología, las páginas de Configuración SOLO muestran datos de Cardiología.</p>
+    <ul class="steps">
+      <li>F.1 — <code>/configuracion/profesionales</code> → <code>useFiltrosClinica()</code> → filtra médicos por especialidad</li>
+      <li>F.2 — <code>/configuracion/agenda/grillas</code> → filtra grillas por especialidad</li>
+      <li>F.3 — <code>/configuracion/agenda/bloqueos</code> → filtra bloqueos por especialidad</li>
+      <li>F.4 — <code>/configuracion/agenda/duraciones</code> → filtra duraciones por especialidad</li>
+      <li><strong>Validación:</strong> Seleccionar Cardiología → Profesionales SOLO muestra cardiólogos ✅ → Limpiar → muestra TODOS ✅</li>
+    </ul>
+  </div>
+
+  <!-- FASE G -->
+  <div class="phase pending">
+    <h3>FASE G: Verificación Final E2E <span class="badge ok">Todo integrado</span></h3>
+    <ul class="steps">
+      <li><code>diagnose-alineacion.py</code> → 26/26 checks OK (0 ❌)</li>
+      <li><code>validate.sh</code> → todos los checks PASS</li>
+      <li>Browser E2E: recorrer TODAS las páginas, probar cada CRUD</li>
+      <li>Crear una clínica de prueba ficticia (empresa_id nuevo) → verificar que puede configurar todo desde cero</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ============ DEPENDENCIAS ============ -->
+<div class="card">
+  <h2>🔗 Orden de Ejecución y Dependencias</h2>
+  <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px;">
+    <span class="badge info">A: Sidebar</span> →
+    <span class="badge fail">B: Profesionales</span> →
+    <span class="badge fail">C: Backend gaps</span> →
+    <span class="badge warn">D: Frontend Agenda</span> →
+    <span class="badge warn">E: Obras Sociales</span> →
+    <span class="badge info">F: Context en Config</span> →
+    <span class="badge ok">G: Verificación Final</span>
+  </div>
+  <p style="font-size: 0.85rem; color: var(--gray);"><strong>Regla:</strong> NO avanzar sin validar la fase anterior. Cada commit incluye la verificación.</p>
+  
+  <div class="progress-bar"><div class="fill" style="width: 0%; background: var(--gray);"></div></div>
+  <p style="font-size: 0.8rem; color: var(--gray);">Progreso actual: 0/7 fases completadas</p>
+</div>
+
+<!-- ============ RIESGOS ============ -->
+<div class="card">
+  <h2>⚠️ Riesgos Identificados</h2>
+  <table>
+    <tr><th>Riesgo</th><th>Impacto</th><th>Mitigación</th></tr>
+    <tr><td><code>/configuracion/agenda/profesionales</code> vs <code>/configuracion/profesionales</code></td><td>Confusión del usuario entre asignar grillas y CRUD del médico</td><td>Tooltips claros + documentación en cada página</td></tr>
+    <tr><td>Context Provider rompe fetch existente</td><td>Duplicación de requests o estados inconsistentes</td><td>Verificar que <code>useFiltrosClinica()</code> reemplace (no duplique) el fetch</td></tr>
+    <tr><td>DELETE de especialidad CASCADE</td><td>Pérdida de datos si no se verifica antes</td><td>Análisis previo obligatorio + backup JSON</td></tr>
+    <tr><td>Context en páginas de Configuración</td><td>Si <code>selectedEspecialidadId</code> es null, la página muestra 0 registros</td><td>Fallback: mostrar TODOS si no hay filtrado activo</td></tr>
+  </table>
+</div>
+
+<!-- ============ VISIÓN ============ -->
+<div class="card">
+  <h2>🎯 Visión: ¿Esto logra SaaS real?</h2>
+  <div class="highlight green">
+    <strong>✅ SÍ — Con este plan, cualquier clínica puede:</strong>
+  </div>
+  <ul style="margin-left: 20px; margin-top: 12px; line-height: 2;">
+    <li>✅ Configurar SUS especialidades (no hardcodeadas)</li>
+    <li>✅ Dar de alta SUS médicos con horarios y especialidades</li>
+    <li>✅ Configurar grillas, bloqueos y duraciones por tipo de consulta</li>
+    <li>✅ Registrar las obras sociales que ATIENDE esa clínica</li>
+    <li>✅ Definir qué prácticas ofrece (nomenclador personalizable)</li>
+    <li>✅ Filtrar TODO el sistema por especialidad con un solo click (Context Provider)</li>
+    <li>✅ Borrar datos de forma segura con análisis previo y backup</li>
+    <li>❌ <em>Nada hardcodeado — todo personalizable desde el panel</em></li>
+  </ul>
+  <p style="color: var(--gray); margin-top: 16px; font-size: 0.85rem;">
+    <strong>Si falta UNO de estos → NO es SaaS flexible.</strong> Este plan cubre todos.
+  </p>
+</div>
+
+<div class="card" style="text-align: center; border-color: var(--accent);">
+  <h2>⏳ Esperando aprobación de Pablo</h2>
+  <p style="color: var(--gray);">Plan creado: 2026-06-05 · Guardado en vault: <code>PLAN-REFACTORIZACION-SIDEBAR.md</code></p>
+  <p style="color: var(--yellow); font-weight: 600; margin-top: 8px;">Próximo step: FASE A (Sidebar) con tu aprobación</p>
+</div>
+
+</div>
+</body>
+</html>
