@@ -1,8 +1,8 @@
 # 📋 ESTADO DEL PROYECTO — SetubalAI Clínica Multi-Especialidad
-> **Fecha actualización:** 2026-06-04
-> **Branch actual:** `feature/refactorizacion-v04` (desde main)
-> **Último commit:** `e9ceecb` — FASE3: Scripts diagnose.sh + validate.sh refactor
-> **Main:** intacto, sin cambios de FASE 3+
+> **Fecha actualización:** 2026-06-04 15:45 UTC
+> **Branch actual:** `main` (refactorización mergeada)
+> **Último commit:** `b5ad3cc` — FASE G verificación final E2E
+> **Main:** ✅ refactorización mergeada — 12 commits, 19 archivos modificados
 
 ---
 
@@ -150,29 +150,96 @@ GET /turnos/                      → 200, 47 items
 - Navegación reactiva: PatientLink, MedicoLink, BreadcrumbNav
 - Páginas actualizadas: turnos, calendario, agenda, medicos, pacientes
 
-# ─── PENDIENTE (Jun 4 2026) ──────────────────────────────────────────────────
+## 🎉 REFACTORIZACIÓN FASES A-G — MERGEEADA A MAIN ✅
 
-### 🔥 PRIORIDAD 1: Sembrado Inteligente de Demo
+**Merge:** `git merge feature/refactorizacion-v04 → main` (commit `b5ad3cc`)
+**Fecha:** 2026-06-04
+**Branch eliminada:** `feature/refactorizacion-v04` (trabajo completado)
 
-**Problema:** Solo 1 médico por especialidad (5 médicos / 5 especialidades). No se puede demostrar escalabilidad ni interacción real.
+### 12 Commits mergeados:
+| Commit | FASE | Descripción |
+|--------|------|-------------|
+| `65e6796` | A | Sidebar reestructurado (Calendario/Pacientes/Turnos principales) |
+| `aa77d4f` | B | CRUD Profesionales (PUT editar + DELETE borrar médicos) |
+| `cf4c346` | C | Backend gaps (PUT bloqueos-grilla endpoint) |
+| `e906c07` | D | Frontend Agenda CRUD (Grillas, Bloqueos, Duraciones, Prestaciones) |
+| ya completo | E | Obras Sociales (ya existía — verificado) |
+| `d435c8d` | F | Context Provider filtro por especialidad en Configuración |
+| `b5ad3cc` | G | Verificación final E2E + fix setEspecialidades |
+| `e5b8a50` | - | docs: Fix endpoint health + HTMLs plan |
+| `04388c4` | - | docs: ESTADO-FASE3 actualizado |
+| `fe47bae` | - | Script diagnose-alineacion.py (26 checks) |
+| `e93cbe7` | - | Seed parametrizable --fecha y --empresa |
+| `62bcca9` | - | Seed demo médica inteligente (15 médicos, 35 turnos) |
 
-**Lo que se necesita:**
-- Varios médicos por especialidad (3-5 por cada una = ~20-25 médicos)
-- Turnos generados automáticamente para mostrar agendas llenas
-- Información relacionada completa: estudios adjuntos, recetas, historia clínica, atenciones médicas
-- Datos que reflejen una clínica SaaS real donde pueda escalar a cualquier otra clínica
+### 19 archivos modificados/creados:
+- **Backend:** `salud.py` (113 líneas), `configuracion_agenda.py` (83 líneas)
+- **Frontend:** `shell.tsx` (81 líneas), `agenda/layout.tsx` (123 líneas), 5 páginas CRUD
+- **Scripts:** `diagnose.sh`, `validate.sh`, `diagnose-alineacion.py`, `seed_demo_medica.py`
+- **Docs:** `PLAN-REFACTORIZACION-VISUAL.html`, `ESTADO-FASE3-CONTEXTO.md`
 
-### PRIORIDAD 2: Refactorización de páginas FASE 3/4
+---
 
-- /turnos — ClinicaFilterBar crashea en runtime (solo en esta página)
-- /agenda/slots-libres — verificar interacción completa E2E
-- /turnos/calendario — agregar componente de filtro consistente con Agenda del Día
-- Componentes: ClinicaFilterBar, SelectEspecialidadMedico — asegurar consistencia en todas las páginas
+## 📊 VALIDACIÓN POST-MERGE (2026-06-04 15:45)
 
-### PRIORIDAD 3: Mejorar scripts de diagnóstico
+| Verificación | Resultado |
+|---|---|
+| **validate.sh** | **27/27 PASS** — cero fails, cero warns |
+| **diagnose-alineacion.py** | **24/26 OK** — 2 informativos (counts) |
+| **Browser E2E** | **10/10 páginas** sin errores JS |
+| **Git** | main limpio, working directory empty |
 
-- diagnose.sh — mejorar output de secciones de puertos y procesos
-- validate.sh — ya funciona (27 PASS), los scripts deben dar información valiosa, no solo PASS/FAIL
+### Pages verificadas en browser (dev.setubalai.org):
+
+| Página | Verificado | Detalle |
+|---|---|---|
+| /configuracion/especialidades | ✅ | 5 especialidades, CRUD completo |
+| /configuracion/profesionales | ✅ | 3 cardiólogos (filtro activo) |
+| /configuracion/agenda/grillas | ✅ | Filtra por especialidad |
+| /configuracion/agenda/bloqueos | ✅ | 0 datos, CRUD funcional |
+| /configuracion/agenda/duraciones | ✅ | Filtra por especialidad |
+| /configuracion/agenda/prestaciones | ✅ | 18 prácticas (nomenclador global) |
+| /obras-sociales | ✅ | 8 obras sociales, colores por tipo |
+| /turnos | ✅ | 6 turnos hoy, filtros |
+| /turnos/calendario | ✅ | Calendario funcional |
+| /dashboard | ✅ | KPIs, CRM, cobros |
+
+---
+
+## 📊 DATOS EMPRESA 16 (Centro Médico Santa Clara)
+
+| Entidad | Cantidad |
+|---------|----------|
+| Especialidades | 5 |
+| Médicos | **15** (3 por especialidad) |
+| Pacientes | 36 |
+| Obras Sociales | 8 |
+| Prácticas (nomenclador) | 18 |
+| Visitas/Turnos | **157** |
+| Historias Clínicas | 62 |
+| Recetas | 24 |
+| Estudios | 20 |
+
+### Credenciales:
+`admin@centromedicosantaclara.com.ar` / `Pablo2024!`
+
+---
+
+## 🛠️ FLUJO DE DESARROLLO ACTIVO
+
+**Dev server:** Docker (`docker compose -f docker-compose.dev.yml up -d`)
+- Container: `web-clinica-dev` → `npm run dev --port 3013`
+- Volumen: `./web:/app` (hot reload)
+- URL: `https://dev.setubalai.org` (Cloudflare Tunnel)
+
+**Backend API:** systemd `setubalai-api.service` → `:3010`
+**DB:** PostgreSQL `:5432` → `paperclip:setubalai2024@100.72.101.29/business`
+
+### Anti-stale cache fix (conocido):
+Si el browser muestra "module factory not available":
+1. `docker compose down` 
+2. `rm -rf web/.next && docker volume rm setubalai-agente_web_dotnext setubalai-agente_web_node_modules`
+3. `docker compose up -d` (recompila desde cero ~90s)
 
 ---
 
