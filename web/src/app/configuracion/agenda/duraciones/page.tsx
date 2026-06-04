@@ -1,7 +1,6 @@
 "use client";
-
 import { useState, useEffect } from "react";
-import { useAuth, useAuthFetch } from "@/app/auth-context";
+import { useAuthFetch } from "@/app/auth-context";
 
 interface DuracionPrestacion {
   id: number;
@@ -11,198 +10,174 @@ interface DuracionPrestacion {
   sobre_turnos_permitidos: number;
 }
 
+interface Especialidad {
+  id: number;
+  nombre: string;
+}
+
+const API = process.env.NEXT_PUBLIC_API_URL || "/api";
+
 export default function DuracionesPage() {
   const authFetch = useAuthFetch();
   const [duraciones, setDuraciones] = useState<DuracionPrestacion[]>([]);
+  const [especialidades, setEspecialidades] = useState<Especialidad[]>([]);
   const [loading, setLoading] = useState(true);
-  const [editando, setEditando] = useState<number | null>(null);
-  const [formData, setFormData] = useState({
-    duracion_minutos: 30,
-    sobre_turnos_permitidos: 0,
-  });
+  const [editId, setEditId] = useState<number | null>(null);
+  const [form, setForm] = useState({ especialidad_id: "", duracion_minutos: 30, sobre_turnos_permitidos: 0 });
+  const [showCreate, setShowCreate] = useState(false);
+  const [deleting, setDeleting] = useState<number | null>(null);
+  const [error, setError] = useState("");
 
-  useEffect(() => {
-    loadDuraciones();
-  }, []);
+  useEffect(() => { loadData(); }, []);
 
-  const loadDuraciones = async () => {
+  const loadData = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-      const r = await authFetch("/configuracion-agenda/duracion-prestaciones/"); const data = await r.json();
-      setDuraciones(data);
-    } catch (error) {
-      console.error("Error cargando duraciones:", error);
-    } finally {
-      setLoading(false);
+      const [rD, rE] = await Promise.all([
+        authFetch("/configuracion-agenda/duracion-prestaciones/"),
+        authFetch("/especialidades/")
+      ]);
+      const dataD = await rD.json();
+      const dataE = await rE.json();
+      setDuraciones(Array.isArray(dataD) ? dataD : []);
+      setEspecialidades(Array.isArray(dataE) ? dataE : []);
+    } catch (e) { console.error(e); }
+    setLoading(false);
+  };
+
+  const openEdit = (d: DuracionPrestacion) => {
+    setEditId(d.id);
+    setForm({ especialidad_id: "", duracion_minutos: d.duracion_minutos, sobre_turnos_permitidos: d.sobre_turnos_permitidos });
+    setError("");
+    setShowCreate(true);
+  };
+
+  const openCreate = () => {
+    setEditId(null);
+    setForm({ especialidad_id: "", duracion_minutos: 30, sobre_turnos_permitidos: 0 });
+    setError("");
+    setShowCreate(true);
+  };
+
+  const handleSave = async () => {
+    setError("");
+    if (!form.especialidad_id) { setError("Seleccioná una especialidad"); return; }
+
+    if (editId) {
+      // PUT - editar
+      const payload = { duracion_minutos: form.duracion_minutos, sobre_turnos_permitidos: form.sobre_turnos_permitidos };
+      try {
+        const res = await authFetch(`${API}/configuracion-agenda/duracion-prestaciones/${editId}`.replace(API, ""), {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) { const d = await res.json().catch(() => ({})); setError(d.detail || "Error"); return; }
+        setShowCreate(false); await loadData();
+      } catch { setError("Error de red"); }
+    } else {
+      // POST - crear
+      const payload = { especialidad_id: Number(form.especialidad_id), duracion_minutos: form.duracion_minutos, sobre_turnos_permitidos: form.sobre_turnos_permitidos };
+      try {
+        const res = await authFetch(`${API}/configuracion-agenda/duracion-prestaciones/`.replace(API, ""), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) { const d = await res.json().catch(() => ({})); setError(d.detail || "Error"); return; }
+        setShowCreate(false); await loadData();
+      } catch { setError("Error de red"); }
     }
   };
 
-  const handleEdit = (duracion: DuracionPrestacion) => {
-    setEditando(duracion.id);
-    setFormData({
-      duracion_minutos: duracion.duracion_minutos,
-      sobre_turnos_permitidos: duracion.sobre_turnos_permitidos,
-    });
-  };
-
-  const handleSave = async (duracionId: number) => {
+  const handleDelete = async (id: number) => {
+    if (!confirm("¿Eliminar esta duración de turno?")) return;
+    setDeleting(id);
     try {
-      await authFetch(`/configuracion-agenda/duracion-prestaciones/${duracionId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
-
-      await loadDuraciones();
-      setEditando(null);
-    } catch (error: any) {
-      alert(error.message || "Error al actualizar duración");
-    }
+      const res = await authFetch(`${API}/configuracion-agenda/duracion-prestaciones/${id}/`.replace(API, ""), { method: "DELETE" });
+      if (res.ok) await loadData();
+    } catch (e) { console.error(e); }
+    setDeleting(null);
   };
 
-  const handleCancel = () => {
-    setEditando(null);
-    setFormData({
-      duracion_minutos: 30,
-      sobre_turnos_permitidos: 0,
-    });
-  };
+  if (loading) return <div style={{ padding: 40, color: "#62666d" }}>Cargando duraciones...</div>;
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">
-          ⏱️ Duración de Turnos
-        </h2>
-        <p className="text-gray-600">
-          Configurar tiempo de consulta y sobreturnos permitidos por especialidad
-        </p>
+    <div style={{ padding: "32px 40px", maxWidth: 1400, margin: "0 auto" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 32, paddingBottom: 24, borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+        <div>
+          <h2 style={{ fontSize: 22, fontWeight: 600, color: "#f7f8f8", marginBottom: 8 }}>⏱️ Duración de Turnos</h2>
+          <p style={{ fontSize: 13, color: "#62666d", margin: 0 }}>{duraciones.length} especialidades configuradas</p>
+        </div>
+        <button onClick={openCreate} style={{ background: "rgba(34,197,94,0.15)", border: "1px solid rgba(34,197,94,0.3)", borderRadius: 8, padding: "10px 20px", color: "#22c55e", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>+ Nueva Duración</button>
       </div>
 
-      {/* Lista de Duraciones */}
-      {loading ? (
-        <div className="text-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Cargando configuración...</p>
+      {duraciones.length === 0 ? (
+        <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 12, padding: "40px 24px", textAlign: "center" }}>
+          <p style={{ color: "#62666d" }}>No hay duraciones configuradas.</p>
         </div>
       ) : (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {duraciones.map((duracion) => (
-            <div
-              key={duracion.id}
-              className="bg-white rounded-lg shadow-lg p-6 border-2 border-gray-200 hover:border-blue-400 transition-colors"
-            >
-              <h3 className="text-lg font-bold text-gray-900 mb-4">
-                {duracion.especialidad}
-              </h3>
-
-              {editando === duracion.id ? (
-                // Modo edición
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Duración del Turno (minutos)
-                    </label>
-                    <input
-                      type="number"
-                      min="5"
-                      max="180"
-                      step="5"
-                      value={formData.duracion_minutos}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          duracion_minutos: Number(e.target.value),
-                        })
-                      }
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Sobreturnos Permitidos
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      max="10"
-                      value={formData.sobre_turnos_permitidos}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          sobre_turnos_permitidos: Number(e.target.value),
-                        })
-                      }
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => handleSave(duracion.id)}
-                      className="flex-1 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors"
-                    >
-                      💾 Guardar
+        <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 12, overflow: "hidden" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+                <th style={{ padding: "14px 20px", textAlign: "left", fontSize: 12, fontWeight: 600, color: "#8a8f98" }}>ESPECIALIDAD</th>
+                <th style={{ padding: "14px 20px", textAlign: "center", fontSize: 12, fontWeight: 600, color: "#8a8f98" }}>DURACIÓN</th>
+                <th style={{ padding: "14px 20px", textAlign: "center", fontSize: 12, fontWeight: 600, color: "#8a8f98" }}>SOBRETORNOS</th>
+                <th style={{ padding: "14px 20px", textAlign: "right", fontSize: 12, fontWeight: 600, color: "#8a8f98" }}>ACCIONES</th>
+              </tr>
+            </thead>
+            <tbody>
+              {duraciones.map((d) => (
+                <tr key={d.id} style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
+                  <td style={{ padding: "16px 20px", fontWeight: 500, color: "#f7f8f8" }}>{d.especialidad}</td>
+                  <td style={{ padding: "16px 20px", textAlign: "center", color: "#c9cbcf" }}>{d.duracion_minutos} minutos</td>
+                  <td style={{ padding: "16px 20px", textAlign: "center", color: "#c9cbcf" }}>{d.sobre_turnos_permitidos}</td>
+                  <td style={{ padding: "16px 20px", textAlign: "right" }}>
+                    <button onClick={() => openEdit(d)} style={{ background: "none", border: "1px solid rgba(96,165,250,0.3)", borderRadius: 6, padding: "4px 12px", color: "#60a5fa", fontSize: 12, cursor: "pointer", marginRight: 8 }}>Editar</button>
+                    <button onClick={() => handleDelete(d.id)} disabled={deleting === d.id} style={{ background: "none", border: "1px solid rgba(239,68,68,0.3)", borderRadius: 6, padding: "4px 12px", color: "#ef4444", fontSize: 12, cursor: "pointer" }}>
+                      {deleting === d.id ? "..." : "Eliminar"}
                     </button>
-                    <button
-                      onClick={handleCancel}
-                      className="flex-1 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 font-medium transition-colors"
-                    >
-                      Cancelar
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                // Modo vista
-                <div className="space-y-4">
-                  <div>
-                    <div className="text-sm text-gray-600 mb-1">
-                      Duración del Turno
-                    </div>
-                    <div className="text-3xl font-bold text-blue-600">
-                      {duracion.duracion_minutos} min
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="text-sm text-gray-600 mb-1">
-                      Sobreturnos Permitidos
-                    </div>
-                    <div className="text-2xl font-bold text-gray-900">
-                      {duracion.sobre_turnos_permitidos}
-                    </div>
-                  </div>
-
-                  <button
-                    onClick={() => handleEdit(duracion)}
-                    className="w-full py-2 bg-blue-100 text-blue-800 rounded-lg hover:bg-blue-200 font-medium transition-colors"
-                  >
-                    ✏️ Editar
-                  </button>
-                </div>
-              )}
-            </div>
-          ))}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
 
-      {/* Info Box */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-        <h4 className="font-bold text-blue-900 mb-2">ℹ️ Información</h4>
-        <ul className="space-y-2 text-blue-800 text-sm">
-          <li>
-            <strong>Duración del Turno:</strong> Tiempo asignado a cada consulta (típicamente 15-60 minutos)
-          </li>
-          <li>
-            <strong>Sobreturnos:</strong> Cantidad de turnos extras permitidos por día para casos urgentes
-          </li>
-          <li>
-            <strong>Nota:</strong> Los cambios se aplican a todos los turnos nuevos de esa especialidad
-          </li>
-        </ul>
-      </div>
+      {/* Modal Edit/Create */}
+      {showCreate && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50 }} onClick={() => setShowCreate(false)}>
+          <div style={{ background: "#18181b", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12, padding: 32, width: 440, maxWidth: "90vw" }} onClick={e => e.stopPropagation()}>
+            <h3 style={{ fontSize: 20, fontWeight: 600, color: "#f7f8f8", marginBottom: 24 }}>{editId ? "Editar Duración" : "Nueva Duración"}</h3>
+            {error && <div style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)", borderRadius: 8, padding: "10px 14px", color: "#ef4444", fontSize: 13, marginBottom: 16 }}>{error}</div>}
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              {!editId && (
+                <div>
+                  <label style={{ fontSize: 12, color: "#8a8f98", marginBottom: 4, display: "block" }}>Especialidad</label>
+                  <select value={form.especialidad_id} onChange={e => setForm({ ...form, especialidad_id: e.target.value })} style={{ width: "100%", padding: "10px 12px", background: "#27272a", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, color: "#f7f8f8", fontSize: 14 }}>
+                    <option value="">Seleccionar especialidad...</option>
+                    {especialidades.map(e => <option key={e.id} value={e.id}>{e.nombre}</option>)}
+                  </select>
+                </div>
+              )}
+              <div>
+                <label style={{ fontSize: 12, color: "#8a8f98", marginBottom: 4, display: "block" }}>Duración (minutos)</label>
+                <input type="number" value={form.duracion_minutos} onChange={e => setForm({ ...form, duracion_minutos: Number(e.target.value) })} min={5} max={120} style={{ width: "100%", padding: "10px 12px", background: "#27272a", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, color: "#f7f8f8", fontSize: 14 }} />
+              </div>
+              <div>
+                <label style={{ fontSize: 12, color: "#8a8f98", marginBottom: 4, display: "block" }}>Sobreturnos permitidos</label>
+                <input type="number" value={form.sobre_turnos_permitidos} onChange={e => setForm({ ...form, sobre_turnos_permitidos: Number(e.target.value) })} min={0} max={10} style={{ width: "100%", padding: "10px 12px", background: "#27272a", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, color: "#f7f8f8", fontSize: 14 }} />
+              </div>
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: 12, marginTop: 8 }}>
+                <button onClick={() => setShowCreate(false)} style={{ padding: "10px 20px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.1)", background: "transparent", color: "#c9cbcf", fontSize: 14, cursor: "pointer" }}>Cancelar</button>
+                <button onClick={handleSave} style={{ padding: "10px 24px", borderRadius: 8, border: "none", background: editId ? "rgba(96,165,250,0.2)" : "rgba(34,197,94,0.2)", color: editId ? "#60a5fa" : "#22c55e", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>{editId ? "Guardar" : "Crear"}</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

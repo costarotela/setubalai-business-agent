@@ -176,6 +176,22 @@ GET /turnos/                      → 200, 47 items
 
 ---
 
+## ✅ FASE C — COMPLETA (Jun 5 2026, commit cf4c346)
+
+**C1 Nomenclador CRUD**: GET/POST/PUT/DELETE — ya existían en `routers/salud.py`
+**C2 Duraciones CRUD**: GET/POST/PUT/DELETE — ya existían en `routers/configuracion_agenda.py`
+**C3 Bloqueos PUT**: AGREGADO — nuevo endpoint `PUT /configuracion-agenda/bloqueos-grilla/{bloqueo_id}` en `routers/configuracion_agenda.py`
+  - Schema `BloqueoGrillaUpdate` (campos opcionales)
+  - Validado: HTTP 200 con auth real, CRUD completo verificado
+
+| C1 Nomenclador | C2 Duraciones | C3 Bloqueos PUT |
+|---|---|---|
+| ✅ ya existían | ✅ ya existían | ✅ **agregado + validado** |
+
+**diagnóstico**: 24/26 OK, sin regresiones
+
+---
+
 ## 🛠️ FLUJO DE TRABAJO — DIAGNÓSTICO INTELIGENTE (Jun 4 2026)
 
 **Reglas:** NO correr validate.sh 27/27 en bucle. NO actuar automáticamente sin razonar. Elegir herramienta según el problema:
