@@ -57,19 +57,17 @@ export interface FiltrosState {
   selectedEspecialidadId: number | null;
   selectedMedicoId: number | null;
 
-  // Actions mutables (bloqueadas si es médico)
+  // Role info del usuario logueado
+  usuarioMedicoId: number | null;  // medico_id del usuario (null si no es médico)
+  contextoBloqueado: boolean;       // true = médico (no puede cambiar)
+
+  // Actions mutables
   setEspecialidadId: (id: number | null) => void;
   setMedicoId: (id: number | null) => void;
 
   // Derived data (memoizados)
   medicosFiltrados: Medico[];      // filtrados por especialidad seleccionada
   practicasFiltradas: Practica[];  // filtradas por especialidad seleccionada
-
-  // Role-based: si el usuario logueado es médico, el Context se BLOQUEA
-  rol: string;
-  usuarioMedicoId: number | null;  // medico_id del usuario logueado (null si no es médico)
-  contextoBloqueado: boolean;       // true si rol = médico (no puede cambiar)
-
   // UI state
   loading: boolean;
   error: string | null;
@@ -270,7 +268,6 @@ export function FiltrosClinicaProvider({ children }: { children: ReactNode }) {
     setMedicoId,
     medicosFiltrados,
     practicasFiltradas,
-    rol,
     usuarioMedicoId,
     contextoBloqueado,
     loading,
@@ -280,7 +277,7 @@ export function FiltrosClinicaProvider({ children }: { children: ReactNode }) {
     selectedEspecialidadId, selectedMedicoId,
     setEspecialidadId, setMedicoId,
     medicosFiltrados, practicasFiltradas,
-    rol, usuarioMedicoId, contextoBloqueado,
+    usuarioMedicoId, contextoBloqueado,
     loading, error,
   ]);
 
