@@ -119,7 +119,8 @@ function formatPracticas(data: unknown): Practica[] {
 // ─── Provider ────────────────────────────────────────────────────────────
 
 export function FiltrosClinicaProvider({ children }: { children: ReactNode }) {
-  const { token, user } = useAuth();
+  const { token } = useAuth();
+  const { user } = useAuth();
   const af = useAuthFetch();
 
   // Datos raw
@@ -215,7 +216,7 @@ export function FiltrosClinicaProvider({ children }: { children: ReactNode }) {
       });
 
     return () => { cancelled = true; };
-  }, [af, token]);
+  }, [af, token, user, usuarioMedicoId]);
 
   // ── Actions — BLOQUEADAS si el usuario es médico ──
   const setEspecialidadId = useCallback((id: number | null) => {
