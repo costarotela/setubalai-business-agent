@@ -5,13 +5,14 @@ import {
   Users, DollarSign,
   Zap,
   Stethoscope, Calendar, ClipboardList,
-  Settings, BookOpen
+  Settings, BookOpen, Stethoscope as StethoscopeMd
 } from "lucide-react";
 import { AuthProvider, useAuth } from "./auth-context";
 import { FiltrosClinicaProvider } from "../contexts/FiltrosClinicaContext";
 
 // === MENÚ CLÍNICA MULTIESPECIALIDAD (REFATORIZADO Jun 5 2026) ===
 const CLINICA_MENU = [
+  { name: "Mi Agenda",        path: "/medico/hoy",             icon: StethoscopeMd},
   { name: "Calendario",     path: "/turnos/calendario",    icon: Calendar       },
   { name: "Pacientes",      path: "/pacientes",            icon: Users          },
   { name: "Turnos",         path: "/turnos",               icon: ClipboardList  },

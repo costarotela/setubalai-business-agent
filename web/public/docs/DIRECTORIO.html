@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SetubalAI — Centro de Documentación</title>
+<style>
+body { font-family: 'Segoe UI', system-ui, sans-serif; background: #0a0a0f; color: #e2e8f0; margin: 0; padding: 40px 20px; }
+.container { max-width: 800px; margin: 0 auto; }
+h1 { font-size: 28px; color: #f1f5f9; margin-bottom: 8px; }
+h1 span { background: linear-gradient(90deg, #60a5fa, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.subtitle { color: #94a3b8; margin-bottom: 30px; font-size: 16px; }
+.section { margin-bottom: 30px; }
+.section h2 { color: #e2e8f0; font-size: 18px; border-bottom: 2px solid #1e293b; padding-bottom: 8px; margin-bottom: 12px; }
+.doc-link { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: rgba(255,255,255,0.03); border: 1px solid #1e293b; border-radius: 8px; margin-bottom: 8px; text-decoration: none; color: #e2e8f0; transition: border-color 0.2s; }
+.doc-link:hover { border-color: #3b82f6; }
+.doc-icon { font-size: 20px; }
+.doc-info { flex: 1; }
+.doc-title { font-weight: 600; color: #f1f5f9; font-size: 14px; }
+.doc-desc { color: #94a3b8; font-size: 12px; }
+.doc-size { color: #64748b; font-size: 12px; }
+.tag-html { background: #2563eb20; color: #60a5fa; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+.tag-md { background: #8b5cf620; color: #a78bfa; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+
+@media (max-width: 600px) { body { padding: 20px 10px; } .doc-link { padding: 10px 12px; } }
+</style>
+</head>
+<body>
+<div class="container">
+<h1>📚 <span>SetubalAI Docs</span></h1>
+<p class="subtitle">Centro de documentación del sistema de clínicas — dev.setubalai.org</p>
+
+<div class="section">
+<h2>🗺️ Mapas Visuales (HTML — Abrir en navegador)</h2>
+<a class="doc-link" href="MAPA-COMPLETO-SISTEMA-CLINICAS.html">
+<span class="doc-icon">🗺️</span>
+<div class="doc-info"><div class="doc-title">Mapa Completo del Sistema</div><div class="doc-desc">Arquitectura, endpoints, DB, bot, servicios, flujos, plan comercial</div></div>
+<span class="tag-html">HTML</span>
+<span class="doc-size">52 KB</span>
+</a>
+<a class="doc-link" href="FLUJO-CENTRO-MEDICO.html">
+<span class="doc-icon">🏥</span>
+<div class="doc-info"><div class="doc-title">Flujo Centro Médico</div><div class="doc-desc">Diagrama visual del flujo de atención en la clínica</div></div>
+<span class="tag-html">HTML</span>
+<span class="doc-size">23 KB</span>
+</a>
+<a class="doc-link" href="FLUJO-E2E-TELEGRAM-CLINICA.html">
+<span class="doc-icon">🤖</span>
+<div class="doc-info"><div class="doc-title">Flujo E2E Telegram → Clínica</div><div class="doc-desc">Diagrama del flujo completo del bot de turnos</div></div>
+<span class="tag-html">HTML</span>
+<span class="doc-size">17 KB</span>
+</a>
+<a class="doc-link" href="CATALOGO-SaaS-EMAIL.html">
+<span class="doc-icon">📋</span>
+<div class="doc-info"><div class="doc-title">Catálogo Comercial SaaS</div><div class="doc-desc">Funcionalidades, diferenciales, modelo de precios</div></div>
+<span class="tag-html">HTML</span>
+<span class="doc-size">11 KB</span>
+</a>
+<a class="doc-link" href="plan-refactorizacion.html">
+<span class="doc-icon">🔄</span>
+<div class="doc-info"><div class="doc-title">Plan de Refactorización</div><div class="doc-desc">Visual de los cambios de arquitectura</div></div>
+<span class="tag-html">HTML</span>
+<span class="doc-size">21 KB</span>
+</a>
+</div>
+
+<div class="section">
+<h2>📄 Documentación (Markdown)</h2>
+<a class="doc-link" href="docs/CATALOGO-SaaS-CLINICAS.md">
+<span class="doc-icon">💰</span>
+<div class="doc-info"><div class="doc-title">Catálogo Comercial Completo</div><div class="doc-desc">Funcionalidades, arquitectura, pricing, plan de venta</div></div>
+<span class="tag-md">MD</span>
+<span class="doc-size">15 KB</span>
+</a>
+<a class="doc-link" href="docs/ARQUITECTURA-SAAS.md">
+<span class="doc-icon">🏗️</span>
+<div class="doc-info"><div class="doc-title">Arquitectura SaaS</div><div class="doc-desc">Diseño multi-tenant, stack tecnológico</div></div>
+<span class="tag-md">MD</span>
+<span class="doc-size">11 KB</span>
+</a>
+<a class="doc-link" href="docs/FLUJO-TELEGRAM-TURNOS-COMPLETO.md">
+<span class="doc-icon">📱</span>
+<div class="doc-info"><div class="doc-title">Flujo Telegram de Turnos</div><div class="doc-desc">Flujo completo del bot de agendado</div></div>
+<span class="tag-md">MD</span>
+<span class="doc-size">11 KB</span>
+</a>
+<a class="doc-link" href="docs/MAPEO-SISTEMA-INTEGRAL.md">
+<span class="doc-icon">🔗</span>
+<div class="doc-info"><div class="doc-title">Mapeo del Sistema Integral</div><div class="doc-desc">Mapeo completo de componentes</div></div>
+<span class="tag-md">MD</span>
+<span class="doc-size">23 KB</span>
+</a>
+<a class="doc-link" href="docs/PLAN-MAESTRO-CLINICA-MULTIESPECIALIDADES.md">
+<span class="doc-icon">📋</span>
+<div class="doc-info"><div class="doc-title">Plan Maestro Clínica Multiespecialidades</div><div class="doc-desc">Plan completo de desarrollo</div></div>
+<span class="tag-md">MD</span>
+<span class="doc-size">40 KB</span>
+</a>
+<a class="doc-link" href="docs/ESTADO-FASE3-CONTEXTO.md">
+<span class="doc-icon">📊</span>
+<div class="doc-info"><div class="doc-title">Estado FASE 3 — Contexto</div><div class="doc-desc">Estado actual del desarrollo</div></div>
+<span class="tag-md">MD</span>
+<span class="doc-size">11 KB</span>
+</a>
+<a class="doc-link" href="docs/LECCIONES-FLOW-TRABAJO.md">
+<span class="doc-icon">💡</span>
+<div class="doc-info"><div class="doc-title">Lecciones del Flujo de Trabajo</div><div class="doc-desc">Lo aprendido durante el desarrollo</div></div>
+<span class="tag-md">MD</span>
+<span class="doc-size">6 KB</span>
+</a>
+<a class="doc-link" href="GOAL.md">
+<span class="doc-icon">🎯</span>
+<div class="doc-info"><div class="doc-title">GOAL — Objetivo del Producto</div><div class="doc-desc">Visión, stack, fases, modelo de negocio</div></div>
+<span class="tag-md">MD</span>
+<span class="doc-size">12 KB</span>
+</a>
+<a class="doc-link" href="CREDENCIALES.md">
+<span class="doc-icon">🔑</span>
+<div class="doc-info"><div class="doc-title">Credenciales</div><div class="doc-desc">TODOS los accesos del sistema</div></div>
+<span class="tag-md">MD</span>
+<span class="doc-size">2 KB</span>
+</a>
+<a class="doc-link" href="docs/ARQUITECTURA-AGENTE-TURNOS-AUTONOMOS.md">
+<span class="doc-icon">🤖</span>
+<div class="doc-info"><div class="doc-title">Arquitectura Agente de Turnos</div><div class="doc-desc">Diseño del agente autónomo</div></div>
+<span class="tag-md">MD</span>
+<span class="doc-size">8 KB</span>
+</a>
+<a class="doc-link" href="docs/PLAN-CALENDARIO-GRILLAS.md">
+<span class="doc-icon">📅</span>
+<div class="doc-info"><div class="doc-title">Plan Calendario + Grillas</div><div class="doc-desc">Diseño de grillas médicas</div></div>
+<span class="tag-md">MD</span>
+<span class="doc-size">16 KB</span>
+</a>
+<a class="doc-link" href="docs/PLAN-REFACTORIZACION-ADN-CLINICO.md">
+<span class="doc-icon">🧬</span>
+<div class="doc-info"><div class="doc-title">Plan Refactorización ADN Clínico</div><div class="doc-desc">Refactorización del frontend clínico</div></div>
+<span class="tag-md">MD</span>
+<span class="doc-size">14 KB</span>
+</a>
+<a class="doc-link" href="UBICACION-Y-FLUJO-LOCAL.md">
+<span class="doc-icon">📂</span>
+<div class="doc-info"><div class="doc-title">Ubicación y Flujo Local</div><div class="doc-desc">Guía de ubicación de archivos</div></div>
+<span class="tag-md">MD</span>
+<span class="doc-size">6 KB</span>
+</a>
+</div>
+
+<div class="section" style="margin-top: 40px; padding: 20px; background: rgba(59,130,246,0.1); border: 1px solid #3b82f6; border-radius: 12px;">
+<h2 style="border: none; padding: 0; margin-bottom: 8px; color: #60a5fa;">🚀 Accesos Rápidos</h2>
+<div style="display: flex; flex-wrap: wrap; gap: 12px; margin-top: 12px;">
+<a class="doc-link" style="flex: 1; min-width: 200px;" href="https://dev.setubalai.org" target="_blank"><span class="doc-icon">🌐</span><div class="doc-info"><div class="doc-title">Demo Clínica</div><div class="doc-desc">dev.setubalai.org</div></div></a>
+<a class="doc-link" style="flex: 1; min-width: 200px;" href="https://admin.setubalai.org" target="_blank"><span class="doc-icon">👑</span><div class="doc-info"><div class="doc-title">Panel Admin</div><div class="doc-desc">admin.setubalai.org</div></div></a>
+</div>
+</div>
+
+<p style="text-align: center; color: #64748b; font-size: 12px; margin-top: 40px;">SetubalAI — Agencia de IA para PYMES | Documento generado: Junio 2026</p>
+</div>
+</body>
+</html>

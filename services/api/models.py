@@ -39,6 +39,7 @@ class Usuario(Base):
     email = Column(String(200), unique=True, nullable=False)
     password_hash = Column(String(200))
     rol = Column(String(20), default="operador")
+    medico_id = Column(Integer, ForeignKey("medicos.id"))
     telegram_id = Column(String(50))
     activo = Column(Boolean, default=True)
     created_at = Column(TIMESTAMPTZ, server_default=func.now())

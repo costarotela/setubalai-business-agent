@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SetubalAI — Mapa Completo del Sistema de Clínicas</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: #0a0a0f; color: #e2e8f0; line-height: 1.5; }
+.container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+
+/* Header */
+.hero { background: linear-gradient(135deg, #1e3a5f 0%, #0d1b2a 50%, #1a1a2e 100%); border-radius: 16px; padding: 40px; margin-bottom: 30px; border: 1px solid #1e3a5f; position: relative; overflow: hidden; }
+.hero::before { content: ''; position: absolute; top: 0; right: 0; width: 300px; height: 300px; background: radial-gradient(circle, rgba(59,130,246,0.15) 0%, transparent 70%); }
+.hero-badge { display: inline-block; background: linear-gradient(90deg, #3b82f6, #8b5cf6); color: white; padding: 6px 16px; border-radius: 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+.hero h1 { font-size: 36px; margin: 16px 0 8px; color: #f1f5f9; }
+.hero h1 span { background: linear-gradient(90deg, #60a5fa, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.hero p { font-size: 18px; color: #94a3b8; max-width: 700px; }
+.hero-meta { display: flex; gap: 20px; margin-top: 20px; flex-wrap: wrap; }
+.hero-stat { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 12px 20px; text-align: center; min-width: 120px; }
+.hero-stat .num { font-size: 24px; font-weight: 800; color: #60a5fa; }
+.hero-stat .label { font-size: 12px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; }
+
+/* Navigation */
+.nav-toc { background: rgba(255,255,255,0.03); border: 1px solid #1e293b; border-radius: 12px; padding: 20px; margin-bottom: 30px; }
+.nav-toc h3 { color: #f1f5f9; margin-bottom: 12px; font-size: 16px; }
+.nav-links { display: flex; flex-wrap: wrap; gap: 8px; }
+.nav-links a { color: #94a3b8; text-decoration: none; font-size: 13px; padding: 6px 14px; border-radius: 6px; border: 1px solid #1e293b; transition: all 0.2s; }
+.nav-links a:hover { color: #60a5fa; border-color: #3b82f6; background: rgba(59,130,246,0.1); }
+
+/* Sections */
+.section { margin-bottom: 30px; }
+.section-title { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 2px solid #1e293b; }
+.section-title .icon { font-size: 28px; }
+.section-title h2 { font-size: 22px; color: #f1f5f9; }
+.section-title .badge { font-size: 11px; background: #22c55e; color: #064e3b; padding: 3px 10px; border-radius: 10px; font-weight: 600; }
+
+/* Cards */
+.card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; margin-top: 12px; }
+.card { background: rgba(255,255,255,0.03); border: 1px solid #1e293b; border-radius: 12px; padding: 20px; transition: border-color 0.2s; }
+.card:hover { border-color: #3b82f6; }
+.card h3 { color: #e2e8f0; margin-bottom: 6px; font-size: 16px; }
+.card p { color: #94a3b8; font-size: 13px; }
+.card .tag { display: inline-block; font-size: 11px; padding: 3px 8px; border-radius: 4px; margin: 2px; font-weight: 500; }
+.tag-green { background: rgba(34,197,94,0.2); color: #4ade80; }
+.tag-blue { background: rgba(59,130,246,0.2); color: #60a5fa; }
+.tag-purple { background: rgba(139,92,246,0.2); color: #a78bfa; }
+.tag-orange { background: rgba(249,115,22,0.2); color: #fb923c; }
+.tag-red { background: rgba(239,68,68,0.2); color: #f87171; }
+
+/* Tables */
+.table-wrap { overflow-x: auto; margin-top: 12px; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { background: #1e293b; color: #e2e8f0; text-align: left; padding: 10px 14px; font-weight: 600; white-space: nowrap; }
+td { padding: 8px 14px; border-bottom: 1px solid #1e293b; color: #cbd5e1; }
+tr:hover td { background: rgba(255,255,255,0.02); }
+.status-ok { color: #4ade80; font-weight: 600; }
+.status-run { color: #60a5fa; font-weight: 600; }
+
+/* Code */
+code { background: #1e293b; padding: 2px 8px; border-radius: 4px; font-size: 12px; color: #a5b4fc; font-family: 'Fira Code', monospace; }
+.code-block { background: #0d1117; border: 1px solid #1e293b; border-radius: 8px; padding: 16px; overflow-x: auto; font-family: 'Fira Code', monospace; font-size: 12px; color: #e2e8f0; margin: 12px 0; }
+
+/* Architecture diagram */
+.arch-flow { display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; background: rgba(255,255,255,0.02); border: 1px solid #1e293b; border-radius: 12px; padding: 30px 20px; margin: 16px 0; }
+.arch-box { background: rgba(255,255,255,0.06); border: 1px solid #475569; border-radius: 12px; padding: 16px 24px; text-align: center; min-width: 140px; }
+.arch-box strong { color: #f1f5f9; display: block; margin-bottom: 4px; }
+.arch-box .sub { font-size: 11px; color: #94a3b8; }
+.arch-arrow { color: #3b82f6; font-size: 24px; }
+
+/* DB Schema */
+.db-table { border: 1px solid #1e293b; border-radius: 12px; overflow: hidden; margin-bottom: 12px; display: inline-block; min-width: 260px; vertical-align: top; margin-right: 12px; }
+.db-table-header { background: linear-gradient(90deg, #7c3aed, #3b82f6); color: white; padding: 8px 16px; font-weight: 700; font-size: 14px; }
+.db-table-body { background: rgba(255,255,255,0.03); padding: 8px; font-size: 12px; }
+.db-row { padding: 3px 6px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+.db-row .col-name { color: #e2e8f0; }
+.db-row .col-type { color: #64748b; font-size: 11px; }
+.db-row .col-pk { color: #fbbf24; font-size: 10px; font-weight: 600; }
+.db-row .col-fk { color: #f87171; font-size: 10px; font-weight: 600; }
+
+/* Two column layout */
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+@media (max-width: 900px) { .two-col { grid-template-columns: 1fr; } }
+
+/* Lists */
+ul.check { list-style: none; padding: 0; }
+ul.check li { padding: 6px 0; padding-left: 28px; position: relative; color: #cbd5e1; font-size: 14px; }
+ul.check li::before { content: '✅'; position: absolute; left: 0; top: 6px; }
+ul.check li.pending::before { content: '⏳'; }
+
+/* Footer */
+.footer { background: #0d1b2a; border-top: 1px solid #1e293b; padding: 20px; text-align: center; color: #64748b; font-size: 14px; margin-top: 40px; }
+
+/* Flow diagram */
+.flow-step { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 12px; }
+.flow-num { background: linear-gradient(135deg, #3b82f6, #8b5cf6); color: white; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; flex-shrink: 0; }
+.flow-content { flex: 1; }
+.flow-content h4 { color: #e2e8f0; font-size: 14px; }
+.flow-content p { color: #94a3b8; font-size: 13px; }
+
+/* Highlight box */
+.highlight { background: rgba(59,130,246,0.1); border: 1px solid #3b82f6; border-radius: 8px; padding: 16px; margin: 16px 0; }
+.highlight p { color: #93c5fd; font-size: 14px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<!-- HERO -->
+<div class="hero">
+<span class="hero-badge">🏥 V1.0 — Sistema Integral para Clínicas</span>
+<h1>Mapa Completo — <span>SetubalAI Clínicas</span></h1>
+<p>Documento maestro con TODA la arquitectura, funcionalidades, endpoints, base de datos, bot Telegram, servicios del VPS y flujos del sistema. Todo en un solo lugar.</p>
+<div class="hero-meta">
+<div class="hero-stat">
+<div class="num">35+</div>
+<div class="label">Funcionalidades</div>
+</div>
+<div class="hero-stat">
+<div class="num">31</div>
+<div class="label">Endpoints API</div>
+</div>
+<div class="hero-stat">
+<div class="num">14</div>
+<div class="label">Tablas DB</div>
+</div>
+<div class="hero-stat">
+<div class="num">6</div>
+<div class="label">Servicios VPS</div>
+</div>
+<div class="hero-stat">
+<div class="num">9</div>
+<div class="label">MCP Tools</div>
+</div>
+<div class="hero-stat">
+<div class="num">158</div>
+<div class="label">Turnos Demo</div>
+</div>
+</div>
+</div>
+
+<!-- NAVIGATION -->
+<div class="nav-toc">
+<h3>📍 Navegación Rápida del Documento</h3>
+<div class="nav-links">
+<a href="#vision">1. Visión</a>
+<a href="#arquitectura">2. Arquitectura</a>
+<a href="#bot">3. Bot Telegram</a>
+<a href="#web">4. Web App</a>
+<a href="#config">5. Configuración</a>
+<a href="#backend">6. Backend API</a>
+<a href="#mcp">7. MCP Tools</a>
+<a href="#database">8. Base de Datos</a>
+<a href="#servicios">9. Servicios VPS</a>
+<a href="#demo">10. Demo en Vivo</a>
+<a href="#tenant">11. Multi-Tenant</a>
+<a href="#accesos">12. Accesos</a>
+<a href="#flujo">13. Flujos</a>
+<a href="#comercial">14. Comercial</a>
+</div>
+</div>
+
+<!-- 1. VISIÓN -->
+<div class="section" id="vision">
+<div class="section-title">
+<span class="icon">🎯</span>
+<h2>1. Visión del Producto</h2>
+<span class="badge">SaaS — Clínicas Multiespecialidad</span>
+</div>
+<p style="color:#94a3b8; font-size:16px; max-width: 800px;">SetubalAI es un sistema integral para clínicas médicas multiespecialidad (9-15 especialidades, sin internación) con <strong>2 interfaces principales</strong> que funcionan como un solo producto:</p>
+
+<div class="arch-flow" style="margin-top:20px;">
+<div class="arch-box" style="border-color:#2563eb;">
+<strong>🤖 Bot Telegram</strong>
+<div class="sub">@SetubalClibot<br>Recepcionista IA 24/7<br>Atiende pacientes</div>
+</div>
+<div class="arch-arrow">⟷</div>
+<div class="arch-box" style="border-color:#7c3aed;">
+<strong>🖥️ Web App</strong>
+<div class="sub">dev.setubalai.org<br>Panel de Gestión<br>Dashboard clínico</div>
+</div>
+<div class="arch-arrow">⟷</div>
+<div class="arch-box" style="border-color:#22c55e;">
+<strong>⚙️ API Backend</strong>
+<div class="sub">FastAPI :3010<br>31 endpoints<br>Multi-tenant</div>
+</div>
+<div class="arch-arrow">⟷</div>
+<div class="arch-box" style="border-color:#f59e0b;">
+<strong>🗄️ PostgreSQL</strong>
+<div class="sub">Docker :5432<br>Schema setubalai<br>14 tablas médicas</div>
+</div>
+</div>
+
+<div class="highlight">
+<p><strong>💡 Propuesta de valor:</strong> "Hoy tenés 2-3 personas tomando turnos por teléfono, WhatsApp y mostrador. SetubalAI reemplaza esa operación con un agente IA que funciona solo, 24 horas, y le da a la clínica datos reales para gestionar."</p>
+</div>
+
+<h3 style="color:#e2e8f0; margin-top: 16px;">Dos personas, dos usos:</h3>
+<div class="two-col" style="margin-top: 12px;">
+<div class="card">
+<h3>👤 Cuando el PACIENTE interactúa:</h3>
+<p>Usa el <strong>Bot de Telegram</strong>. Escribe por chat, el agente le ofrece especialidades, horarios y confirma el turno. No toca la web app nunca.</p>
+</div>
+<div class="card">
+<h3>👥 Cuando el PERSONAL de la clínica interactúa:</h3>
+<p>Usa la <strong>Web App</strong>. Ve turnos agendados, atiende pacientes, registra atenciones, consulta historiales, gestiona horarios y configuración.</p>
+</div>
+</div>
+</div>
+
+<!-- 2. ARQUITECTURA -->
+<div class="section" id="arquitectura">
+<div class="section-title">
+<span class="icon">🏗️</span>
+<h2>2. Arquitectura Técnica Completa</h2>
+</div>
+
+<h3 style="color:#e2e8f0; margin-bottom: 12px;">Stack Tecnológico</h3>
+<div class="table-wrap">
+<table>
+<tr><th>Capa</th><th>Tecnología</th><th>Detalle</th></tr>
+<tr><td>Bot IA</td><td>python-telegram-bot v21+</td><td>State machine, MCP tools, inline buttons</td></tr>
+<tr><td>Backend API</td><td>Python 3.12 + FastAPI</td><td>REST API, JWT auth, multi-tenant</td></tr>
+<tr><td>Frontend</td><td>Next.js 15 + React + TypeScript</td><td>Server components, Context Provider, filtros reactivos</td></tr>
+<tr><td>Base de datos</td><td>PostgreSQL 17 (Docker)</td><td>Schema setubalai, FK CASCADE, JSONB</td></tr>
+<tr><td>Autenticación</td><td>JWT + bcrypt</td><td>3 roles: superadmin, admin_clinica, medico</td></tr>
+<tr><td>Proxy web</td><td>Nginx + Cloudflare Tunnel</td><td>HTTPS automático, subdominios</td></tr>
+<tr><td>Monitoreo</td><td>Infrastructure API :9993</td><td>Systemd, Docker, SSH a PC local</td></tr>
+<tr><td>Despliegue</td><td>systemd services + Docker</td><td>6 servicios gestionados, auto-sync watcher</td></tr>
+</table>
+</div>
+
+<h3 style="color:#e2e8f0; margin: 20px 0 12px;">Puertos y URLs del VPS</h3>
+<div class="table-wrap">
+<table>
+<tr><th>Servicio</th><th>Puerto</th><th>URL Pública</th><th>Función</th></tr>
+<tr><td>API Backend FastAPI</td><td>3010</td><td>— (solo localhost)</td><td>Todos los datos y lógica de negocio</td></tr>
+<tr><td>Web App Clínica</td><td>3011</td><td><code>dev.setubalai.org</code></td><td>Panel de gestión de turnos, pacientes, médicos</td></tr>
+<tr><td>Panel Admin</td><td>3012</td><td><code>admin.setubalai.org</code></td><td>Panel superadmin (Pablo): crear empresas, métricas globales</td></tr>
+<tr><td>Clinic Bot Telegram</td><td>—</td><td>@SetubalClibot</td><td>Agente de turnos por Telegram</td></tr>
+<tr><td>Infrastructure API</td><td>9993</td><td>— (localhost)</td><td>Monitoreo del ecosistema VPS</td></tr>
+<tr><td>DB Explorer</td><td>9991</td><td>— (localhost)</td><td>Explorador de base de datos</td></tr>
+<tr><td>Noxem Memory</td><td>3001</td><td>—</td><td>Memoria semántica persistente</td></tr>
+<tr><td>PostgreSQL</td><td>5432 (Docker)</td><td>—</td><td>DB principal: business / schema setubalai</td></tr>
+</table>
+</div>
+
+<h3 style="color:#e2e8f0; margin: 20px 0 12px;">Diagrama de la Pila Completa</h3>
+<div class="arch-flow">
+<div class="arch-box" style="border-color:#2563eb;">
+<strong>📱 PACIENTE</strong>
+<div class="sub">Escribe por Telegram<br>@SetubalClibot</div>
+</div>
+<div class="arch-arrow">→</div>
+<div class="arch-box" style="border-color:#2563eb;">
+<strong>🤖 Bot Python</strong>
+<div class="sub">clinic-bot/main.py<br>detecta intención<br>llama MCP tools</div>
+</div>
+<div class="arch-arrow">→</div>
+<div class="arch-box" style="border-color:#7c3aed;">
+<strong>⚙️ FastAPI</strong>
+<div class="sub">salud.py, config_agenda.py<br>31 endpoints médicos<br>19 endpoints config</div>
+</div>
+<div class="arch-arrow">→</div>
+<div class="arch-box" style="border-color:#f59e0b;">
+<strong>🗄️ PostgreSQL</strong>
+<div class="sub">pacientes, visitas<br>historia_clinica<br>grillas_medicas</div>
+</div>
+<div class="arch-arrow">←</div>
+<div class="arch-box" style="border-color:#22c55e;">
+<strong>🖥️ Web App</strong>
+<div class="sub">Next.js consume API<br>proxy /api/ → :3010<br>Context Provider global</div>
+</div>
+</div>
+</div>
+
+<!-- 3. BOT TELEGRAM -->
+<div class="section" id="bot">
+<div class="section-title">
+<span class="icon">🤖</span>
+<h2>3. Bot Agente IA (Telegram)</h2>
+<span class="badge">FUNCIONAL — @SetubalClibot</span>
+</div>
+
+<p style="color:#94a3b8; margin-bottom: 16px;">El paciente interactúa como si hablara con una recepcionista real. <strong>Sin formularios, sin apps, sin web.</strong> Solo escribe por Telegram.</p>
+
+<h3 style="color:#e2e8f0; margin-bottom: 8px;">Menú Principal (5 opciones con botones inline)</h3>
+<div class="table-wrap">
+<table>
+<tr><th>Botón</th><th>Función</th><th>Flujo</th></tr>
+<tr><td>📅 Agenda Turno</td><td>Flujo completo de agendado</td><td>Especialidad → Médico → Slot Horario → Confirmación</td></tr>
+<tr><td>🔄 Reprogramar</td><td>Cambiar fecha/hora de turno</td><td>Buscar turno → Nuevo slot → Confirmar cambio</td></tr>
+<tr><td>❌ Cancelar Turno</td><td>Anular turno existente</td><td>Mostrar turnos → Seleccionar → Confirmar cancelación</td></tr>
+<tr><td>📋 Mis Turnos</td><td>Ver turnos pendientes</td><td>Lista de turnos futuros del paciente</td></tr>
+<tr><td>❓ Ayuda</td><td>Información de uso</td><td>Muestra opciones disponibles</td></tr>
+</table>
+</div>
+
+<h3 style="color:#e2e8f0; margin: 20px 0 8px;">🔧 Funcionalidades Avanzadas del Bot</h3>
+<ul class="check">
+<li><strong>Identificación automática por Telegram ID</strong> — Si ya es paciente vinculado, salta directo al menú sin pedir DNI</li>
+<li><strong>Creación inline de pacientes nuevos</strong> — Si no existe, registra durante el flujo: nombre, DNI, obra social, teléfono</li>
+<li><strong>Auto-vinculación</strong> — Al identificarse por DNI, guarda automáticamente el chat_id para futuras interacciones</li>
+<li><strong>Detección de intención por texto</strong> — Entiende si quiere agendar, cancelar o ver turnos sin usar el menú</li>
+<li><strong>Anti-duplicados por especialidad</strong> — NO permite 2 turnos pendientes para la misma especialidad</li>
+<li><strong>Menú contextual</strong> — Después de cada acción, ofrece botones para continuar o volver</li>
+<li><strong>Comando /vincular DNI</strong> — Vincula manualmente un chat existente a un paciente</li>
+<li><strong>State machine robusta</strong> — 3 capas anti-abuse, tracking de conversaciones por chat_id</li>
+</ul>
+
+<h3 style="color:#e2e8f0; margin: 20px 0 12px;">📝 Flujo Completo de Agendado</h3>
+<div class="flow-step"><div class="flow-num">1</div><div class="flow-content"><h4>Paciente escribe "Hola, quiero turno"</h4><p>Bot detecta intención → Busca paciente por chat_id → Si no existe, pide DNI</p></div></div>
+<div class="flow-step"><div class="flow-num">2</div><div class="flow-content"><h4>Identificación</h4><p>Si DNI existe → carga datos → Si no existe → pide nombre, apellido, obra social, teléfono → Crea paciente en DB</p></div></div>
+<div class="flow-step"><div class="flow-num">3</div><div class="flow-content"><h4>Eligir Especialidad</h4><p>Bot consulta DB → Muestra especialidades disponibles con botones inline → Paciente selecciona</p></div></div>
+<div class="flow-step"><div class="flow-num">4</div><div class="flow-content"><h4>Eligir Médico</h4><p>Bot consulta médicos de esa especialidad → Muestra opciones → Paciente selecciona</p></div></div>
+<div class="flow-step"><div class="flow-num">5</div><div class="flow-content"><h4>Buscar horarios disponibles</h4><p>Bot genera slots basados en grillas médicas del médico seleccionado → Filtra turnos ya ocupados → Muestra horarios con botones</p></div></div>
+<div class="flow-step"><div class="flow-num">6</div><div class="flow-content"><h4>Confirmación</h4><p>Paciente elige slot → Bot verifica última disponibilidad → Crea turno en DB (visitas) → Envía confirmación con todos los datos</p></div></div>
+
+<h3 style="color:#e2e8f0; margin: 20px 0 8px;">Datos Técnicos del Bot</h3>
+<div class="table-wrap">
+<table>
+<tr><td><strong>Código</strong></td><td><code>/home/admin/setubalai-agente/services/clinic-bot/main.py</code> (39KB)</td></tr>
+<tr><td><strong>Servicio</strong></td><td><code>setubalai-clinic-bot.service</code> (systemd --user, activo)</td></tr>
+<tr><td><strong>Token Bot</strong></td><td><code>/home/admin/.setubalai_clinic_bot.env</code></td></tr>
+<tr><td><strong>Ventana</strong></td><td>30 días, cualquier día/hora</td></tr>
+<tr><td><strong>Importa</strong></td><td>MCP tools del venv del API (sys.path.insert)</td></tr>
+<tr><td><strong>Estado actual</strong></td><td><span class="status-ok">✅ OPERATIVO</span></td></tr>
+</table>
+</div>
+</div>
+
+<!-- 4. WEB APP -->
+<div class="section" id="web">
+<div class="section-title">
+<span class="icon">🖥️</span>
+<h2>4. Web App — Panel de Gestión Clínica</h2>
+<span class="badge">dev.setubalai.org</span>
+</div>
+
+<h3 style="color:#e2e8f0; margin-bottom: 12px;">📅 Gestión de Turnos</h3>
+<div class="table-wrap">
+<table>
+<tr><th>Función</th><th>Ubicación/Frontend</th><th>Endpoint</th></tr>
+<tr><td>Lista de turnos</td><td><code>/turnos</code> — Tabla con filtros</td><td><code>GET /turnos/</code></td></tr>
+<tr><td>Calendario mensual</td><td><code>/turnos/calendario</code> — Grilla con colores</td><td><code>GET /calendario?mes=YYYY-MM</code></td></tr>
+<tr><td>Agenda del día (timeline)</td><td><code>GET /agenda/timeline</code></td><td><code>GET /agenda/timeline?fecha=YYYY-MM-DD</code></td></tr>
+<tr><td>Crear turno</td><td>Formulario en /turnos</td><td><code>POST /turnos/</code></td></tr>
+<tr><td>Cambiar estado</td><td>Botones en timeline: ▶Iniciar → ✅Completar</td><td><code>PUT /turnos/{id}/estado</code></td></tr>
+<tr><td>Cancelar turno</td><td>Acción de lista</td><td><code>POST /turnos/{id}/cancelar</code></td></tr>
+<tr><td>Eliminar turno</td><td>Acción de lista</td><td><code>DELETE /turnos/{id}</code></td></tr>
+<tr><td>Solicitar turno</td><td>Formulario</td><td><code>PUT /turnos/{id}</code></td></tr>
+<tr><td>Slots libres</td><td><code>/agenda/slots-libres</code></td><td><code>GET /agenda/slots-libres?medico_id&fecha_desde&fecha_hasta</code></td></tr>
+</table>
+</div>
+
+<h3 style="color:#e2e8f0; margin: 20px 0 12px;">👥 Gestión de Pacientes</h3>
+<div class="table-wrap">
+<table>
+<tr><th>Función</th><th>Ubicación/Frontend</th><th>Endpoint</th></tr>
+<tr><td>Lista de pacientes</td><td><code>/pacientes</code> — Búsqueda + filtros</td><td><code>GET /pacientes/</code> (acepta ?buscar=, ?especialidad_id=, ?medico_id=)</td></tr>
+<tr><td>Ficha del paciente</td><td>Datos personales, obra social</td><td><code>GET /pacientes/{id}</code></td></tr>
+<tr><td>Historial completo</td><td><code>/pacientes/[id]/historial</code></td><td><code>GET /pacientes/{id}/historial</code></td></tr>
+<tr><td>Historia clínica</td><td><code>/historia-clinica</code></td><td><code>GET /historia_clinica/</code></td></tr>
+<tr><td>Crear paciente</td><td>Formulario</td><td><code>POST /pacientes/</code></td></tr>
+</table>
+</div>
+
+<h3 style="color:#e2e8f0; margin: 20px 0 12px;">👨‍⚕️ Gestión de Médicos</h3>
+<div class="table-wrap">
+<table>
+<tr><th>Función</th><th>Ubicación/Frontend</th><th>Endpoint</th></tr>
+<tr><td>Lista de médicos</td><td><code>/medicos</code></td><td><code>GET /medicos/</code> (acepta ?especialidad_id=)</td></tr>
+<tr><td>Datos del médico</td><td>Nombre, matrículas, especialidades</td><td><code>POST /medicos/</code></td></tr>
+<tr><td>Editar médico</td><td>Modificar datos y especialidades</td><td><code>PUT /medicos/{id}/</code></td></tr>
+<tr><td>Eliminar médico</td><td>Con verificación de registros</td><td><code>DELETE /medicos/{id}</code></td></tr>
+<tr><td>Mis pacientes (vista médico)</td><td>Solo pacientes que ya atendió</td><td><code>GET /mis_pacientes/</code></td></tr>
+</table>
+</div>
+
+<h3 style="color:#e2e8f0; margin: 20px 0 12px;">📝 Módulos Médicos</h3>
+<div class="card-grid">
+<div class="card">
+<h3>📋 Prácticas Médicas</h3>
+<p><code>/practicas</code> — Lista de prácticas realizadas, vinculadas a consultas médicas</p>
+<p><span class="tag tag-green">GET</span> <code>POST</code> <code>salud.py</code></p>
+</div>
+<div class="card">
+<h3>📑 Nomenclador de Prácticas</h3>
+<p><code>/nomencladores</code> — Catálogo de códigos/prácticas médicas</p>
+<p><span class="tag tag-green">GET</span> <code>POST</code> <code>PUT</code> <code>DELETE</code></p>
+</div>
+<div class="card">
+<h3>💊 Recetas Médicas</h3>
+<p><code>/recetas</code> — Historial de recetas, recetas por paciente</p>
+<p><span class="tag tag-green">GET list</span> <code>GET by_id</code> <code>GET /pacientes/{id}/recetas/</code></p>
+</div>
+<div class="card">
+<h3>🔬 Estudios Adjuntos</h3>
+<p><code>/estudios_adjuntos</code> — Imágenes/archivos de estudios</p>
+<p><span class="tag tag-green">GET list</span> <code>GET /pacientes/{id}/estudios/</code></p>
+</div>
+<div class="card">
+<h3>📖 Historia Clínica</h3>
+<p><code>/historia-clinica</code> — Registros médicos acumulativos del paciente</p>
+<p>Diagnósticos, síntomas, observaciones, signos vitales. Crece con cada consulta.</p>
+</div>
+<div class="card">
+<h3>📌 Atenciones Médicas</h3>
+<p>Registro de cada consulta/visita médica realizada</p>
+<p><span class="tag tag-green">CREATE</span> <code>READ</code> <code>UPDATE</code></p>
+</div>
+</div>
+
+<h3 style="color:#e2e8f0; margin: 20px 0 8px;">📊 Páginas del Dashboard</h3>
+<div class="table-wrap">
+<table>
+<tr><th>Página</th><th>Ruta</th><th>Función</th></tr>
+<tr><td>Dashboard</td><td><code>/dashboard</code></td><td>KPIs, resumen del día, métricas</td></tr>
+<tr><td>Turnos - Lista</td><td><code>/turnos</code></td><td>Tabla de turnos con filtros</td></tr>
+<tr><td>Turnos - Calendario</td><td><code>/turnos/calendario</code></td><td>Vista mensual con colores por especialidad</td></tr>
+<tr><td>Agenda - Slots libres</td><td><code>/agenda/slots-libres</code></td><td>Horarios disponibles por médico</td></tr>
+<tr><td>Pacientes</td><td><code>/pacientes</code></td><td>Lista, búsqueda, filtros</td></tr>
+<tr><td>Paciente - Historial</td><td><code>/pacientes/[id]/historial</code></td><td>Ficha completa del paciente</td></tr>
+<tr><td>Historia Clínica</td><td><code>/historia-clinica</code></td><td>Registros médicos</td></tr>
+<tr><td>Médicos</td><td><code>/medicos</code></td><td>Lista de profesionales</td></tr>
+<tr><td>Prácticas</td><td><code>/practicas</code></td><td>Prácticas realizadas</td></tr>
+<tr><td>Nomencladores</td><td><code>/nomencladores</code></td><td>Catálogo de prácticas</td></tr>
+<tr><td>Login</td><td><code>/login</code></td><td>Autenticación JWT</td></tr>
+</table>
+</div>
+
+<h3 style="color:#e2e8f0; margin: 20px 0 8px;">🔄 Características Frontend</h3>
+<ul class="check">
+<li><strong>Context Provider global</strong> — Datos cargados UNA VEZ y compartidos entre todas las páginas</li>
+<li><strong>ClinicaFilterBar</strong> — Filtro activo que funciona en TODAS las páginas</li>
+<li><strong>Filtros reactivos</strong> — Especialidad → Médicos → Pacientes atendidos (cascada anidada)</li>
+<li><strong>Modales consistentes</strong> — Todos los CRUDs usan modales unificados</li>
+<li><strong>Dark theme</strong> — Tema oscuro profesional</li>
+<li><strong>AuthFetch con /api/ proxy</strong> — Todos los fetch van por proxy al backend</li>
+</ul>
+</div>
+
+<!-- 5. CONFIGURACIÓN -->
+<div class="section" id="config">
+<div class="section-title">
+<span class="icon">⚙️</span>
+<h2>5. Módulo de Configuración de la Clínica</h2>
+<span class="badge">CRUD COMPLETO</span>
+</div>
+
+<p style="color:#94a3b8; margin-bottom: 16px;">Todo es personalizable para cada clínica. <strong>Cada entidad tiene su CRUD completo</strong> con modales, validaciones y verificación de registros afectados.</p>
+
+<div class="card-grid">
+<div class="card">
+<h3>🕐 Grillas Horarias</h3>
+<p><code>/configuracion/agenda/grillas</code></p>
+<p>Horarios semanales por médico. 12 grillas seedeadas.</p>
+<p><span class="tag tag-green">GET</span> <span class="tag tag-green">POST</span> <span class="tag tag-green">PUT</span> <span class="tag tag-green">DELETE</span></p>
+</div>
+<div class="card">
+<h3>🔒 Bloqueos de Agenda</h3>
+<p><code>/configuracion/agenda/bloqueos</code></p>
+<p>Vacaciones, congresos, feriados. Marca slots como no disponibles.</p>
+<p><span class="tag tag-green">GET</span> <span class="tag tag-green">POST</span> <span class="tag tag-green">PUT</span> <span class="tag tag-green">DELETE</span></p>
+</div>
+<div class="card">
+<h3>⏱️ Duraciones por Prestación</h3>
+<p><code>/configuracion/agenda/duraciones</code></p>
+<p>Tiempo de consulta según especialidad (ej: Cardio 30min, Derma 20min).</p>
+<p><span class="tag tag-green">GET</span> <span class="tag tag-green">POST</span> <span class="tag tag-green">PUT</span> <span class="tag tag-green">DELETE</span></p>
+</div>
+<div class="card">
+<h3>📋 Prestaciones / Nomenclador</h3>
+<p><code>/configuracion/agenda/prestaciones</code></p>
+<p>Catálogo de prácticas médicas con código, tipo, precio, duración. Búsqueda incluida.</p>
+<p><span class="tag tag-green">GET</span> <span class="tag tag-green">POST</span> <span class="tag tag-green">PUT</span> <span class="tag tag-green">DELETE</span></p>
+</div>
+<div class="card">
+<h3>🏥 Especialidades</h3>
+<p><code>/configuracion/especialidades</code></p>
+<p>Alta, baja, modificación. Catálogo de la clínica. Relación M:N con médicos.</p>
+<p><span class="tag tag-green">GET</span> <span class="tag tag-green">POST</span> <span class="tag tag-green">PUT</span> <span class="tag tag-green">DELETE</span></p>
+</div>
+<div class="card">
+<h3>👨‍⚕️ Profesionales</h3>
+<p><code>/configuracion/profesionales</code></p>
+<p>CRUD completo: nombre, matrículas, especialidades, horarios, activo/inactivo.</p>
+<p><span class="tag tag-green">GET</span> <span class="tag tag-green">POST</span> <span class="tag tag-green">PUT</span> <span class="tag tag-green">DELETE</span></p>
+</div>
+<div class="card">
+<h3>🏛️ Obras Sociales</h3>
+<p><code>/obras-sociales</code></p>
+<p>8 obras seedeadas (OSDE, Swiss Medical, PAMI, IOMA, Particular, Galeno, Medifé, IAPOS).</p>
+<p><span class="tag tag-green">GET</span> <span class="tag tag-green">POST</span> <span class="tag tag-green">PUT</span> <span class="tag tag-green">DELETE</span></p>
+</div>
+<div class="card">
+<h3>😷 Pacientes (telegram_chat_id)</h3>
+<p>Columna adicional en pacientes para vincular con Telegram</p>
+<p><span class="tag tag-purple">auto-update</span> Se guarda al identificar por DNI</p>
+</div>
+</div>
+
+<h3 style="color:#e2e8f0; margin: 20px 0 8px;">⚠️ Cascada de seguridad al eliminar</h3>
+<div class="highlight">
+<p>Si borrás un <strong>MÉDICO</strong> → se borran sus turnos, atenciones, prácticas, recetas, grillas (CASCADE). Si borrás una <strong>ESPECIALIDAD</strong> → bloqueado si tiene turnos asignados (RESTRICT).</p>
+</div>
+</div>
+
+<!-- 6. BACKEND API -->
+<div class="section" id="backend">
+<div class="section-title">
+<span class="icon">⚙️</span>
+<h2>6. Backend API — Endpoints Completos</h2>
+<span class="badge">50+ endpoints</span>
+</div>
+
+<h3 style="color:#e2e8f0; margin: 12px 0;">📁 routers/salud.py — Módulo Médico (31 endpoints)</h3>
+<div class="table-wrap">
+<table>
+<tr><th>Endpoint</th><th>Método</th><th>Función</th></tr>
+<tr><td><code>/pacientes/</code></td><td>GET</td><td>Lista pacientes (?buscar, ?especialidad_id, ?medico_id)</td></tr>
+<tr><td><code>/pacientes/</code></td><td>POST</td><td>Crear paciente</td></tr>
+<tr><td><code>/pacientes/{id}</code></td><td>GET</td><td>Detalle paciente</td></tr>
+<tr><td><code>/pacientes/{id}/historial</code></td><td>GET</td><td>Historial completo del paciente</td></tr>
+<tr><td><code>/medicos/</code></td><td>GET</td><td>Lista médicos (?especialidad_id)</td></tr>
+<tr><td><code>/medicos/</code></td><td>POST</td><td>Crear médico</td></tr>
+<tr><td><code>/medicos/{id}/</code></td><td>PUT</td><td>Editar médico</td></tr>
+<tr><td><code>/medicos/{id}</code></td><td>DELETE</td><td>Eliminar médico</td></tr>
+<tr><td><code>/turnos/</code></td><td>GET</td><td>Lista turnos (?especialidad_id, ?medico_id, ?estado)</td></tr>
+<tr><td><code>/turnos/</code></td><td>POST</td><td>Crear turno</td></tr>
+<tr><td><code>/turnos/{id}</code></td><td>DELETE</td><td>Eliminar turno</td></tr>
+<tr><td><code>/turnos/{id}</code></td><td>PUT</td><td>Modificar turno</td></tr>
+<tr><td><code>/turnos/{id}/cancelar</code></td><td>POST</td><td>Cancelar turno</td></tr>
+<tr><td><code>/turnos/{id}/estado</code></td><td>PUT</td><td>Cambiar estado del turno</td></tr>
+<tr><td><code>/calendario</code></td><td>GET</td><td>Turnos para calendario (?mes, ?especialidad_id, ?medico_id, ?estado)</td></tr>
+<tr><td><code>/agenda/timeline</code></td><td>GET</td><td>Agenda del día (recepcionista)</td></tr>
+<tr><td><code>/practicas_medicas/</code></td><td>GET</td><td>Lista prácticas</td></tr>
+<tr><td><code>/practicas_medicas/</code></td><td>POST</td><td>Crear práctica</td></tr>
+<tr><td><code>/historia_clinica/</code></td><td>GET</td><td>Lista historia clínica</td></tr>
+<tr><td><code>/mis_pacientes/</code></td><td>GET</td><td>Pacientes del médico logueado</td></tr>
+<tr><td><code>/nomenclador_practicas/</code></td><td>GET</td><td>Lista nomenclador</td></tr>
+<tr><td><code>/nomenclador_practicas/</code></td><td>POST</td><td>Crear nomenclador</td></tr>
+<tr><td><code>/nomenclador_practicas/{id}/</code></td><td>PUT</td><td>Editar nomenclador</td></tr>
+<tr><td><code>/nomenclador_practicas/{id}</code></td><td>DELETE</td><td>Eliminar nomenclador</td></tr>
+<tr><td><code>/recetas/</code></td><td>GET</td><td>Lista recetas</td></tr>
+<tr><td><code>/recetas/{id}</code></td><td>GET</td><td>Detalle receta</td></tr>
+<tr><td><code>/pacientes/{id}/recetas/</code></td><td>GET</td><td>Recetas de un paciente</td></tr>
+<tr><td><code>/estudios_adjuntos/</code></td><td>GET</td><td>Lista estudios adjuntos</td></tr>
+<tr><td><code>/pacientes/{id}/estudios/</code></td><td>GET</td><td>Estudios de un paciente</td></tr>
+</table>
+</div>
+
+<h3 style="color:#e2e8f0; margin: 20px 0 8px;">📁 routers/configuracion_agenda.py — Configuración (14 endpoints)</h3>
+<div class="table-wrap">
+<table>
+<tr><th>Entidad</th><th>GET</th><th>POST</th><th>PUT</th><th>DELETE</th></tr>
+<tr><td>Grillas médicas</td><td>GET <code>/grillas-medicas/</code></td><td>POST <code>/grillas-medicas/</code></td><td>PUT <code>/grillas-medicas/{id}</code></td><td>DELETE <code>/grillas-medicas/{id}</code></td></tr>
+<tr><td>Bloqueos de grilla</td><td>GET <code>/bloqueos-grilla/</code></td><td>POST <code>/bloqueos-grilla/</code></td><td>PUT <code>/bloqueos-grilla/{id}</code></td><td>DELETE <code>/bloqueos-grilla/{id}</code></td></tr>
+<tr><td>Duraciones prestaciones</td><td>GET <code>/duracion-prestaciones/</code></td><td>POST <code>/duracion-prestaciones/</code></td><td>PUT <code>/duracion-prestaciones/{id}</code></td><td>DELETE <code>/duracion</td></tr>
+</table>
+</div>
+</div>
+
+<!-- 7. MCP TOOLS -->
+<div class="section" id="mcp">
+<div class="section-title">
+<span class="icon">🔧</span>
+<h2>7. MCP Tools (9 Médicas + 10 CRM)</h2>
+</div>
+
+<h3 style="color:#e2e8f0; margin-bottom:12px;">🏥 9 MCP Tools Médicas</h3>
+<div class="table-wrap">
+<table>
+<tr><th>Tool</th><th>Función</th></tr>
+<tr><td><code>med_especialidades_disponibles</code></td><td>Lista especialidades del centro</td></tr>
+<tr><td><code>med_buscar_paciente</code></td><td>Busca pacientes por DNI/nombre</td></tr>
+<tr><td><code>med_crear_paciente</code></td><td>Crea paciente nuevo</td></tr>
+<tr><td><code>med_listar_medicos</code></td><td>Lista médicos por especialidad</td></tr>
+<tr><td><code>med_buscar_slots_disponibles</code></td><td>Busca turnos disponibles</td></tr>
+<tr><td><code>med_crear_turno</code></td><td>Crea turno (anti-duplicado, valida slots)</td></tr>
+<tr><td><code>med_listar_turnos</code></td><td>Lista turnos con filtros</td></tr>
+<tr><td><code>med_cancelar_turno</code></td><td>Cancela turno (24h rule)</td></tr>
+<tr><td><code>med_modificar_turno</code></td><td>Modifica fecha/hora turno (24h rule)</td></tr>
+</table>
+</div>
+
+<h3 style="color:#e2e8f0; margin: 20px 0 8px;">📊 10 MCP Tools CRM</h3>
+<div class="table-wrap">
+<table>
+<tr><th>Tool</th><th>Función</th></tr>
+<tr><td><code>get_facturas</code></td><td>Lista facturas</td></tr>
+<tr><td><code>get_facturas_vencidas</code></td><td>Facturas vencidas</td></tr>
+<tr><td><code>get_facturas_pendientes</code></td><td>Facturas pendientes</td></tr>
+<tr><td><code>marcar_factura_pagada</code></td><td>Marcar como pagada</td></tr>
+<tr><td><code>get_cobros_stats</code></td><td>Estadísticas de cobros</td></tr>
+<tr><td><code>get_clientes</code></td><td>Lista clientes</td></tr>
+<tr><td><code>get_cliente</code></td><td>Detalle cliente</td></tr>
+<tr><td><code>get_productos</code></td><td>Lista productos</td></tr>
+<tr><td><code>get_stock_critico</code></td><td>Productos con stock bajo</td></tr>
+<tr><td><code>get_tickets</code></td><td>Tickets de soporte</td></tr>
+</table>
+</div>
+
+<h3 style="color:#e2e8f0; margin: 20px 0 8px;">📁 RUTAS BACKEND ADICIONALES</h3>
+<div class="table-wrap">
+<table>
+<tr><th>Archivo</th><th>Función</th><th>Endpoints</th></tr>
+<tr><td><code>configuracion_agenda.py</code></td><td>Grillas médicas, bloqueos, duraciones</td><td>GET/POST/PUT/DELETE (5 tablas, 14 endpoints CRUD)</td></tr>
+<tr><td><code>obras_sociales.py</code></td><td>CRUD O.S. para clínica</td><td>GET/POST/PUT/DELETE</td></tr>
+<tr><td><code>especialidades.py</code></td><td>CRUD especialidades médicas</td><td>GET/GET_id/POST/PUT/DELETE</td></tr>
+<tr><td><code>clientes.py</code></td><td>CRM básico</td><td>GET/POST/PUT/DELETE por empresa</td></tr>
+<tr><td><code>productos.py</code></td><td>Catálogo de productos</td><td>GET/POST/PUT/DELETE por empresa</td></tr>
+<tr><td><code>proveedores.py</code></td><td>Proveedores</td><td>GET/POST/PUT/DELETE</td></tr>
+<tr><td><code>cobros.py</code></td><td>Facturas y pagos</td><td>GET/POST</td></tr>
+<tr><td><code>reportes.py</code></td><td>Dashboard, resumen semanal, top clientes</td><td>GET /dashboard, /resumen-semanal, /top-clientes, /evolucion-mensual, /productos-top</td></tr>
+<tr><td><code>auth.py</code></td><td>Auth JWT, login, usuarios</td><td>POST /auth/login, CRUD usuarios</td></tr>
+<tr><td><code>empresas.py</code></td><td>Multi-tenant: empresas</td><td>GET/POST/PUT/DELETE + seed, stats</td></tr>
+</table>
+</div>
+
+<h3 style="color:#e2e8f0; margin: 20px 0 8px;">🔄 FLUJO DE DATOS BOT → DB EN 5 PASOS</h3>
+<div class="flow-step"><div class="flow-num">1</div><div class="flow-content"><h4>Bot recibe texto del paciente</h4><p>main.py → detect_intent() → state machine → llama MCP tool</p></div></div>
+<div class="flow-step"><div class="flow-num">2</div><div class="flow-content"><h4>MCP tool → API Endpoint</h4><p>med_buscar_slots_disponibles() → genera slots basados en grillas médicas del médico</p></div></div>
+<div class="flow-step"><div class="flow-num">3</div><div class="flow-content"><h4>Excluye turnos ya ocupados</h4><p>SlotsCalculator → DB → slots que NO están en visitas (fecha_hora >= inicio AND < fin)</p></div></div>
+<tr><td><code>/agenda/slots-libres</code></td><td>GET</td><td>Slots con params: medico_id, fecha_desde, fecha_hasta</td></tr>
+</table>
+</div>
+
+<h3 style="color:#e2e8f0; margin: 20px 0 8px;">📈 Otros Endpoints de Soporte</h3>
+<div class="table-wrap">
+<table>
+<tr><th>Endpoint</th><th>Método</th><th>Función</th></tr>
+<tr><td><code>/dashboard</code></td><td>GET</td><td>KPIs: turnos hoy, del mes, próximos, por estado</td></tr>
+<tr><td><code>/resumen-semanal</code></td><td>GET</td><td>Resumen semanal</td></tr>
+<tr><td><code>/top-clientes</code></td><td>GET</td><td>Top pacientes por visitas</td></tr>
+<tr><td><code>/evolucion-mensual</code></td><td>GET</td><td>Evolución de turnos por mes</td></tr>
+<tr><td><code>/productos-top</code></td><td>GET</td><td>Prácticas más realizadas</td></tr>
+<tr><td><code>/mi-empresa</code></td><td>GET/PUT</td><td>Datos de la empresa (config general)</td></tr>
+<tr><td><code>/auth/login</code></td><td>POST</td><td>Login JWT (form data: username + password)</td></tr>
+</table>
+</div>
+</div>
+
+<!-- 8. BASE DE DATOS -->
+<div class="section" id="database">
+<div class="section-title">
+<span class="icon">🗄️</span>
+<h2>8. Base de Datos — Schema Completo</h2>
+</div>
+
+<p style="color:#94a3b8; margin-bottom: 16px;"><strong>DB:</strong> <code>business</code> | <strong>Schema:</strong> <code>setubalai</code> | <strong>Usuario:</strong> <code>paperclip</code> | <strong>Puerto:</strong> <code>100.72.101.29:5432</code></p>
+
+<h3 style="color:#e2e8f0; margin-bottom: 12px;">14 Tablas Médicas — Datos de Demo (Empresa 16)</h3>
+<div class="table-wrap">
+<table>
+<thead><tr><th>Tabla</th><th>Filas</th><th>Propósito</th><th>Notas</th></tr></thead>
+<tbody>
+<tr><td>especialidades_medicas</td><td><strong>5</strong></td><td>Cardiología, Clínica Médica, Pediatría, Dermatología, Traumatología</td><td>FK a empresas</td></tr>
+</table>
+</div>
+</tr>
+<tr><td>medicos</td><td><strong>15</strong></td><td>3 médicos por especialidad (García, Rodríguez, Méndez, etc.)</td><td>Con matrículas y horarios</td></tr>
+<tr><td>medico_especialidades</td><td><strong>15</strong></td><td>Relación M:N médico ↔ especialidad (sin PK, solo FK compuesta)</td><td>Sin columna id</td></tr>
+<tr><td>pacientes</td><td><strong>36</strong></td><td>Personas que reciben atención</td><td>Con telegram_chat_id BIGINT</td></tr>
+<tr><td>visitas</td><td><strong>158</strong></td><td>Turnos/consultas agendadas (NO existe tabla "turnos")</td><td>FK: paciente_nuevo_id</td></tr>
+<tr><td>obras_sociales</td><td><strong>8</strong></td><td>OSDE, Swiss Medical, PAMI, IOMA, Particular, Galeno, Medifé, IAPOS</td><td>CRUD completo</td></tr>
+<tr><td>grillas_medicas</td><td><strong>12</strong></td><td>Horarios semanales configurables</td><td>CRUD completo</td></tr>
+<tr><td>duracion_prestaciones</td><td><strong>5</strong></td><td>Minutos por especialidad</td><td>FK a especialidad</td></tr>
+<tr><td>bloqueos_grilla</td><td><strong>0</strong></td><td>Vacaciones/congresos (sin seed)</td><td>CRUD completo</td></tr>
+<tr><td>atenciones_medicas</td><td><strong>31</strong></td><td>Registro de consulta médica realizada</td><td>Vinculada a visitas</td></tr>
+<tr><td>historia_clinica</td><td><strong>62</strong></td><td>Historia clínica del paciente (acumulativa)</td><td>Arrays PostgreSQL</td></tr>
+<tr><td>practicas_medicas</td><td><strong>65</strong></td><td>Prácticas/estudios facturables</td><td>tipo_practica (no practica_id)</td></tr>
+<tr><td>nomenclador_practicas</td><td><strong>18</strong></td><td>Catálogo de códigos/prácticas</td><td>CRUD completo</td></tr>
+<tr><td>estudios_adjuntos</td><td><strong>20</strong></td><td>Adjuntos de estudios/imágenes</td><td>Sin medico_id, usa consulta_id</td></tr>
+<tr><td>recetas</td><td><strong>24</strong></td><td>Recetas médicas</td><td>CRUD completo</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3 style="color:#e2e8f0; margin: 20px 0 12px;">📊 Tablas Auxiliares</h3>
+<div class="table-wrap">
+<table>
+<tr><th>Tabla</th><th>Propósito</th></tr>
+<tr><td>empresa</td><td>Info de cada clínica (multitenant)</td></tr>
+<tr><td>usuarios</td><td>Usuarios con JWT</td></tr>
+<tr><td>clientes</td><td>CRM (separado de pacientes)</td></tr>
+<tr><td>productos</td><td>Catálogo de productos (CRM)</td></tr>
+<tr><td>facturas</td><td>Facturación (CRM)</td></tr>
+<tr><td>cobros</td><td>Pagos (CRM)</td></tr>
+</table>
+</div>
+</div>
+
+<!-- 9. SERVICIOS VPS -->
+<div class="section" id="servicios">
+<div class="section-title">
+<span class="icon">🖥️</span>
+<h2>9. Servicios del VPS (systemd)</h2>
+</div>
+
+<div class="table-wrap">
+<table>
+<thead><tr><th>Servicio</th><th>Estado</th><th>Función</th><th>Comando</th></tr></thead>
+<tbody>
+<tr><td>setubalai-api.service</td><td><span class="status-ok">✅ active</span></td><td>Backend FastAPI puerto 3010</td><td><code>systemctl --user restart setubalai-api.service</code></td></tr>
+<tr><td>setubalai-web.service</td><td><span class="status-ok">✅ active</span></td><td>Web App Next.js puerto 3011</td><td><code>systemctl --user restart setubalai-web.service</code></td></tr>
+<tr><td>setubalai-admin.service</td><td><span class="status-ok">✅ active</span></td><td>Panel Admin Next.js puerto 3012</td><td><code>systemctl --user restart setubalai-admin.service</code></td></tr>
+<tr><td>setubalai-clinic-bot.service</td><td><span class="status-ok">✅ active</span></td><td>Bot Telegram de turnos</td><td><code>systemctl --user restart setubalai-clinic-bot.service</code></td></tr>
+<tr><td>setubalai-infrastructure.service</td><td><span class="status-ok">✅ active</span></td><td>Infrastructure API puerto 9993</td><td><code>systemctl --user restart setubalai-infrastructure.service</code></td></tr>
+<tr><td>setubalai-db-explorer.service</td><td><span class="status-ok">✅ active</span></td><td>DB Explorer API puerto 9991</td><td><code>systemctl --user restart setubalai-db-explorer.service</code></td></tr>
+</tbody>
+</table>
+</div>
+
+<h3 style="color:#e2e8f0; margin: 20px 0 8px;">🔧 Scripts y Herramientas</h3>
+<div class="card-grid">
+<div class="card">
+<h3>🧪 validate.py / validate.sh</h3>
+<p>27+ checks de validación post-cambios</p>
+<p><code>scripts/validate.py</code></p>
+</div>
+<div class="card">
+<h3>🔍 diagnose-alineacion.py</h3>
+<p>26 checks de alineación DB ↔ Backend ↔ Frontend</p>
+<p><code>services/api/diagnose-alineacion.py</code></p>
+</div>
+<div class="card">
+<h3>🌱 seed_datos_prueba.py</h3>
+<p>Siembra datos de prueba (repara passwords también)</p>
+<p><code>services/api/seed_datos_prueba.py</code></p>
+</div>
+<div class="card">
+<h3>🌱 seed_demo_medica.py</h3>
+<p>Siembra demo médico con --fecha/--empresa</p>
+<p><code>services/api/seed_demo_medica.py</code></p>
+</div>
+<div class="card">
+<h3>🔄 deploy.sh</h3>
+<p>Deploy automático: rm -rf .next → build → restart</p>
+<p><code>bash scripts/deploy.sh [web|admin|api|all]</code></p>
+</div>
+<div class="card">
+<h3>📋 admin-cli.py</h3>
+<p>CLI para gestionar usuarios/passwords en desarrollo</p>
+<p><code>scripts/admin-cli.py</code></p>
+</div>
+</div>
+</div>
+
+<!-- 10. DEMO -->
+<div class="section" id="demo">
+<div class="section-title">
+<span class="icon">🎬</span>
+<h2>10. Demo en Vivo</h2>
+</div>
+
+<div class="two-col">
+<div class="card">
+<h3>📱 Bot Telegram</h3>
+<p><strong>@SetubalClibot</strong></p>
+<p>Buscar en Telegram → Escribir "Hola, quiero turno"</p>
+<p style="color:#94a3b8; font-size: 12px;">El bot te identifica, muestra especialidades, médicos, horarios y confirma el turno.</p>
+</div>
+<div class="card">
+<h3>🌐 Web App</h3>
+<p><strong>dev.setubalai.org</strong></p>
+<p><code>admin@centromedicosantaclara.com.ar</code></p>
+<p><code>Pablo2024!</code></p>
+<p style="color:#94a3b8; font-size: 12px;">Ver turnos, pacientes, calendario, historia clínica, configuración.</p>
+</div>
+</div>
+
+<div class="highlight" style="margin-top:16px;">
+<p><strong>🎯 Demo de 5 minutos para mostrar a una clínica:</strong></p>
+<ol style="color:#93c5fd; padding-left: 20px;">
+<li>Abrir Telegram → buscar <strong>@SetubalClibot</strong> → escribir "Hola, quiero turno"</li>
+<li>El bot te identifica → muestra especialidades → elegís médico → mostrás horarios → confirmás</li>
+<li>Abrir <strong>dev.setubalai.org</strong> → login → Dashboard → ves el turno agendado por Telegram</li>
+<li>Navegás a Pacientes → ves historia clínica</li>
+<li>Navegás a Calendario → grilla mensual con colores por especialidad</li>
+<li>Mostrás Configuración → "Todo esto se adapta a TU clínica"</li>
+</ol>
+</div>
+</div>
+
+<!-- 11. MULTI-TENANT -->
+<div class="section" id="tenant">
+<div class="section-title">
+<span class="icon">🏢</span>
+<h2>11. Multi-Tenant (SaaS Real)</h2>
+</div>
+
+<div class="card-grid">
+<div class="card">
+<h3>🔐 Aislamiento por empresa_id</h3>
+<p>Cada clínica tiene su <code>empresa_id</code>. TODAS las queries filtran por esto. Los datos de la Clínica A NO se mezclan con la Clínica B.</p>
+</div>
+<div class="card">
+<h3>👑 3 Roles de Usuario</h3>
+<ul style="color:#94a3b8; padding-left: 20px;">
+<li><strong>superadmin</strong> (Pablo): Ve TODAS las empresas</li>
+<li><strong>admin_clinica</strong>: Ve datos de SU empresa</li>
+<li><strong>medico</strong>: Ve solo pacientes que atendió</li>
+</ul>
+</div>
+<div class="card">
+<h3>🔄 Deploy una vez, todos actualizan</h3>
+<p>Una mejora en el código se despliega una vez y todas las clínicas la reciben. Cada clínica ve SOLO sus datos.</p>
+</div>
+<div class="card">
+<h3>📊 Panel Master (Superadmin)</h3>
+<p><code>admin.setubalai.org</code> — Pablo ve métricas globales, crea empresas, gestiona el ecosistema.</p>
+</div>
+</div>
+</div>
+
+<!-- 12. ACCESOS -->
+<div class="section" id="accesos">
+<div class="section-title">
+<span class="icon">🔑</span>
+<h2>12. Accesos</h2>
+</div>
+
+<div class="card-grid">
+<div class="card">
+<h3>🌐 Web App Clínica</h3>
+<p><strong>URL:</strong> <code>dev.setubalai.org</code></p>
+<p><strong>User:</strong> <code>admin@centromedicosantaclara.com.ar</code></p>
+<p><strong>Pass:</strong> <code>Pablo2024!</code></p>
+</div>
+<div class="card">
+<h3>👑 Panel admin</h3>
+<p><strong>URL:</strong> <code>admin.setubalai.org</code></p>
+<p><strong>User:</strong> <code>pcostarotela@gmail.com</code></p>
+<p><strong>Pass:</strong> <code>Pablo2024!</code></p>
+</div>
+<div class="card">
+<h3>🤖 Bot Telegram</h3>
+<p><strong>Bot:</strong> <code>@SetubalClibot</code></p>
+<p><strong>Código:</strong> <code>/home/admin/setubalai-agente/services/clinic-bot/main.py</code></p>
+</div>
+<div class="card">
+<h3>🗄️ Base de Datos</h3>
+<p><strong>Host:</strong> <code>100.72.101.29:5432</code></p>
+<p><strong>DB:</strong> <code>business</code></p>
+<p><strong>Schema:</strong> <code>setubalai</code></p>
+<p><strong>User:</strong> <code>paperclip</code></p>
+</div>
+</div>
+</div>
+
+<!-- 13. FLUJOS -->
+<div class="section" id="flujo">
+<div class="section-title">
+<span class="icon">🔄</span>
+<h2>13. Flujos del Sistema</h2>
+</div>
+
+<div class="card-grid">
+<div class="card">
+<h3>📱 Paciente pide turno (Telegram)</h3>
+<p>Paciente escribe → Bot detecta intención → Identifica → Ofrece especialidades → Elige médico → Ve horarios disponibles → Elige horario → Confirma → Turno creado en DB</p>
+</div>
+<div class="card">
+<h3>🖥️ Recepcionista gestiona día</h3>
+<p>Web app → Agenda del día → Ve timeline → Llama pacientes según hora → Registra atención → Prácticas → Historia clínica → Recetas</p>
+</div>
+<div class="card">
+<h3>👨‍⚕️ Médico atiende paciente</h3>
+<p>Login Web → "Mis pacientes" → Selecciona paciente → Ve historial completo → Registra nueva atención → Diagnóstico → Prácticas → Receta → HC actualizada</p>
+</div>
+<div class="card">
+<h3>🏥 Admin configura clínica</h3>
+<p>Login Web → Configuración → Define especialidades → Agrega médicos → Configura grillas horarias → Define obras sociales → Duración de consultas → Catálogo de prácticas</p>
+</div>
+</div>
+</div>
+
+<!-- 14. COMERCIAL -->
+<div class="section" id="comercial">
+<div class="section-title">
+<span class="icon">💰</span>
+<h2>14. Comercial</h2>
+</div>
+
+<h3 style="color:#e2e8f0; margin-bottom: 12px;">📦 Qué Incluye (Paquete Completo)</h3>
+<ul class="check">
+<li>Bot Telegram con IA (recepcionista 24/7) — 8 funcionalidades</li>
+<li>Web App de Gestión Clínica — 11 páginas funcionales</li>
+<li>CRUD completo — Especialidades, Médicos, Pacientes, Obras Sociales</li>
+<li>CRUD de Agenda — Grillas, Bloqueos, Duraciones, Prestaciones</li>
+<li>Historia Clínica Digital — Acumulativa, searchable, por paciente</li>
+<li>Recetas, Estudios, Prácticas Médicas — Todo integrado</li>
+<li>Calendario mensual — Con filtros por especialidad/médico/estado</li>
+<li>Agenda del día (timeline) — Vista de recepcionista</li>
+<li>50+ endpoints API — CRUD completo por entidad</li>
+<li>9 MCP tools médicas — Bot + API integrados</li>
+<li>Multi-tenant real — Una infra, miles de clínicas</li>
+<li>3 roles de usuario — Superadmin, Admin Clínica, Médico</li>
+</ul>
+
+<h3 style="color:#e2e8f0; margin-bottom: 12px;">💡 Opciones de Precios</h3>
+<table style="margin: 16px 0;">
+<tr><th>Plan</th><th>Precio Sugerido</th><th>Incluye</th></tr>
+<tr><td>Starter</td><td>$X/mes</td><td>Hasta 3 médicos, 1 especialidad, Bot, Web App</td></tr>
+<tr><td>Professional</td><td>$Y/mes</td><td>Hasta 10 médicos, HC, Recetas, todas especialidades</td></tr>
+<tr><td>Enterprise</td><td>$Z/mes</td><td>Médicos ilimitados, Panel Admin, Métricas avanzadas</td></tr>
+</table>
+
+<h3 style="color:#e2e8f0; margin-bottom: 12px;">🚀 Próximos Pasos para Vender</h3>
+<div class="card-grid">
+<div class="card">
+<h3>1. Landing en setubalai.org</h3>
+<p>Crear página "Sistemas para Clínicas" con el catálogo y CTA de contacto</p>
+</div>
+<div class="card">
+<h3>2. Video Demo (3 minutos)</h3>
+<p>Grabar flujo: Telegram → Web App → Dashboard → Configuración</p>
+</div>
+<div class="card">
+<h3>3. PDF Comercial</h3>
+<p>Exportar este catálogo como PDF con branding de SetubalAI</p>
+</div>
+<div class="card">
+<h3>4. Piloto con conocido</h3>
+<p>Ofrecer gratis o a costo a cambio de testimonio</p>
+</div>
+</div>
+</div>
+
+<!-- FOOTER -->
+<div class="footer">
+<p><strong>SetubalAI — Agencia de IA para PYMES</strong></p>
+<p>🌐 <code>setubalai.org</code> | 🏥 <code>dev.setubalai.org</code> | 👑 <code>admin.setubalai.org</code></p>
+<p style="margin-top: 8px;">Documento generado: Junio 2026 | Versión 1.0 del Mapa del Sistema</p>
+</div>
+
+<!-- FOOTER -->
+<div class="footer">
+<p><strong>SetubalAI — Agencia de IA para PYMES</strong></p>
+<p>🌐 <code>setubalai.org</code> | 🏥 <code>dev.setubalai.org</code> | 👑 <code>admin.setubalai.org</code></p>
+<p style="margin-top: 8px;">Documento generado: Junio 2026 | Versión 1.0 del Mapa del Sistema</p>
+</div>
+</div>
+</body>
+</html>
