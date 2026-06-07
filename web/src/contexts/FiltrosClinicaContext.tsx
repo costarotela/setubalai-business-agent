@@ -57,13 +57,18 @@ export interface FiltrosState {
   selectedEspecialidadId: number | null;
   selectedMedicoId: number | null;
 
-  // Actions mutables
+  // Actions mutables (bloqueadas si es médico)
   setEspecialidadId: (id: number | null) => void;
   setMedicoId: (id: number | null) => void;
 
   // Derived data (memoizados)
   medicosFiltrados: Medico[];      // filtrados por especialidad seleccionada
   practicasFiltradas: Practica[];  // filtradas por especialidad seleccionada
+
+  // Role-based: si el usuario logueado es médico, el Context se BLOQUEA
+  rol: string;
+  usuarioMedicoId: number | null;  // medico_id del usuario logueado (null si no es médico)
+  contextoBloqueado: boolean;       // true si rol = médico (no puede cambiar)
 
   // UI state
   loading: boolean;
@@ -114,7 +119,7 @@ function formatPracticas(data: unknown): Practica[] {
 // ─── Provider ────────────────────────────────────────────────────────────
 
 export function FiltrosClinicaProvider({ children }: { children: ReactNode }) {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const af = useAuthFetch();
 
   // Datos raw
@@ -125,6 +130,11 @@ export function FiltrosClinicaProvider({ children }: { children: ReactNode }) {
   // Selección global — SIEMPRE hay una seleccionada por defecto
   const [selectedEspecialidadId, setSelectedEspecialidadId] = useState<number | null>(null);
   const [selectedMedicoId, setSelectedMedicoId] = useState<number | null>(null);
+
+  // Detectar si el usuario es médico
+  const usuarioMedicoId = (user as any)?.medico_id || null;
+  const rol = user?.rol || "";
+  const contextoBloqueado = !!usuarioMedicoId; // médico → bloqueado, admin/recep → libre
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -162,21 +172,36 @@ export function FiltrosClinicaProvider({ children }: { children: ReactNode }) {
         setMedicos(medArr);
         setPracticas(pracArr);
 
-        // ── AUTO-SELECCIÓN: primera especialidad + primer médico ──
+        // ── AUTO-SELECCIÓN según ROL ──
         if (espArr.length > 0) {
-          setSelectedEspecialidadId(espArr[0].id);
-          // Seleccionar primer médico de esa especialidad
-          const firstEsp = espArr[0];
-          const firstMed = medArr.find(m =>
-            m.especialidades.length === 0 ||
-            m.especialidades.some((es: string | { nombre?: string }) => {
-              if (typeof es === "string") return es === firstEsp.nombre;
-              if (es.nombre) return es.nombre === firstEsp.nombre;
-              return false;
-            })
-          );
-          if (firstMed) {
-            setSelectedMedicoId(firstMed.id);
+          // Verificar si el usuario logueado es médico
+          if (usuarioMedicoId) {
+            // MÉDICO: seleccionar SU especialidad + ÉL MISMO
+            const med = medArr.find(m => m.id === usuarioMedicoId);
+            if (med) {
+              // Buscar la especialidad del médico
+              const medEspNombre = med.especialidades.find((es: string) => true);
+              const esp = espArr.find(e => e.nombre === medEspNombre);
+              if (esp) {
+                setSelectedEspecialidadId(esp.id);
+              }
+              setSelectedMedicoId(med.id);
+            }
+          } else {
+            // ADMIN/RECEPCIONISTA: primera especialidad + primer médico
+            const firstEsp = espArr[0];
+            setSelectedEspecialidadId(firstEsp.id);
+            const firstMed = medArr.find(m =>
+              m.especialidades.length === 0 ||
+              m.especialidades.some((es: string | { nombre?: string }) => {
+                if (typeof es === "string") return es === firstEsp.nombre;
+                if (es.nombre) return es.nombre === firstEsp.nombre;
+                return false;
+              })
+            );
+            if (firstMed) {
+              setSelectedMedicoId(firstMed.id);
+            }
           }
         }
       })
@@ -192,15 +217,17 @@ export function FiltrosClinicaProvider({ children }: { children: ReactNode }) {
     return () => { cancelled = true; };
   }, [af, token]);
 
-  // ── Actions ──────────────────────────────────────────────────────────
+  // ── Actions — BLOQUEADAS si el usuario es médico ──
   const setEspecialidadId = useCallback((id: number | null) => {
+    if (contextoBloqueado) return; // médico NO puede cambiar
     setSelectedEspecialidadId(id);
-    setSelectedMedicoId(null); // Reset médico al cambiar especialidad
-  }, []);
+    setSelectedMedicoId(null);
+  }, [contextoBloqueado]);
 
   const setMedicoId = useCallback((id: number | null) => {
+    if (contextoBloqueado) return; // médico NO puede cambiar
     setSelectedMedicoId(id);
-  }, []);
+  }, [contextoBloqueado]);
 
   // ── Derived data (memoizados) ────────────────────────────────────────
   const medicosFiltrados = useMemo(() => {
@@ -242,13 +269,18 @@ export function FiltrosClinicaProvider({ children }: { children: ReactNode }) {
     setMedicoId,
     medicosFiltrados,
     practicasFiltradas,
+    rol,
+    usuarioMedicoId,
+    contextoBloqueado,
     loading,
     error,
   }), [
     especialidades, medicos, practicas,
     selectedEspecialidadId, selectedMedicoId,
     setEspecialidadId, setMedicoId,
-    medicosFiltrados, practicasFiltradas, loading, error,
+    medicosFiltrados, practicasFiltradas,
+    rol, usuarioMedicoId, contextoBloqueado,
+    loading, error,
   ]);
 
   return <Context.Provider value={value}>{children}</Context.Provider>;
