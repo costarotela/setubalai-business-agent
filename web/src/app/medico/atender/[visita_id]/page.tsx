@@ -110,17 +110,13 @@ export default function AtenderPage({
       try {
         setLoading(true);
 
-        // 1. Traer info de la visita para sacar paciente_id
-        const turnosRes = await af("/api/turnos/");
-        const turnos = await turnosRes.json();
-        const turnosArr = Array.isArray(turnos) ? turnos : turnos.turnos || [];
-        const visita = turnosArr.find(
-          (t: any) => t.id === parseInt(visitaId)
-        );
-        if (!visita) {
+        // 1. Traer info de la visita directamente por ID
+        const visitaRes = await af(`/api/turnos/${visitaId}`);
+        if (!visitaRes.ok) {
           setError("No se encontró el turno especificado");
           return;
         }
+        const visita = await visitaRes.json();
 
         // 2. Traer datos del paciente
         const paciRes = await af(`/api/pacientes/${visita.paciente_id}`);

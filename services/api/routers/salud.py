@@ -376,7 +376,11 @@ def obtener_paciente(paciente_id: int, db: Session = Depends(get_db), empresa_id
             AtencionMedica.medico_id == medico_id_auth,
             AtencionMedica.paciente_nuevo_id == paciente_id
         ).first()
-        if not atendido:
+        tiene_visita = db.query(Visita).filter(
+            Visita.medico_id == medico_id_auth,
+            (Visita.paciente_nuevo_id == paciente_id) | (Visita.paciente_id == paciente_id)
+        ).first()
+        if not atendido and not tiene_visita:
             raise HTTPException(403, "No tienes acceso a este paciente")
     return _dict_paciente(p)
 
@@ -817,6 +821,32 @@ def eliminar_turno(
     db.delete(v)
     db.commit()
     return {"ok": True, "message": "Turno eliminado"}
+
+@router.get("/turnos/{turno_id}")
+def obtener_turno(
+    turno_id: int,
+    db: Session = Depends(get_db),
+    empresa_id: int = Depends(resolve_empresa_id),
+    medico_restriccion: tuple = Depends(get_medico_restriction)
+):
+    """Obtener un turno por ID. Medico solo ve propios."""
+    medico_id_auth, es_admin, rol = medico_restriccion
+    v = db.query(Visita).filter(Visita.id == turno_id, Visita.empresa_id == empresa_id).first()
+    if not v:
+        raise HTTPException(404, "Turno no encontrado")
+    if medico_id_auth and not es_admin and v.medico_id != medico_id_auth:
+        raise HTTPException(403, "No puedes ver un turno ajeno")
+
+    d = _dict_visita(v)
+    pac = db.query(Paciente).filter(Paciente.id == (v.paciente_nuevo_id or v.paciente_id)).first()
+    d["paciente_nombre"] = f"{pac.nombre} {pac.apellido}" if pac else "Desconocido"
+    d["paciente_dni"] = pac.dni if pac else ""
+    d["paciente_id"] = v.paciente_nuevo_id or v.paciente_id
+    med = db.query(Medico).filter(Medico.id == v.medico_id).first()
+    d["medico_nombre"] = f"Dr/a. {med.nombre} {med.apellido}" if med else ""
+    d["servicio"] = v.tipo_visita or "Consulta"
+    return d
+
 
 @router.put("/turnos/{turno_id}")
 def editar_turno(

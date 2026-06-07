@@ -75,12 +75,15 @@ def login(
     # user.ultimo_acceso no existe en el modelo — omitir
     db.commit()
 
-    token = create_access_token({
+    token_data = {
         "sub": str(user.id),
         "empresa_id": user.empresa_id,
         "rol": user.rol,
         "nombre": user.nombre,
-    })
+    }
+    if user.medico_id:
+        token_data["medico_id"] = user.medico_id
+    token = create_access_token(token_data)
 
     return TokenResponse(
         access_token=token,
@@ -234,6 +237,7 @@ def _user_dict(u: Usuario, db: Session = None) -> dict:
         "email": u.email,
         "rol": u.rol,
         "activo": u.activo,
+        "medico_id": getattr(u, "medico_id", None),
         "ultimo_acceso": None,
         "created_at": u.created_at.isoformat() if u.created_at else None,
     }
