@@ -59,8 +59,8 @@ export default function TurnosPage() {
         const pac = p.find((x: any) => x.id === turno.paciente_id);
         return {
           ...turno,
-          paciente_nombre: turno.paciente_nombre || (pac ? `${pac.nombre} ${pac.apellido}` : "Sin paciente"),
-          medico_nombre: med ? `Dr/a. ${med.nombre} ${med.apellido}` : "",
+          paciente_nombre: turno.paciente_nombre || (pac ? `${pac.nombre || ""} ${pac.apellido || ""}` : "Sin paciente"),
+          medico_nombre: med ? `Dr/a. ${med.nombre || ""} ${med.apellido || ""}` : "",
           servicio: turno.servicio || turno.tipo_visita,
         };
       });
@@ -162,7 +162,7 @@ export default function TurnosPage() {
               <select value={formPaciente} onChange={e => setFormPaciente(e.target.value)}
                 style={{width: "100%", padding: "10px 12px", borderRadius: 8, marginTop: 4, background: "#0f1011", border: "1px solid rgba(255,255,255,0.08)", color: "#f7f8f8", fontSize: 13}}>
                 <option value="">Seleccionar...</option>
-                {pacientes.map(p => <option key={p.id} value={p.id}>{p.nombre} {p.apellido}</option>)}
+                {pacientes.map(p => <option key={p.id} value={p.id}>{p.nombre || ""} {p.apellido || ""}</option>)}
               </select>
             </div>
           </div>

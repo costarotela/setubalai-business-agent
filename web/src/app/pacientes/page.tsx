@@ -54,9 +54,9 @@ export default function PacientesPage() {
 
   const filtered = pacientes.filter(p => {
     const q = search.toLowerCase();
-    return p.nombre.toLowerCase().includes(q)
-      || p.apellido.toLowerCase().includes(q)
-      || p.dni.toLowerCase().includes(q);
+    return (p.nombre || "").toLowerCase().includes(q)
+      || (p.apellido || "").toLowerCase().includes(q)
+      || (p.dni || "").toLowerCase().includes(q);
   });
 
   if (loading) return <div style={{padding: "40px", color: "#62666d"}}>Cargando pacientes...</div>;
@@ -112,7 +112,7 @@ export default function PacientesPage() {
             {filtered.map(p => (
               <tr key={p.id} style={{borderBottom: "1px solid rgba(255,255,255,0.04)", cursor: "pointer"}}
                 onClick={() => router.push(`/pacientes/${p.id}/historial`)}>
-                <td style={{padding: "10px 16px", fontSize: 13}}>{p.nombre} {p.apellido}</td>
+                <td style={{padding: "10px 16px", fontSize: 13}}>{p.nombre || ""} {p.apellido || ""}</td>
                 <td style={{padding: "10px 16px", fontSize: 13, color: "#8a8f98"}}>{p.dni}</td>
                 <td style={{padding: "10px 16px", fontSize: 13, color: "#8a8f98"}}>{p.obra_social || "-"}</td>
                 <td style={{padding: "10px 16px", fontSize: 13, color: "#8a8f98"}}>{p.telefono || "-"}</td>

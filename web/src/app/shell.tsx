@@ -96,7 +96,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
             if (esMedico && (item.path === "/turnos" || item.path === "/turnos/calendario")) return null;
 
             const Icon = item.icon;
-            const active = pathname === item.path || (item.path === "/dashboard" && (pathname === "/" || pathname === "/dashboard"));
+            const active = pathname === item.path;
             return (
               <Link key={item.path} href={item.path} style={{ textDecoration: "none" }}>
                 <div style={{
@@ -137,7 +137,6 @@ function AppShell({ children }: { children: React.ReactNode }) {
                     color: "#c9cdd4", fontSize: 12, fontWeight: 600,
                     cursor: "default",
                   }}>
-                    <item.icon size={13} />
                     {item.name}
                   </div>
                   {item.children.map((child) => {

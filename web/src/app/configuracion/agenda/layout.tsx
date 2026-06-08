@@ -10,7 +10,7 @@ export default function ConfiguracionAgendaLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const { especialidades, selectedEspecialidadId, setSelectedEspecialidadId } = useFiltrosClinica();
+  const { especialidades, selectedEspecialidadId, setEspecialidadId } = useFiltrosClinica();
 
   const tabs = [
     { id: "profesionales", label: "👨‍⚕️ Profesionales", href: "/configuracion/agenda/profesionales" },
@@ -43,7 +43,7 @@ export default function ConfiguracionAgendaLayout({
             </label>
             <select
               value={selectedEspecialidadId || ""}
-              onChange={e => setSelectedEspecialidadId(e.target.value ? Number(e.target.value) : null)}
+              onChange={e => setEspecialidadId(e.target.value ? Number(e.target.value) : null)}
               style={{
                 padding: "8px 14px", background: isSelected ? "rgba(99,102,241,0.12)" : "rgba(255,255,255,0.03)",
                 border: `1px solid ${isSelected ? "rgba(99,102,241,0.4)" : "rgba(255,255,255,0.1)"}`,
@@ -58,7 +58,7 @@ export default function ConfiguracionAgendaLayout({
             </select>
             {isSelected && espSeleccionada && (
               <button
-                onClick={() => setSelectedEspecialidadId(null)}
+                onClick={() => setEspecialidadId(null)}
                 style={{
                   background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.25)",
                   borderRadius: 8, padding: "6px 12px", color: "#f87171", fontSize: 11, fontWeight: 600, cursor: "pointer",

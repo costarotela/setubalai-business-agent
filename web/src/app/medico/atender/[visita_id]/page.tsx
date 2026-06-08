@@ -62,6 +62,8 @@ export default function AtenderPage({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [atencionExistente, setAtencionExistente] = useState<number | null>(null); // ID de atención existente
+  const [modoEdicion, setModoEdicion] = useState(false);
 
   // Form fields
   const [diagnostico, setDiagnostico] = useState("");
@@ -126,11 +128,45 @@ export default function AtenderPage({
         // 3. Traer historial completo
         const histRes = await af(`/api/pacientes/${visita.paciente_id}/historial`);
         const histData = await histRes.json();
-        setHistorial(histData);
+        
+        // 403 = no tiene acceso al historial de OTRO médico — no es error
+        if (histRes.ok) {
+          setHistorial(histData);
+          // Pre-llenar si ya tiene HC — DEFENSIVO: el campo puede ser string o array
+          const hc = histData && histData.historia_clinica ? histData.historia_clinica : null;
+          if (hc && hc.medicacion_habitual) {
+            const med = hc.medicacion_habitual;
+            if (Array.isArray(med)) {
+              setAnamnesis(med.join("\n"));
+            } else if (typeof med === "string") {
+              setAnamnesis(med); // ya viene como string
+            } else {
+              setAnamnesis(String(med));
+            }
+          }
+        }
 
-        // Pre-llenar si ya tiene HC
-        if (histData?.historia_clinica?.medicacion_habitual) {
-          setAnamnesis(histData.historia_clinica.medicacion_habitual.join("\n"));
+        // 4. ¿Ya existe atención para esta visita? Si sí, cargarla para editar
+        const atenCheckRes = await af(`/api/atenciones/visita/${visitaId}`);
+        if (atenCheckRes.ok) {
+          const atenCheck = await atenCheckRes.json();
+          if (atenCheck?.exists && atenCheck?.atencion) {
+            const aten = atenCheck.atencion;
+            setAtencionExistente(aten.id);
+            setModoEdicion(true);
+            // Pre-llenar formulario con datos existentes
+            if (aten.diagnostico) setDiagnostico(aten.diagnostico);
+            if (aten.evolucion) setEvolucion(aten.evolucion);
+            if (aten.plan_tratamiento) setPlanTratamiento(aten.plan_tratamiento);
+            if (aten.anamnesis) setAnamnesis(aten.anamnesis);
+            if (aten.examen_fisico) setExamFisico(aten.examen_fisico);
+            if (aten.observaciones) setObservaciones(aten.observaciones);
+            if (aten.presion_arterial) setSignos(prev => ({ ...prev, presion_arterial: aten.presion_arterial }));
+            if (aten.temperatura) setSignos(prev => ({ ...prev, temperatura: String(aten.temperatura) }));
+            if (aten.frecuencia_cardiaca) setSignos(prev => ({ ...prev, frecuencia_cardiaca: String(aten.frecuencia_cardiaca) }));
+            if (aten.peso) setSignos(prev => ({ ...prev, peso: String(aten.peso) }));
+            if (aten.altura) setSignos(prev => ({ ...prev, altura: String(aten.altura) }));
+          }
         }
       } catch (err) {
         console.error("Error cargando datos:", err);
@@ -223,16 +259,23 @@ export default function AtenderPage({
       if (signos.peso) atencionBody.peso = parseFloat(signos.peso);
       if (signos.altura) atencionBody.altura = parseFloat(signos.altura);
 
-      const atenRes = await af("/api/atenciones/", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(atencionBody),
-      });
+      // Si hay atención existente, editar con PUT. Si no, crear con POST
+      const atenRes = modoEdicion && atencionExistente
+        ? await af(`/api/atenciones/${atencionExistente}/`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(atencionBody),
+          })
+        : await af("/api/atenciones/", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(atencionBody),
+          });
 
       if (!atenRes.ok) {
         const errData = await atenRes.json().catch(() => ({}));
         throw new Error(
-          `Error creando atención: ${errData.detail || atenRes.status}`
+          `Error ${modoEdicion ? "actualizando" : "creando"} atención: ${errData.detail || atenRes.status}`
         );
       }
 
@@ -401,6 +444,11 @@ export default function AtenderPage({
             <p style={{ fontSize: 13, color: "#8a8f98", margin: "4px 0 0" }}>
               {paciente.nombre} {paciente.apellido} • DNI: {paciente.dni} •{" "}
               {paciente.obra_social || "Particular"}
+              {modoEdicion && (
+                <span style={{ color: "#f59e0b", marginLeft: 8 }}>
+                  ✏️ Editando atención existente
+                </span>
+              )}
             </p>
           )}
         </div>
@@ -1112,7 +1160,7 @@ export default function AtenderPage({
           }}
         >
           <Save size={16} />
-          {saving ? "Guardando..." : "Guardar Atención"}
+          {modoEdicion ? "💾 Actualizar atención" : "💾 Guardar atención"}
         </button>
       </div>
 

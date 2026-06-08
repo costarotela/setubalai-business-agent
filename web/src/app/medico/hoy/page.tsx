@@ -109,14 +109,16 @@ export default function MedicoHoyPage() {
     return (
       <div
         key={t.id}
-        onClick={() => { if (esPendiente) router.push(`/medico/atender/${t.id}`); }}
+        onClick={() => { router.push(`/medico/atender/${t.id}`); }}
         style={{
           display: "flex", alignItems: "center", gap: 16,
           padding: "14px 18px", background: "#131416",
           border: `1px solid ${esHoy && esPendiente ? "rgba(59,130,246,0.3)" : "rgba(255,255,255,0.06)"}`,
-          borderRadius: 10, cursor: esPendiente ? "pointer" : "default",
-          transition: "border-color 0.15s", opacity: esPendiente ? 1 : 0.6,
+          borderRadius: 10, cursor: "pointer",
+          transition: "border-color 0.15s", opacity: esPendiente ? 1 : 0.85,
         }}
+        onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(59,130,246,0.4)"; }}
+        onMouseLeave={e => { if (!(esHoy && esPendiente)) e.currentTarget.style.borderColor = "rgba(255,255,255,0.06)"; }}
       >
         <div style={{ minWidth: 64, textAlign: "center" }}>
           <div style={{ fontSize: 18, fontWeight: 700, color: esHoy && esPendiente ? "#f7f8f8" : "#8a8f98" }}>

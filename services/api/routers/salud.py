@@ -273,10 +273,10 @@ def _dict_historia(h):
         "id": h.id,
         "paciente_id": h.paciente_nuevo_id or h.paciente_id,
         "grupo_sanguineo": h.grupo_sanguineo or "",
-        "alergias": ", ".join(h.alergias) if h.alergias else "",
+        "alergias": list(h.alergias) if isinstance(h.alergias, (list, tuple)) else [h.alergias] if h.alergias else [],
         "antecedentes_personales": h.antecedentes_personales or "",
         "antecedentes_familiares": h.antecedentes_familiares or "",
-        "medicacion_habitual": ", ".join(h.medicacion_habitual) if h.medicacion_habitual else "",
+        "medicacion_habitual": list(h.medicacion_habitual) if isinstance(h.medicacion_habitual, (list, tuple)) else [h.medicacion_habitual] if h.medicacion_habitual else [],
         "notas": h.notas_adicionales or "",
         "ultima_actualizacion": str(h.updated_at) if h.updated_at else None,
     }
@@ -1441,6 +1441,28 @@ def _dict_atencion(a, db=None):
         "evolucion": a.evolucion or "",
         "created_at": str(a.created_at) if a.created_at else None,
     }
+
+@router.get("/atenciones/visita/{visita_id}")
+def obtener_atencion_por_visita(
+    visita_id: int,
+    db: Session = Depends(get_db),
+    empresa_id: int = Depends(resolve_empresa_id),
+    medico_restriccion: tuple = Depends(get_medico_restriction)
+):
+    """Buscar atención médica por visita_id. Permite al frontend detectar si ya hay atención creada."""
+    medico_id_auth, es_admin, rol = medico_restriccion
+    atencion = db.query(AtencionMedica).filter(
+        AtencionMedica.visita_id == visita_id,
+        AtencionMedica.empresa_id == empresa_id
+    ).first()
+    if not atencion:
+        return {"exists": False, "atencion": None}
+
+    # Restricción: medico solo ve atenciones propias (admin ve todas)
+    if medico_id_auth and not es_admin and atencion.medico_id != medico_id_auth:
+        return {"exists": False, "atencion": None}
+
+    return {"exists": True, "atencion": _dict_atencion(atencion, db=db)}
 
 @router.post("/atenciones/", status_code=201)
 def crear_atencion(
