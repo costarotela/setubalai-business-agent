@@ -1462,7 +1462,7 @@ def crear_atencion(
             AtencionMedica.medico_id == medico_id_auth,
             AtencionMedica.paciente_nuevo_id == data.paciente_nuevo_id
         ).first()
-        if data.medico_id != medico_id and not es_suyo:
+        if data.medico_id != medico_id_auth and not es_suyo:
             raise HTTPException(403, "No tienes acceso a este paciente")
 
     visita_id = data.visita_id
@@ -1516,7 +1516,7 @@ def actualizar_atencion(
         raise HTTPException(404, "Atencion no encontrada")
 
     # Restricción: medico solo modifica atenciones propias
-    if medico_id_auth and not es_admin and atencion.medico_id != medico_id:
+    if medico_id_auth and not es_admin and atencion.medico_id != medico_id_auth:
         raise HTTPException(403, "No tienes acceso a esta atencion")
 
     payload = data.model_dump(exclude_unset=True)
