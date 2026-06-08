@@ -13,6 +13,7 @@ import { FiltrosClinicaProvider } from "../contexts/FiltrosClinicaContext";
 // === MENÚ CLÍNICA MULTIESPECIALIDAD (REFATORIZADO Jun 5 2026) ===
 const CLINICA_MENU = [
   { name: "Mi Agenda",        path: "/medico/hoy",             icon: StethoscopeMd},
+  { name: "Calendario",     path: "/medico/calendario",     icon: Calendar       },
   { name: "Calendario",     path: "/turnos/calendario",    icon: Calendar       },
   { name: "Pacientes",      path: "/pacientes",            icon: Users          },
   { name: "Turnos",         path: "/turnos",               icon: ClipboardList  },
@@ -90,9 +91,9 @@ function AppShell({ children }: { children: React.ReactNode }) {
         {/* Main nav — condicional por rol */}
         <nav style={{ padding: "12px 10px", display: "flex", flexDirection: "column" }}>
           {CLINICA_MENU.map((item) => {
-            // Ocultar "Mi Agenda" para NO médicos (es solo del profesional)
-            if (item.path === "/medico/hoy" && !esMedico) return null;
-            // Ocultar "Calendario" y "Turnos" para médicos (ellos usan Mi Agenda)
+            // Ocultar "Mi Agenda" y "Calendario médico" para NO médicos
+            if (!esMedico && (item.path === "/medico/hoy" || item.path === "/medico/calendario")) return null;
+            // Ocultar "Calendario" (turnos) y "Turnos" para médicos (ellos usan Mi Agenda + Calendario)
             if (esMedico && (item.path === "/turnos" || item.path === "/turnos/calendario")) return null;
 
             const Icon = item.icon;
