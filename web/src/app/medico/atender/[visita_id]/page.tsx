@@ -260,6 +260,7 @@ export default function AtenderPage({
       if (signos.altura) atencionBody.altura = parseFloat(signos.altura);
 
       // Si hay atención existente, editar con PUT. Si no, crear con POST
+      // POST ahora hace upsert automático si ya existe
       const atenRes = modoEdicion && atencionExistente
         ? await af(`/api/atenciones/${atencionExistente}/`, {
             method: "PUT",
@@ -272,15 +273,17 @@ export default function AtenderPage({
             body: JSON.stringify(atencionBody),
           });
 
+      let atencionId: number;
+
       if (!atenRes.ok) {
         const errData = await atenRes.json().catch(() => ({}));
         throw new Error(
-          `Error ${modoEdicion ? "actualizando" : "creando"} atención: ${errData.detail || atenRes.status}`
+          `Error guardando atención: ${errData.detail || atenRes.status}`
         );
       }
 
-      const atenData = await atenRes.json();
-      const atencionId = atenData.id;
+      const result = await atenRes.json();
+      atencionId = result.id;
 
       // 2. Crear RECETA (si hay medicamentos válidos)
       const medsValidos = medicamentos.filter((m) => m.medicamento.trim());
@@ -373,6 +376,8 @@ export default function AtenderPage({
             marginTop: 16,
             padding: "8px 16px",
             background: "none",
+// force recompile
+
             border: "1px solid rgba(255,255,255,0.1)",
             borderRadius: 6,
             color: "#8a8f98",

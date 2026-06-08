@@ -1490,6 +1490,26 @@ def crear_atencion(
     visita_id = data.visita_id
     payload = data.model_dump()
 
+    # UPSERT: si ya existe atención para esta visita → actualizar en vez de crear
+    existente = db.query(AtencionMedica).filter(
+        AtencionMedica.visita_id == visita_id
+    ).first()
+    if existente:
+        # Actualizar campos existentes (como un PUT silencioso)
+        for key, val in payload.items():
+            if val is not None:
+                setattr(existente, key, val)
+        # Recalcular IMC
+        peso = existente.peso
+        altura = existente.altura
+        if peso and altura and altura > 0:
+            existente.imc = round(peso / (altura ** 2), 2)
+        existente.estado = "completado"
+        db.commit()
+        db.refresh(existente)
+        return _dict_atencion(existente, db=db)
+
+    # Crear nueva atención
     # Calcular IMC si hay peso + altura
     peso = payload.get("peso")
     altura = payload.get("altura")
@@ -1528,8 +1548,8 @@ def actualizar_atencion(
     """Actualizar una atencion existente (evolucion, cierre, signos vitales).
     Solo el medico que atendio o admin."""
     medico_id_auth, es_admin, rol = medico_restriccion
-    if not es_admin and rol not in ("medico", "superadmin"):
-        raise HTTPException(403, "Acceso solo para médicos autorizados")
+    if not es_admin and rol not in ("medico", "admin", "superadmin"):
+        raise HTTPException(403, "Acceso solo para médicos o admin")
 
     atencion = db.query(AtencionMedica).filter(
         AtencionMedica.id == atencion_id, AtencionMedica.empresa_id == empresa_id

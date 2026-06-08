@@ -272,3 +272,67 @@ Si el browser muestra "module factory not available":
 | Bot no responde | journalctl -u setubalai-clinic-bot -n 20 |
 | Refactor grande | validate.sh completo (27 checks) |
 | Sistema lento | diagnose.sh completo (RAM, disk, Docker, zombie) |
+
+---
+
+## ✅ FASE 4: CICLO COMPLETO MÉDICO — BACKEND UPSERT + EDICIÓN
+
+**Branch:** `feature/ciclo-completo-medico` (4 commits desde main)
+**Último commit:** `4d3d80f` — 2026-06-08
+**Status:** Backend ✅ | Frontend ⚠️ cache browser
+
+### Cambios realizados:
+
+#### Backend (`services/api/routers/salud.py`):
+1. **UPSERT de atenciones** (línea ~1493): POST ahora es upsert
+   - Si `visita_id` ya tiene atención → UPDATE campos (setattr)
+   - Si no existe → INSERT nueva
+   - Recalcula IMC automáticamente
+   - Zero UniqueViolation errors
+
+2. **Fix NameError** (commit `29e92bd`): `medico_id` → `medico_id_auth`
+
+3. **Endpoint `/atenciones/visita/{id}`**: DETECTAR si existe atención previa
+
+4. **JWT incluye `medico_id`** cuando el usuario lo tiene
+
+#### Frontend (`web/src/app/`):
+5. **`medico/atender/[visita_id]/page.tsx`**: Pre-fill + edición PUT, null safety
+   - Detecta atención existente al cargar → modo edición automático
+   - Guarda con POST (upsert en backend)
+   - Fallbacks defensivos para medicacion_habitual (string vs array)
+   - Guardas `Array.isArray` para `.join()` y `.some()`
+
+6. **`medico/hoy/page.tsx`**: Integración FiltrosClinicaContext
+   - Usa `useFiltrosClinica()` en vez de fetch por página
+   - Respeta selección de especialidad/médico del Context
+
+7. **`turnos/page.tsx`**: Null safety fallbacks (`|| ""`)
+   - `pac.nombre`, `med.nombre` → fallback para nullable
+
+8. **`pacientes/page.tsx`**: Guardias defensivas (toLowerCase en nombre)
+
+9. **`shell.tsx`**: Sidebar condicional por rol
+   - Médicos ven: "Mi Agenda", "Pacientes"
+   - Admins/Recepcionistas ven: sidebar completo
+   - Filtros bloqueados para médicos
+
+10. **`configuracion/agenda/layout.tsx`**: Integración Context Filtros
+
+### Errores corregidos:
+- `NameError: medico_id` → `medico_id_auth` en backend
+- `medicacion_habitual.join is not a function` → `Array.isArray` check
+- `UniqueViolation: atenciones_medicas_visita_id_key` → POST = UPSERT
+- `estudios.some` en frontend → código corregido pero browser cache
+
+### Validación:
+- `validate.sh` → 27/27 PASS ✅
+- `diagnose-alineacion.py` → 24/26 OK ✅
+- API :3010 → 200 ✅
+- Dev :3013 → 200 ✅
+- Browser E2E: ⚠️ Pendiente hard refresh
+
+### DB Counts (empresa 16):
+- 5 especialidades, 15 médicos, 36 pacientes
+- 169 visitas, 62 historias clínicas
+- 35+ atenciones médicas, 29 recetas, 23 estudios
