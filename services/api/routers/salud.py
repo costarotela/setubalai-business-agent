@@ -3,13 +3,13 @@ Routers de Salud - Pacientes, Médicos, Visitas (Turnos), Prácticas, Historia C
 """
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from tenancy import resolve_empresa_id
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import or_, and_, func
 from database import get_db
 from models import (
     Paciente, Medico, Visita, HistoriaClinica,
     PracticaMedica, NomencladorPractica, AtencionMedica, Usuario,
-    Receta, EstudioAdjunto,
+    Receta, EstudioAdjunto, Cliente,
     MedicoEspecialidades, EspecialidadMedica,
 )
 from auth import decode_token, get_current_user
@@ -390,7 +390,8 @@ def historial_paciente(paciente_id: int, db: Session = Depends(get_db), empresa_
     """Devuelve TODA la info clínica de un paciente: datos, historia, atenciones, prácticas, turnos.
     Si es médico, solo ve pacientes que atendió."""
     medico_id_auth, es_admin, rol = medico_restriccion
-    if not es_admin and rol not in ("medico", "superadmin"):
+    # FIX: Los médicos usan rol='operador' con medico_id en el JWT, no rol='medico'
+    if not es_admin and not medico_id_auth:
         raise HTTPException(403, "Acceso solo para médicos autorizados")
 
     p = db.query(Paciente).filter(Paciente.id == paciente_id, Paciente.empresa_id == empresa_id).first()
@@ -401,7 +402,7 @@ def historial_paciente(paciente_id: int, db: Session = Depends(get_db), empresa_
     if medico_id_auth and not es_admin:
         atendido = db.query(AtencionMedica).filter(
             AtencionMedica.medico_id == medico_id_auth,
-            AtencionMedica.paciente_nuevo_id == paciente_id
+            or_(AtencionMedica.paciente_nuevo_id == paciente_id, AtencionMedica.paciente_id == paciente_id)
         ).first()
         if not atendido:
             raise HTTPException(403, "No tienes acceso a este paciente")
@@ -690,28 +691,37 @@ def turnos_calendario(
     query = query.order_by(Visita.fecha_hora.asc())
     resultados = query.all()
     turnos = []
-    for v in resultados:
-        if v.paciente_nuevo_id:
-            from models import Paciente as P
-            paciente = db.query(P).filter(P.id == v.paciente_nuevo_id).first() if not (hasattr(v, 'paciente_nuevo') and v.paciente_nuevo) else v.paciente_nuevo
-        elif v.paciente_id:
-            from models import Cliente
-            cliente = db.query(Cliente).filter(Cliente.id == v.paciente_id).first()
-            if cliente:
-                class FakePaciente:
-                    nombre = cliente.nombre or ""
-                    apellido = cliente.apellido or ""
-                    obra_social = getattr(cliente, 'obra_social', None)
-                paciente = FakePaciente()
+    if resultados:
+        # Cache pacientes en batch para evitar N+1
+        new_pac_ids = set()
+        old_pac_ids = set()
+        for v in resultados:
+            if v.paciente_nuevo_id: new_pac_ids.add(v.paciente_nuevo_id)
+            if v.paciente_id: old_pac_ids.add(v.paciente_id)
+        
+        pacientes_cache = {p.id: p for p in db.query(Paciente).filter(Paciente.id.in_(new_pac_ids)).all()}
+        clientes_cache = {c.id: c for c in db.query(Cliente).filter(Cliente.id.in_(old_pac_ids)).all()} if old_pac_ids else {}
+        
+        for v in resultados:
+            if v.paciente_nuevo_id:
+                paciente = pacientes_cache.get(v.paciente_nuevo_id)
+            elif v.paciente_id:
+                cliente = clientes_cache.get(v.paciente_id)
+                if cliente:
+                    class FakePaciente:
+                        nombre = cliente.nombre or ""
+                        apellido = cliente.apellido or ""
+                        obra_social = getattr(cliente, 'obra_social', None)
+                    paciente = FakePaciente()
+                else:
+                    paciente = None
             else:
                 paciente = None
-        else:
-            paciente = None
-        turno = _dict_calendario_turno(v, paciente=paciente, medico=v.medico, db=db)
-        turno["paciente_completo"] = f"{turno['paciente_apellido']}, {turno['paciente_nombre']}".strip(", ") or "Desconocido"
-        turno["medico_completo"] = f"Dr/a. {turno['medico_nombre']} {turno['medico_apellido']}".strip() or ""
-        turno["medico_display"] = f"{turno['medico_apellido']}, {turno['medico_nombre']}".strip(", ") or ""
-        turnos.append(turno)
+            turno = _dict_calendario_turno(v, paciente=paciente, medico=v.medico, db=db)
+            turno["paciente_completo"] = f"{turno['paciente_apellido']}, {turno['paciente_nombre']}".strip(", ") or "Desconocido"
+            turno["medico_completo"] = f"Dr/a. {turno['medico_nombre']} {turno['medico_apellido']}".strip() or ""
+            turno["medico_display"] = f"{turno['medico_apellido']}, {turno['medico_nombre']}".strip(", ") or ""
+            turnos.append(turno)
     return {"mes": mes, "total": len(turnos), "turnos": turnos}
 
 
@@ -742,16 +752,27 @@ def listar_turnos(
         q = q.filter(Visita.estado == estado)
     visitas = q.order_by(Visita.fecha_hora.asc()).limit(200).all()
 
-    # Enriquecer con nombres
+    # Enriquecer con nombres — batch para evitar N+1
     result = []
-    for v in visitas:
-        d = _dict_visita(v)
-        pac = db.query(Paciente).filter(Paciente.id == (v.paciente_nuevo_id or v.paciente_id)).first()
-        d["paciente_nombre"] = f"{pac.nombre} {pac.apellido}" if pac else "Desconocido"
-        med = db.query(Medico).filter(Medico.id == v.medico_id).first()
-        d["medico_nombre"] = f"Dr/a. {med.nombre} {med.apellido}" if med else ""
-        d["servicio"] = v.tipo_visita or "Consulta"
-        result.append(d)
+    if visitas:
+        pac_ids = set()
+        med_ids = set()
+        for v in visitas:
+            if v.paciente_nuevo_id: pac_ids.add(v.paciente_nuevo_id)
+            if v.paciente_id: pac_ids.add(v.paciente_id)
+            med_ids.add(v.medico_id)
+        pac_cache = {p.id: p for p in db.query(Paciente).filter(Paciente.id.in_(pac_ids)).all()}
+        med_cache = {m.id: m for m in db.query(Medico).filter(Medico.id.in_(med_ids)).all()}
+        
+        for v in visitas:
+            d = _dict_visita(v)
+            pac_id = v.paciente_nuevo_id or v.paciente_id
+            pac = pac_cache.get(pac_id)
+            d["paciente_nombre"] = f"{pac.nombre} {pac.apellido}" if pac else "Desconocido"
+            med = med_cache.get(v.medico_id)
+            d["medico_nombre"] = f"Dr/a. {med.nombre} {med.apellido}" if med else ""
+            d["servicio"] = v.tipo_visita or "Consulta"
+            result.append(d)
     return result
 
 @router.post("/turnos/", status_code=201)
@@ -950,27 +971,44 @@ def agenda_timeline(
     visitas = q.order_by(Visita.fecha_hora).all()
     
     result = []
-    for v in visitas:
-        d = _dict_visita(v)
-        paciente = db.query(Paciente).filter(Paciente.id == v.paciente_nuevo_id).first()
-        medico = db.query(Medico).filter(Medico.id == v.medico_id).first()
-        if paciente:
-            d["paciente_nombre"] = f"{paciente.nombre} {paciente.apellido}"
-            d["paciente_dni"] = paciente.dni
-            d["obra_social"] = paciente.obra_social
-        if medico:
-            d["medico_nombre"] = f"Dr/a. {medico.nombre} {medico.apellido}"
-            esp_result = db.query(MedicoEspecialidades).filter(
-                MedicoEspecialidades.medico_id == medico.id
-            ).all()
-            d["especialidades"] = [
-                db.query(EspecialidadMedica).filter(
-                    EspecialidadMedica.id == me.especialidad_id
-                ).first().nombre for me in esp_result if db.query(EspecialidadMedica).filter(
-                    EspecialidadMedica.id == me.especialidad_id
-                ).first()
-            ]
-        result.append(d)
+    if visitas:
+        # Cache para evitar N+1 queries
+        paciente_ids = set()
+        medico_ids = set()
+        for v in visitas:
+            if v.paciente_nuevo_id: paciente_ids.add(v.paciente_nuevo_id)
+            if v.paciente_id: paciente_ids.add(v.paciente_id)
+            medico_ids.add(v.medico_id)
+        
+        pacientes_cache = {p.id: p for p in db.query(Paciente).filter(Paciente.id.in_(paciente_ids)).all()}
+        medicos_cache = {m.id: m for m in db.query(Medico).filter(Medico.id.in_(medico_ids)).all()}
+        
+        # Cache especialidades
+        esp_medico_ids = list(medicos_cache.keys())
+        esp_links = db.query(MedicoEspecialidades).filter(
+            MedicoEspecialidades.medico_id.in_(esp_medico_ids)
+        ).all() if esp_medico_ids else []
+        esp_ids = set(me.especialidad_id for me in esp_links)
+        esp_cache = {e.id: e for e in db.query(EspecialidadMedica).filter(
+            EspecialidadMedica.id.in_(esp_ids)
+        ).all()} if esp_ids else {}
+        
+        for v in visitas:
+            d = _dict_visita(v)
+            paciente = pacientes_cache.get(v.paciente_nuevo_id)
+            medico = medicos_cache.get(v.medico_id)
+            if paciente:
+                d["paciente_nombre"] = f"{paciente.nombre} {paciente.apellido}"
+                d["paciente_dni"] = paciente.dni
+                d["obra_social"] = paciente.obra_social
+            if medico:
+                d["medico_nombre"] = f"Dr/a. {medico.nombre} {medico.apellido}"
+                d["especialidades"] = [
+                    esp_cache[me.especialidad_id].nombre 
+                    for me in esp_links 
+                    if me.medico_id == medico.id and me.especialidad_id in esp_cache
+                ]
+            result.append(d)
     
     return {
         "fecha": fecha,
@@ -1063,7 +1101,8 @@ def listar_historias(
     medico_restriccion = Depends(get_medico_restriction)
 ):
     medico_id_auth, es_admin, rol = medico_restriccion
-    if not es_admin and rol not in ("medico", "superadmin"):
+    # FIX: Los médicos usan rol='operador' con medico_id en el JWT, no rol='medico'
+    if not es_admin and not medico_id_auth:
         raise HTTPException(403, "Acceso solo para médicos autorizados")
     
     q = db.query(HistoriaClinica).filter(
@@ -1101,7 +1140,8 @@ def mis_pacientes(
     medico_restriccion = Depends(get_medico_restriction)
 ):
     medico_id_auth, es_admin, rol = medico_restriccion
-    if not es_admin and rol not in ("medico", "superadmin"):
+    # FIX: Los médicos usan rol='operador' con medico_id en el JWT, no rol='medico'
+    if not es_admin and not medico_id_auth:
         raise HTTPException(403, "Acceso solo para médicos autorizados")
     
     # Admin: ve todos los pacientes
@@ -1257,7 +1297,8 @@ def listar_recetas(
 ):
     """Lista recetas. Admin: todas. Médico: solo de pacientes que atendió."""
     medico_id_auth, es_admin, rol = medico_restriccion
-    if not es_admin and rol not in ("medico", "superadmin"):
+    # FIX: Los médicos usan rol='operador' con medico_id en el JWT, no rol='medico'
+    if not es_admin and not medico_id_auth:
         raise HTTPException(403, "Acceso solo para médicos autorizados")
     q = db.query(Receta).filter(Receta.empresa_id == empresa_id)
     if medico_id_auth and not es_admin:
@@ -1288,7 +1329,8 @@ def obtener_receta(
 ):
     """Obtiene una receta específica por ID. Solo medico que atendio al paciente."""
     medico_id_auth, es_admin, rol = medico_restriccion
-    if not es_admin and rol not in ("medico", "superadmin"):
+    # FIX: Los médicos usan rol='operador' con medico_id en el JWT, no rol='medico'
+    if not es_admin and not medico_id_auth:
         raise HTTPException(403, "Acceso solo para médicos autorizados")
     receta = db.query(Receta).filter(Receta.id == receta_id, Receta.empresa_id == empresa_id).first()
     if not receta:
@@ -1312,7 +1354,8 @@ def recetas_paciente(
 ):
     """Todas las recetas de un paciente específico. Solo medico con acceso."""
     medico_id_auth, es_admin, rol = medico_restriccion
-    if not es_admin and rol not in ("medico", "superadmin"):
+    # FIX: Los médicos usan rol='operador' con medico_id en el JWT, no rol='medico'
+    if not es_admin and not medico_id_auth:
         raise HTTPException(403, "Acceso solo para médicos autorizados")
     p = db.query(Paciente).filter(Paciente.id == paciente_id, Paciente.empresa_id == empresa_id).first()
     if not p:
@@ -1364,7 +1407,8 @@ def listar_estudios(
 ):
     """Lista estudios. Admin: todos. Médico: solo de pacientes atendidos."""
     medico_id_auth, es_admin, rol = medico_restriccion
-    if not es_admin and rol not in ("medico", "superadmin"):
+    # FIX: Los médicos usan rol='operador' con medico_id en el JWT, no rol='medico'
+    if not es_admin and not medico_id_auth:
         raise HTTPException(403, "Acceso solo para médicos autorizados")
     q = db.query(EstudioAdjunto).filter(EstudioAdjunto.empresa_id == empresa_id)
     if medico_id_auth and not es_admin:
@@ -1393,7 +1437,8 @@ def estudios_paciente(
 ):
     """Todos los estudios adjuntos de un paciente específico. Solo medico con acceso."""
     medico_id_auth, es_admin, rol = medico_restriccion
-    if not es_admin and rol not in ("medico", "superadmin"):
+    # FIX: Los médicos usan rol='operador' con medico_id en el JWT, no rol='medico'
+    if not es_admin and not medico_id_auth:
         raise HTTPException(403, "Acceso solo para médicos autorizados")
     p = db.query(Paciente).filter(Paciente.id == paciente_id, Paciente.empresa_id == empresa_id).first()
     if not p:
@@ -1475,7 +1520,8 @@ def crear_atencion(
     """Crear una atencion medica completa. Actualiza visita si viene visita_id.
     Solo medico con acceso al paciente o admin."""
     medico_id_auth, es_admin, rol = medico_restriccion
-    if not es_admin and rol not in ("medico", "superadmin"):
+    # FIX: Los médicos usan rol='operador' con medico_id en el JWT, no rol='medico'
+    if not es_admin and not medico_id_auth:
         raise HTTPException(403, "Acceso solo para médicos autorizados")
 
     # Restricción: medico solo puede atender pacientes que YA atendió
@@ -1548,8 +1594,9 @@ def actualizar_atencion(
     """Actualizar una atencion existente (evolucion, cierre, signos vitales).
     Solo el medico que atendio o admin."""
     medico_id_auth, es_admin, rol = medico_restriccion
-    if not es_admin and rol not in ("medico", "admin", "superadmin"):
-        raise HTTPException(403, "Acceso solo para médicos o admin")
+    # FIX: Los médicos usan rol='operador' con medico_id en el JWT, no rol='medico'
+    if not es_admin and not medico_id_auth:
+        raise HTTPException(403, "Acceso solo para médicos autorizados")
 
     atencion = db.query(AtencionMedica).filter(
         AtencionMedica.id == atencion_id, AtencionMedica.empresa_id == empresa_id
@@ -1590,7 +1637,8 @@ def crear_receta(
     """Crear receta + generar PDF profesional.
     Solo medico que atendio al paciente o admin."""
     medico_id_auth, es_admin, rol = medico_restriccion
-    if not es_admin and rol not in ("medico", "superadmin"):
+    # FIX: Los médicos usan rol='operador' con medico_id en el JWT, no rol='medico'
+    if not es_admin and not medico_id_auth:
         raise HTTPException(403, "Acceso solo para médicos autorizados")
 
     # Restricción: medico solo receta a pacientes que atendió
@@ -1732,7 +1780,8 @@ def crear_estudio(
     """Subir/crear un estudio adjunto.
     Solo medico que atendio al paciente o admin."""
     medico_id_auth, es_admin, rol = medico_restriccion
-    if not es_admin and rol not in ("medico", "superadmin"):
+    # FIX: Los médicos usan rol='operador' con medico_id en el JWT, no rol='medico'
+    if not es_admin and not medico_id_auth:
         raise HTTPException(403, "Acceso solo para médicos autorizados")
 
     if medico_id_auth and not es_admin:
@@ -1774,7 +1823,8 @@ def crear_seguimiento(
     """Generar proximo turno post-atencion para seguimiento.
     Solo medico que atendio o admin."""
     medico_id_auth, es_admin, rol = medico_restriccion
-    if not es_admin and rol not in ("medico", "superadmin"):
+    # FIX: Los médicos usan rol='operador' con medico_id en el JWT, no rol='medico'
+    if not es_admin and not medico_id_auth:
         raise HTTPException(403, "Acceso solo para médicos autorizados")
 
     if medico_id_auth and not es_admin:
@@ -1832,7 +1882,8 @@ def crear_derivacion(
     """Derivar paciente a otra especialidad - crea turno automatico.
     Solo medico que atendio o admin."""
     medico_id_auth, es_admin, rol = medico_restriccion
-    if not es_admin and rol not in ("medico", "superadmin"):
+    # FIX: Los médicos usan rol='operador' con medico_id en el JWT, no rol='medico'
+    if not es_admin and not medico_id_auth:
         raise HTTPException(403, "Acceso solo para médicos autorizados")
 
     if medico_id_auth and not es_admin:

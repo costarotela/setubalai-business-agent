@@ -55,26 +55,26 @@ export default function HistorialView({ id }: { id: string }) {
 
       {/* Ficha del paciente */}
       <div style={{background: "#141517", borderRadius: 12, padding: "20px", marginBottom: 24, border: "1px solid rgba(107,138,253,0.2)"}}>
-        <h1 style={{fontSize: 22, fontWeight: 700, margin: "0 0 12px", color: "#f7f8f8"}}>{p.nombre} {p.apellido}</h1>
+        <h1 style={{fontSize: 22, fontWeight: 700, margin: "0 0 12px", color: "#f7f8f8"}}>{p?.nombre || ""} {p?.apellido || ""}</h1>
         <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 8, fontSize: 13, color: "#8a8f98"}}>
-          <div>DNI: <span style={{color: "#f7f8f8"}}>{p.dni}</span></div>
-          <div>Obra Social: <span style={{color: "#f7f8f8"}}>{p.obra_social || "Particular"}</span></div>
-          <div>Teléfono: <span style={{color: "#f7f8f8"}}>{p.telefono || "-"}</span></div>
-          <div>Nacimiento: <span style={{color: "#f7f8f8"}}>{p.fecha_nacimiento || "-"}</span></div>
-          <div>Email: <span style={{color: "#f7f8f8"}}>{p.email || "-"}</span></div>
+          <div>DNI: <span style={{color: "#f7f8f8"}}>{p?.dni || "—"}</span></div>
+          <div>Obra Social: <span style={{color: "#f7f8f8"}}>{p?.obra_social || "Particular"}</span></div>
+          <div>Teléfono: <span style={{color: "#f7f8f8"}}>{p?.telefono || "-"}</span></div>
+          <div>Nacimiento: <span style={{color: "#f7f8f8"}}>{p?.fecha_nacimiento || "-"}</span></div>
+          <div>Email: <span style={{color: "#f7f8f8"}}>{p?.email || "-"}</span></div>
         </div>
         {/* Resumen */}
         <div style={{display: "flex", gap: 16, marginTop: 16}}>
           <div style={{background: "rgba(107,138,253,0.1)", padding: "8px 16px", borderRadius: 8, textAlign: "center"}}>
-            <div style={{fontSize: 20, fontWeight: 700, color: "#6b8afd"}}>{historial.resumen.total_atenciones}</div>
+            <div style={{fontSize: 20, fontWeight: 700, color: "#6b8afd"}}>{historial.resumen?.total_atenciones || 0}</div>
             <div style={{fontSize: 11, color: "#8a8f98"}}>Atenciones</div>
           </div>
           <div style={{background: "rgba(74,158,106,0.1)", padding: "8px 16px", borderRadius: 8, textAlign: "center"}}>
-            <div style={{fontSize: 20, fontWeight: 700, color: "#4a9e6a"}}>{historial.resumen.total_practicas}</div>
+            <div style={{fontSize: 20, fontWeight: 700, color: "#4a9e6a"}}>{historial.resumen?.total_practicas || 0}</div>
             <div style={{fontSize: 11, color: "#8a8f98"}}>Prácticas</div>
           </div>
           <div style={{background: "rgba(232,200,93,0.1)", padding: "8px 16px", borderRadius: 8, textAlign: "center"}}>
-            <div style={{fontSize: 20, fontWeight: 700, color: "#e8c85d"}}>{historial.resumen.total_turnos}</div>
+            <div style={{fontSize: 20, fontWeight: 700, color: "#e8c85d"}}>{historial.resumen?.total_turnos || 0}</div>
             <div style={{fontSize: 11, color: "#8a8f98"}}>Turnos</div>
           </div>
         </div>
