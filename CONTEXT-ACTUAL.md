@@ -35,6 +35,20 @@ medico_especialidades (M:N) -> medico <-> especialidades_medicas
 - Se usa en **32+ endpoints** de `salud.py`
 - 39 checks de 403 en total en salud.py
 
+### Cadena de seguridad (verificada Jun 7 2026)
+- **DB** → `rol` + `medico_id` = fuente de verdad
+- **JWT** → incluye `rol`, `medico_id`, `empresa_id` (firmado)
+- **Backend** → `get_medico_restriction()` filtra queries con 403 checks
+- **Frontend** → AuthContext tiene `user` con `rol`+`medico_id` SOLO necesita derivar `esMedico`
+
+### Descubrimiento: El backend YA tiene roles integrados
+No hace falta agregar tablas, layers, o consultas extra. El problema era que el frontend NO usaba la info del JWT. `FiltrosClinicaContext.tsx` auto-seleccionaba genéricamente sin mirar al usuario logueado. FIX: derivar `esMedico = user?.medico_id != null` y que el Context Provider se auto-bloquee si es médico.
+
+### Typo encontrado y fix (Jun 7 2026)
+- `setEpecialidades` → `setEspecialidades` en `FiltrosClinicaContext.tsx` causaba crash del dev server
+- JWT ya incluye `medico_id` desde login (auth.py:84-86) — no habia que agregarlo
+- `_user_dict()` ya expone `medico_id` — el frontend YA recibe este campo
+
 ---
 
 ## MODULO SALUD - COMPLETO

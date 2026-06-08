@@ -39,7 +39,7 @@ const CONFIG_MENU: ConfigItem[] = [
 
 function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { user, loading } = useAuth();
+  const { user, loading, esMedico } = useAuth();
 
   if (pathname === "/login") {
     return <>{children}</>;
@@ -87,9 +87,14 @@ function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </div>
 
-        {/* Main nav */}
+        {/* Main nav — condicional por rol */}
         <nav style={{ padding: "12px 10px", display: "flex", flexDirection: "column" }}>
           {CLINICA_MENU.map((item) => {
+            // Ocultar "Mi Agenda" para NO médicos (es solo del profesional)
+            if (item.path === "/medico/hoy" && !esMedico) return null;
+            // Ocultar "Calendario" y "Turnos" para médicos (ellos usan Mi Agenda)
+            if (esMedico && (item.path === "/turnos" || item.path === "/turnos/calendario")) return null;
+
             const Icon = item.icon;
             const active = pathname === item.path || (item.path === "/dashboard" && (pathname === "/" || pathname === "/dashboard"));
             return (
@@ -111,8 +116,9 @@ function AppShell({ children }: { children: React.ReactNode }) {
           })}
         </nav>
 
-        {/* Config section */}
-        <div style={{ padding: "0 10px 8px" }}>
+        {/* Config section — SOLO admin/recepcionista (médico no gestiona) */}
+        {!esMedico && (<>
+          <div style={{ padding: "0 10px 8px" }}>
           <div style={{
             fontSize: 11, fontWeight: 700, color: "#c9cdd4",
             letterSpacing: "0.06em", textTransform: "uppercase", padding: "8px 10px 6px",
@@ -179,6 +185,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
             );
           })}
         </div>
+        </>)}
 
         <div style={{ padding: "12px 16px", borderTop: "1px solid rgba(255,255,255,0.06)", fontSize: 11, color: "#62666d" }}>
           <button onClick={() => {

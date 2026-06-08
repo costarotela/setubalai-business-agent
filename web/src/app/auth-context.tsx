@@ -16,6 +16,7 @@ export interface AuthUser {
   email: string;
   rol: string;
   activo: boolean;
+  medico_id?: number | null;     // FK → medicos.id (presente si el usuario es médico)
   empresa?: Empresa;
 }
 
@@ -23,12 +24,13 @@ interface AuthCtx {
   user: AuthUser | null;
   token: string | null;
   loading: boolean;
+  esMedico: boolean;             // derivado de user.medico_id != null
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
 }
 
 const Context = createContext<AuthCtx>({
-  user: null, token: null, loading: true,
+  user: null, token: null, loading: true, esMedico: false,
   login: async () => {}, logout: () => {},
 });
 
@@ -77,8 +79,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   }, []);
 
+  const esMedico = user?.medico_id != null && user?.medico_id !== undefined;
+
   return (
-    <Context.Provider value={{ user, token, loading, login, logout }}>
+    <Context.Provider value={{ user, token, loading, esMedico, login, logout }}>
       {children}
     </Context.Provider>
   );

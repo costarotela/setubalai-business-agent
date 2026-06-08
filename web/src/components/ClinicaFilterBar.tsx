@@ -28,6 +28,8 @@ interface ClinicaFilterBarProps {
   /** Filtros activos no clínicos (estado, fecha, etc.) */
   activeFilters?: string[];
   onClearFilters?: () => void;
+  /** Ocultar completamente — útil para médico (su vista ya está filtrada) */
+  hide?: boolean;
 }
 
 export default function ClinicaFilterBar({

@@ -130,10 +130,9 @@ export function FiltrosClinicaProvider({ children }: { children: ReactNode }) {
   const [selectedEspecialidadId, setSelectedEspecialidadId] = useState<number | null>(null);
   const [selectedMedicoId, setSelectedMedicoId] = useState<number | null>(null);
 
-  // Detectar si el usuario es médico
-  const usuarioMedicoId = (user as any)?.medico_id || null;
-  const rol = user?.rol || "";
-  const contextoBloqueado = !!usuarioMedicoId; // médico → bloqueado, admin/recep → libre
+  // Detectar si el usuario es médico — user.medico_id viene del backend en _user_dict()
+  const usuarioMedicoId = user?.medico_id ?? null;
+  const contextoBloqueado = usuarioMedicoId !== null; // médico → bloqueado
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
