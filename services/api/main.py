@@ -3,7 +3,7 @@ load_dotenv()
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routers import auth, clientes, productos, cobros, proveedores, empresas, categorias, reportes, salud, configuracion_agenda, catalogo_publico, especialidades, turnos, obras_sociales, whatsapp
+from routers import auth, empresas, salud, configuracion_agenda, catalogo_publico, especialidades, turnos, obras_sociales, whatsapp
 from routers.auth import router as auth_router
 import os
 
@@ -32,12 +32,6 @@ app.add_middleware(
 # Auth routes (public — no requieren JWT)
 app.include_router(auth_router)
 # Business routes
-app.include_router(clientes.router)
-app.include_router(cobros.router)
-app.include_router(productos.router)
-app.include_router(reportes.router)
-app.include_router(proveedores.router)
-app.include_router(categorias.router)
 app.include_router(empresas.router)
 app.include_router(catalogo_publico.router)
 # Health vertical routes
