@@ -5,6 +5,32 @@
 
 ---
 
+## 🏗️ REORGANIZACIÓN ARQUITECTÓNICA (2026-06-10)
+
+**Rama:** `feature/reorganizacion-arquitectura`
+
+### Cambios realizados:
+
+| Cambio | Antes | Después | Estado |
+|--------|-------|---------|--------|
+| **Models** | `services/api/models.py` (462 líneas, todo junto) | `services/api/models/` paquete por dominio | ✅ Done |
+| ↳ Core | — | `core.py` (Empresa, Usuario) | ✅ |
+| ↳ CRM | — | `crm.py` (Cliente, Producto, CategoriaProducto, Proveedor, Interaccion) | ✅ |
+| ↳ Billing | — | `billing.py` (Factura, ItemFactura, Ticket) | ✅ |
+| ↳ Healthcare | — | `healthcare.py` (16 modelos médicos) | ✅ |
+| ↳ Compat | — | `__init__.py` re-exporta todo (0 imports rotos) | ✅ |
+| **Infra** | docker-compose.yml en raíz | `infra/` (5 archivos) | ✅ Done |
+| **CRM pages** | en `web/src/app/` | `web/src/app/archived/crm-pages/` | ✅ Done |
+
+### Validación:
+- API: 200 OK (`/`, `/docs`, `/turnos/`, `/pacientes/`, `/especialidades/`, `/medicos/`)
+- Imports Python: 26 modelos importan sin cambios (`from models import X` funciona igual)
+- Todos los routers funcionan sin modificaciones
+
+---
+
+
+
 ## 🟢 DOCUMENTOS VIGENTES (actualizados con código real)
 
 | Documento | Qué describe |
