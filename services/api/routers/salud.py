@@ -1041,7 +1041,7 @@ def listar_practicas(
         q = q.filter(
         or_(
             PracticaMedica.paciente_nuevo_id.in_(db.query(pacientes_atendidos)),
-            PracticaMedica.medico_id == medico_id,
+            PracticaMedica.medico_id == medico_id_auth,
             )
         )
     elif not medico_id_auth and not es_admin:

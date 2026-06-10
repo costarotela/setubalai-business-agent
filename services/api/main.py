@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from routers import auth, empresas, salud, configuracion_agenda, catalogo_publico, especialidades, turnos, obras_sociales, whatsapp
 from routers.auth import router as auth_router
+from auth_middleware import AuthMiddleware
 import os
 
 app = FastAPI(
@@ -28,6 +29,12 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ── Middleware de autorización global ──────────────────────────────
+# Centraliza: JWT parse, tenancy (empresa_id), control de acceso por rol.
+# Los endpoints ya NO necesitan Depends(get_medico_restriction) —
+# usan request.state.user_rol, request.state.medico_id, request.state.es_admin
+app.add_middleware(AuthMiddleware)
 
 # Auth routes (public — no requieren JWT)
 app.include_router(auth_router)
