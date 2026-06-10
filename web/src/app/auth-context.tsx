@@ -42,20 +42,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Restore session from localStorage
+  // Restore session from localStorage — IMMEDIATE para evitar redirect loop
   useEffect(() => {
     const stored = localStorage.getItem(TOKEN_KEY);
+    const storedUser = localStorage.getItem("setubalai_user_v2");
+    
+    // Cargar user guardado INMEDIATAMENTE para evitar redirect al login
+    if (storedUser && stored) {
+      try {
+        const u = JSON.parse(storedUser);
+        setUser(u);
+        setToken(stored);
+      } catch {}
+    }
+    
     if (!stored) { setLoading(false); return; }
-    // Verify token still valid
+    
+    // Background verify: si token expiró, se limpia
     fetch(`${API}/auth/me`, {
       headers: { Authorization: `Bearer ${stored}` },
     })
       .then(r => r.ok ? r.json() : null)
       .then(u => {
-        if (u) { setUser(u); setToken(stored); }
-        else localStorage.removeItem(TOKEN_KEY);
+        if (u) { setUser(u); setToken(stored); localStorage.setItem("setubalai_user_v2", JSON.stringify(u)); }
+        else { localStorage.removeItem(TOKEN_KEY); localStorage.removeItem("setubalai_user_v2"); setUser(null); setToken(null); }
       })
-      .catch(() => localStorage.removeItem(TOKEN_KEY))
+      .catch(() => { /* mantener user cacheado, la próxima vez revalidar */ })
       .finally(() => setLoading(false));
   }, []);
 
@@ -92,9 +104,9 @@ export function useAuth() {
   return useContext(Context);
 }
 
-/** Hook para fetch autenticado — incluye el JWT automáticamente */
+/** Hook para fetch autenticado — incluye el JWT + empresa_id automáticamente */
 export function useAuthFetch() {
-  const { token, logout } = useAuth();
+  const { token, logout, user } = useAuth();
 
   return useCallback(async (url: string, options: RequestInit = {}) => {
     const headers: Record<string, string> = {
@@ -102,6 +114,7 @@ export function useAuthFetch() {
       ...(options.headers as Record<string, string> || {}),
     };
     if (token) headers["Authorization"] = `Bearer ${token}`;
+    if (user?.empresa_id) headers["X-Empresa-Id"] = String(user.empresa_id);
 
     const targetUrl = url.startsWith("/") && !url.startsWith("/api") ? `${API}${url}` : url;
     const r = await fetch(targetUrl, { ...options, headers });

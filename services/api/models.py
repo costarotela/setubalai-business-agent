@@ -215,6 +215,7 @@ class Paciente(Base):
     vigencia_afiliacion = Column(Date)
     activo = Column(Boolean, default=True)
     telegram_chat_id = Column(BigInteger, nullable=True)
+    whatsapp_phone = Column(String(50), nullable=True)
     created_at = Column(TIMESTAMPTZ, server_default=func.now())
     updated_at = Column(TIMESTAMPTZ, server_default=func.now())
 
@@ -223,8 +224,8 @@ class MedicoEspecialidades(Base):
     __tablename__ = "medico_especialidades"
     __table_args__ = {"schema": "setubalai"}
     
-    medico_id = Column(Integer, ForeignKey("setubalai.medicos.id", ondelete="CASCADE"), primary_key=True)
-    especialidad_id = Column(Integer, ForeignKey("setubalai.especialidades_medicas.id", ondelete="CASCADE"), primary_key=True)
+    medico_id = Column(Integer, ForeignKey("medicos.id", ondelete="CASCADE"), primary_key=True)
+    especialidad_id = Column(Integer, ForeignKey("especialidades_medicas.id", ondelete="CASCADE"), primary_key=True)
 
 
 class Medico(Base):
@@ -323,7 +324,7 @@ class DuracionPrestacion(Base):
     __tablename__ = "duracion_prestaciones"
     id = Column(Integer, primary_key=True)
     empresa_id = Column(Integer, ForeignKey("empresa.id"), nullable=False)
-    especialidad_id = Column(Integer, ForeignKey("setubalai.especialidades_medicas.id"))
+    especialidad_id = Column(Integer, ForeignKey("especialidades_medicas.id"))
     duracion_minutos = Column(Integer, nullable=False, default=30)
     sobre_turnos_permitidos = Column(Integer, default=0)
     created_at = Column(TIMESTAMPTZ, server_default=func.now())

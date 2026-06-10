@@ -32,6 +32,8 @@ async function proxy(req: NextRequest, params: { path: string[] }) {
   if (contentType) headers["Content-Type"] = contentType;
   const authorization = req.headers.get("authorization");
   if (authorization) headers["Authorization"] = authorization;
+  const xEmpresa = req.headers.get("x-empresa-id");
+  if (xEmpresa) headers["X-Empresa-ID"] = xEmpresa;
 
   const init: RequestInit = { method: req.method, headers, redirect: "manual" };
   if (req.method !== "GET" && req.method !== "HEAD") {

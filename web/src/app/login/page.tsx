@@ -34,7 +34,13 @@ export default function LoginPage() {
       }
 
       localStorage.setItem("setubalai_token_v2", data.access_token);
-      window.location.href = "/dashboard";
+      // Si es empresa de salud (rubro=Salud) → ir a Mi Agenda. Si no → dashboard.
+      const rubro = data.user?.empresa?.rubro?.toLowerCase() || "";
+      if (rubro.includes("salud") || rubro.includes("clínic")) {
+        window.location.href = "/medico/hoy";
+      } else {
+        window.location.href = "/dashboard";
+      }
 
     } catch (err) {
       setError("Error de conexión. Verificá que la API esté activa.");

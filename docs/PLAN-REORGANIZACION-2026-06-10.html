@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plan de Reorganización SetubalAI — 2026-06-10</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'Inter',system-ui,-apple-system,sans-serif; background:#08090a; color:#f7f8f8; padding:24px; max-width:960px; margin:0 auto; line-height:1.6; }
+h1 { font-size:22px; font-weight:800; margin:32px 0 8px; background:linear-gradient(135deg,#6366f1,#a855f7); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+h2 { font-size:17px; font-weight:700; color:#a78bfa; margin:24px 0 8px; }
+h3 { font-size:14px; font-weight:600; color:#8b8b9e; margin:16px 0 6px; }
+p { margin:8px 0; color:#8a8f98; font-size:13px; }
+.card { background:#0f1011; border:1px solid rgba(255,255,255,.08); border-radius:14px; padding:18px; margin:12px 0; }
+.badge { display:inline-block; padding:2px 9px; border-radius:20px; font-size:10.5px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; }
+.green { background:#10b98118; color:#10b981; border:1px solid #10b98135; }
+.yellow { background:#f59e0b18; color:#f59e0b; border:1px solid #f59e0b35; }
+.red { background:#ef444418; color:#ef4444; border:1px solid #ef444435; }
+.blue { background:#3b82f618; color:#3b82f6; border:1px solid #3b82f635; }
+.purple { background:#a855f718; color:#a855f7; border:1px solid #a855f735; }
+.step { display:flex; gap:14px; align-items:flex-start; margin:14px 0; }
+.step-num { background:linear-gradient(135deg,#6366f1,#7170ff); min-width:28px; height:28px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; color:#fff; flex-shrink:0; }
+.step-body { flex:1; }
+.step-body h4 { font-size:14px; font-weight:700; color:#e2e4e8; margin:0 0 4px; }
+.step-body p { font-size:12px; margin:0 0 6px; }
+.tree { font-family:'JetBrains Mono',monospace; font-size:12px; line-height:1.8; color:#8a8f98; background:#0c0d0e; padding:16px; border-radius:12px; border:1px solid rgba(255,255,255,.06); overflow-x:auto; white-space:pre; }
+.tree .dir { color:#3b82f6; }
+.tree .file { color:#6b7280; }
+.tree .comment { color:#4b5563; font-style:italic; }
+.two-col { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+@media(max-width:700px){ .two-col{grid-template-columns:1fr; } }
+table { width:100%; border-collapse:collapse; margin:12px 0; font-size:12px; }
+th { text-align:left; padding:6px 10px; background:#0f1011; color:#a78bfa; font-weight:600; border-bottom:1px solid rgba(255,255,255,.08); }
+td { padding:6px 10px; border-bottom:1px solid rgba(255,255,255,.04); color:#8a8f98; }
+hr { border:none; border-top:1px solid rgba(255,255,255,.06); margin:20px 0; }
+.arrow { color:#6366f1; font-weight:700; }
+.warn { color:#ef4444; font-weight:600; }
+.ok { color:#10b981; font-weight:600; }
+</style>
+</head>
+<body>
+
+<h1>🔄 Plan de Reorganización SetubalAI</h1>
+<p>10 de Junio 2026 — Objetivo: Estructura clara, documentada, sin perder nada funcional</p>
+
+<hr>
+
+<h2>📌 Principios de la Reorganización</h2>
+
+<div class="card">
+<p><span class="badge green">Regla 1</span>&nbsp; <b>NO BORRAR NADA</b> — Todo lo que funciona se preserva</p>
+<p><span class="badge blue">Regla 2</span>&nbsp; <b>Rama separada</b> — main intacto siempre</p>
+<p><span class="badge purple">Regla 3</span>&nbsp; <b>Un commit por paso</b> — cada movimiento se valida antes de pasar al siguiente</p>
+<p><span class="badge yellow">Regla 4</span>&nbsp; <b>Docs por carpeta</b> — cada directorio tiene un README.md explicando qué es</p>
+<p><span class="badge red">Regla 5</span>&nbsp; <b>Curl → 200 tras cada paso</b> — nada se mueve sin verificar</p>
+<p><span class="badge green">Regla 6</span>&nbsp; <b>Obsidian = fuente de verdad</b> — se actualiza en cada paso</p>
+</div>
+
+<hr>
+
+<h2>🗺️ MAPA ANTES (Estructura actual)</h2>
+
+<div class="tree"><span class="comment">/home/admin/setubalai-agente/ &lt;- TODO mezclado</span>
+│
+├── <span class="dir">services/api/</span>        ← <span style="color:#ef4444">BACKEND: routers clínicos + CRM + SaaS mezclados</span>
+│   ├── routers/
+│   │   ├── salud.py          <span class="comment">(clínica: pacientes, turnos, atención, recetas)</span>
+│   │   ├── whatsapp.py       <span class="comment">(clínica: bot WhatsApp Cloud API)</span>
+│   │   ├── clientes.py       <span class="comment">(CRM comercial — tablas vacías)</span>
+│   │   ├── cobros.py         <span class="comment">(CRM comercial — tablas vacías)</span>
+│   │   ├── productos.py      <span class="comment">(CRM comercial — tablas vacías)</span>
+│   │   ├── auth.py           <span class="comment">(compartido: login, JWT)</span>
+│   │   └── empresas.py       <span class="comment">(SaaS: gestión de empresas)</span>
+│   ├── models.py             <span class="comment">(461 líneas: TODOS los modelos juntos)</span>
+│   └── mcp_server.py         <span class="comment">(MCP tools médicas + CRM mezcladas)</span>
+│
+├── <span class="dir">services/clinic-bot/</span>   ← <span style="color:#10b981">✅ Bot Telegram (bien ubicado)</span>
+│
+├── <span class="dir">web/</span>                 ← <span style="color:#ef4444">FRONTEND CLÍNICA: páginas clínicas + CRM mezcladas</span>
+│   ├── app/turnos/        <span class="comment">(clínica ✅)</span>
+│   ├── app/pacientes/     <span class="comment">(clínica ✅)</span>
+│   ├── app/medico/        <span class="comment">(clínica ✅)</span>
+│   ├── app/configuracion/ <span class="comment">(clínica ✅)</span>
+│   ├── app/clientes/      <span class="comment">(CRM ❌ página huérfana, tabla vacía)</span>
+│   ├── app/cobros/        <span class="comment">(CRM ❌ página huérfana, tabla vacía)</span>
+│   ├── app/productos/     <span class="comment">(CRM ❌ página huérfana, tabla vacía)</span>
+│   ├── app/proveedores/   <span class="comment">(CRM ❌ página huérfana, tabla vacía)</span>
+│   └── app/reportes/      <span class="comment">(CRM ❌ página huérfana)</span>
+│
+├── <span class="dir">web-admin/</span>           ← <span style="color:#3b82f6">✅ Panel Maestro (bien separado)</span>
+│
+├── <span class="dir">docs/</span>                ← <span style="color:#ef4444">56 archivos sin índice global, muchos obsoletos</span>
+├── <span class="dir">migrations/</span>          ← <span style="color:#f59e0b">13 archivos SQL</span>
+├── <span class="dir">scripts/</span>             ← validate, diagnose, deploy, etc.
+└── GOAL.md + README.md + CREDENCIALES.md</div>
+
+<h2>🗺️ MAPA DESPUÉS (Estructura propuesta)</h2>
+
+<div class="tree"><span class="comment">/home/admin/setubalai-agente/</span>
+│
+├── <span class="dir">services/clinica/</span>         ← <span style="color:#10b981">🏥 BACKEND CLÍNICO</span>
+│   ├── main.py               <span class="comment">(FastAPI entry point)</span>
+│   ├── models.py             <span class="comment">(solo modelos clínicos)</span>
+│   ├── database.py           <span class="comment">(DB connection)</span>
+│   ├── tenancy.py            <span class="comment">(resolve_empresa_id)</span>
+│   ├── auth.py               <span class="comment">(JWT)</span>
+│   ├── mcp_server.py         <span class="comment">(MCP tools médicas)</span>
+│   ├── routers/
+│   │   ├── salud.py          <span class="comment">(pacientes, turnos, atención, recetas)</span>
+│   │   ├── whatsapp.py       <span class="comment">(WhatsApp Cloud API)</span>
+│   │   ├── especialidades.py <span class="comment">(CRUD especialidades)</span>
+│   │   ├── configuracion.py  <span class="comment">(agenda, grillas, bloqueos)</span>
+│   │   └── obras_sociales.py
+│   └── clinic-bot/           <span class="comment">(Bot Telegram, movido acá)</span>
+│
+├── <span class="dir">services/saas/</span>            ← <span style="color:#3b82f6">🎛️ SAAS ADMIN</span>
+│   ├── main.py               <span class="comment">(FastAPI para Panel Maestro)</span>
+│   └── routers/
+│       └── empresas.py       <span class="comment">(gestión multi-tenant)</span>
+│
+├── <span class="dir">services/archived-crm/</span>   ← <span style="color:#6b7280">💼 CRM COMERCIAL ARCHIVADO</span>
+│   ├── routers/              <span class="comment">(clientes, cobros, productos...)</span>
+│   └── models_crm.py         <span class="comment">(modelos CRM separados)</span>
+│
+├── <span class="dir">apps/clinica-web/</span>         ← <span style="color:#10b981">🖥️ APP CLÍNICA (ex web/)</span>
+│   ├── src/app/turnos/
+│   ├── src/app/pacientes/
+│   ├── src/app/medico/
+│   ├── src/app/configuracion/
+│   ├── src/contexts/         <span class="comment">(FiltrosClinicaContext)</span>
+│   └── src/components/
+│   └── <span class="dir">archived/crm-pages/</span>   <span class="comment">(clientes, cobros, productos...)</span>
+│
+├── <span class="dir">apps/panel-maestro/</span>       ← <span style="color:#3b82f6">🎛️ PANEL MAESTRO (ex web-admin/)</span>
+│   └── src/app/panel-maestro/
+│
+├── <span class="dir">docs/</span>                     ← <span style="color:#a855f7">📚 DOCUMENTACIÓN REORGANIZADA</span>
+│   ├── README.md             <span class="comment">(ÍNDICE GLOBAL)</span>
+│   ├── arquitectura/
+│   ├── clinica/
+│   ├── saas/
+│   ├── bots/
+│   ├── deploy/
+│   └── archived/             <span class="comment">(docs obsoletos)</span>
+│
+├── <span class="dir">infra/</span>                    ← <span style="color:#f59e0b">🔧 INFRAESTRUCTURA</span>
+│   ├── docker-compose.yml
+│   ├── docker-compose.dev.yml
+│   └── nginx/
+│
+├── <span class="dir">scripts/</span>                  ← validate, diagnose, deploy
+├── <span class="dir">migrations/</span>               ← SQL migrations
+└── <span class="dir">vault-obsidian/</span>          ← <span style="color:#a855f7">🧠 COPIA SYNC DE OBSIDIAN</span>
+</div>
+
+<hr>
+
+<h2>📋 PLAN PASO A PASO</h2>
+
+<!-- FASE 1 -->
+<h2>FASE 1: Fotografía del estado actual (⚡ 30 min)</h2>
+
+<div class="card">
+<div class="step"><div class="step-num">1</div><div class="step-body">
+<h4>Validar que TODO funciona HOY</h4>
+<p><span class="ok">✅ curl localhost:3010/health → 200</span></p>
+<p><span class="ok">✅ curl localhost:3013/login → 200</span></p>
+<p><span class="ok">✅ curl localhost:3012/login → 200</span></p>
+<p><span class="ok">✅ Login real en navegador (admin@centromedicosantaclara.com.ar)</span></p>
+<p><span class="ok">✅ Verificar 3 páginas clave: /turnos, /pacientes, /medico/hoy</span></p>
+<p><span class="ok">✅ Bot Telegram responde</span></p>
+<p><span class="ok">✅ Git: commitear todo lo pendiente en main</span></p>
+</div></div>
+
+<div class="step"><div class="step-num">2</div><div class="step-body">
+<h4>Crear el índice global (docs/README.md)</h4>
+<p>Crear docs/README.md con tabla de contenidos de TODOS los documentos vigentes</p>
+<p>Marcar cuáles están desactualizados vs código real</p>
+</div></div>
+
+<div class="step"><div class="step-num">3</div><div class="step-body">
+<h4>Crear rama de reorganización</h4>
+<p><code>git checkout -b feature/reorganizacion-arquitectura</code></p>
+<p><span class="warn">⚠️ NO tocar main. NO tocar servicios corriendo.</span></p>
+</div></div>
+</div>
+
+<!-- FASE 2 -->
+<h2>FASE 2: Limpiar documentación (⚡ 1-2 horas)</h2>
+
+<div class="card">
+<div class="step"><div class="step-num">4</div><div class="step-body">
+<h4>Clasificar los 56 docs en docs/</h4>
+<table>
+<tr><th>Categoría</th><th>Archivos</th><th>Acción</th></tr>
+<tr><td>Vigentes</td><td>ESTADO-FASE3-CONTEXTO, CATALOGO-SaaS-CLINICAS, MAPEO-SISTEMA-INTEGRAL, LECCIONES-FLOW-TRABAJO</td><td>Mantener</td></tr>
+<tr><td>Obsoletos</td><td>20+ en docs/archived/ y planes viejos</td><td>Mover a docs/archived/pre-2026-06/</td></tr>
+<tr><td>HTMLs decorativos</td><td>FLUJO-*, MAPA-*.html</td><td>Mantener en docs/visual/</td></tr>
+</table>
+</div></div>
+
+<div class="step"><div class="step-num">5</div><div class="step-body">
+<h4>Crear README.md por cada carpeta</h4>
+<p>Cada directorio principal tendrá un README.md con: qué es, qué contiene, qué NO tocar</p>
+<table>
+<tr><th>Carpeta</th><th>README dice...</th></tr>
+<tr><td>services/api/routers/</td><td>Salud = clínica, WhatsApp = bot Meta, auth = JWT, clientes/cobros = CRM archivado</td></tr>
+<tr><td>web/src/app/</td><td>Turnos/pacientes/medico/config = clínico; clientes/cobros/productos = CRM archivado</td></tr>
+<tr><td>web-admin/</td><td>Panel Maestro para superadmin (Pablo), gestión de empresas SaaS</td></tr>
+<tr><td>services/clinic-bot/</td><td>Bot Telegram para turnos de pacientes</td></tr>
+</table>
+</div></div>
+
+<div class="step"><div class="step-num">6</div><div class="step-body">
+<h4>Actualizar Obsidian Vault</h4>
+<p>Sincronizar /home/admin/setubalai-vault/ con docs/actual/</p>
+<p>Crear nota "MAPA-ARQUITECTURA" con estructura antes/después</p>
+<p>Crear nota "SERVICIOS-ACTIVOS" con estado actual verificado por curl</p>
+</div></div>
+</div>
+
+<!-- FASE 3 -->
+<h2>FASE 3: Reorganizar archivos en la rama (⚡ 3-4 horas)</h2>
+
+<div class="card">
+<div class="step"><div class="step-num">7</div><div class="step-body">
+<h4>Mover páginas CRM a archived</h4>
+<p>Web: app/clientes/ → app/archived/crm-pages/clientes/ (y cobros, productos, proveedores, reportes, servicios, nuevo-cliente)</p>
+<p>Dashboard (/) → actualizar para mostrar datos clínicos reales en vez de CRM vacío</p>
+<p><span class="warn">⚠️ SOLO MOVER. NO BORRAR.</span></p>
+</div></div>
+
+<div class="step"><div class="step-num">8</div><div class="step-body">
+<h4>Reorganizar servicios</h4>
+<p>services/api/ → separar en services/clinica/ + services/saas/ + services/archived-crm/</p>
+<p>services/api/models.py → split en clinica/models.py + archived-crm/models_crm.py</p>
+<p>services/api/mcp_server.py → clinica/mcp_server.py (sacar CRM tools)</p>
+<p>services/clinic-bot/ → mover a services/clinica/clinic-bot/</p>
+</div></div>
+
+<div class="step"><div class="step-num">9</div><div class="step-body">
+<h4>Reorganizar web/</h4>
+<p>web/ → apps/clinica-web/</p>
+<p>web-admin/ → apps/panel-maestro/</p>
+<p>Actualizar docker-compose para reflejar nuevos paths</p>
+</div></div>
+
+<div class="step"><div class="step-num">10</div><div class="step-body">
+<h4>Reorganizar docs/</h4>
+<p>docs/ → index + arquitectura/ + clinica/ + saas/ + bots/ + deploy/ + archived/</p>
+<p>Cada carpeta con su README.md explicando qué contiene</p>
+</div></div>
+
+<div class="step"><div class="step-num">11</div><div class="step-body">
+<h4>Reorganizar infraestructura</h4>
+<p>docker-compose*.yml → infra/</p>
+<p>scripts/ → scripts/ (quedan donde están, son utilidades)</p>
+<p>migrations/ → migrations/ (quedan donde están)</p>
+</div></div>
+</div>
+
+<!-- FASE 4 -->
+<h2>FASE 4: Validar y commitear (⚡ 1-2 horas)</h2>
+
+<div class="card">
+<div class="step"><div class="step-num">12</div><div class="step-body">
+<h4>Verificar que TODO sigue funcionando</h4>
+<table>
+<tr><th>Test</th><th>Esperado</th><th>Resultado</th></tr>
+<tr><td>API :3010 /health</td><td>200</td><td>⬜ pendiente</td></tr>
+<tr><td>Web :3013 /login</td><td>200</td><td>⬜ pendiente</td></tr>
+<tr><td>Admin :3012 /login</td><td>200</td><td>⬜ pendiente</td></tr>
+<tr><td>Bot Telegram</td><td>Responde</td><td>⬜ pendiente</td></tr>
+<tr><td>WhatsApp</td><td>Webhook OK</td><td>⬜ pendiente</td></tr>
+<tr><td>DB 3010/auth/login</td><td>200 OK token</td><td>⬜ pendiente</td></tr>
+<tr><td>DB 3010/pacientes/</td><td>200 + datos</td><td>⬜ pendiente</td></tr>
+<tr><td>DB 3010/turnos/</td><td>200 + datos</td><td>⬜ pendiente</td></tr>
+<tr><td>Docker compose</td><td>Services up</td><td>⬜ pendiente</td></tr>
+<tr><td>Systemctl services</td><td>6 activos</td><td>⬜ pendiente</td></tr>
+</table>
+</div></div>
+
+<div class="step"><div class="step-num">13</div><div class="step-body">
+<h4>Commitear la reorganización</h4>
+<p>git add -A && git commit -m "REORG: Reorganización completa de arquitectura del proyecto"</p>
+<p>push a GitHub en la rama feature/reorganizacion-arquitectura</p>
+</div></div>
+
+<div class="step"><div class="step-num">14</div><div class="step-body">
+<h4>Actualizar Obsidian después de la reorg</h4>
+<p>Estructura nueva = notas actualizadas</p>
+<p>Servicios activos = verificados por curl</p>
+<p>Endpoints = verificados por curl</p>
+</div></div>
+</div>
+
+<!-- FASE 5 -->
+<h2>FASE 5: Merge y cleanup (⚡ 1 hora)</h2>
+
+<div class="card">
+<div class="step"><div class="step-num">15</div><div class="step-body">
+<h4>Merge a main</h4>
+<p>git checkout main && git merge feature/reorganizacion-arquitectura</p>
+<p>git push</p>
+</div></div>
+
+<div class="step"><div class="step-num">16</div><div class="step-body">
+<h4>Reiniciar servicios con nuevos paths</h4>
+<p>systemctl restart setubalai-api && curl :3010/health</p>
+<p>docker compose down && docker compose up -d && curl :3013/login</p>
+<p>systemctl restart setubalai-admin && curl :3012/login</p>
+</div></div>
+
+<div class="step"><div class="step-num">17</div><div class="step-body">
+<h4>Verificación final E2E</h4>
+<p>Login como admin → navegar /turnos → navegar /pacientes → navegar /medico/hoy</p>
+<p>Login como médico → navegar /medico/hoy → atender paciente</p>
+<p>Login como superadmin → Panel Maestro → ver empresas</p>
+<p>Bot Telegram → agendar turno → ver en web</p>
+</div></div>
+</div>
+
+<hr>
+
+<h2>📊 RESUMEN DE VALIDACIÓN POR FASE</h2>
+
+<table>
+<tr><th>Fase</th><th>Qué se mueve</th><th>Validación</th><th>Riesgo</th></tr>
+<tr><td>1: Fotografía</td><td>Nada</td><td>Curl a 3 servicios</td><td>Sin riesgo</td></tr>
+<tr><td>2: Docs</td><td>Solo archivos .md</td><td>Leer README.md nuevo</td><td>Sin riesgo</td></tr>
+<tr><td>3: Archivos CRM</td><td>Mover páginas web a archived/</td><td>Curl :3013 → 200</td><td>Bajo</td></tr>
+<tr><td>3: Reorg services</td><td>Split models.py, split routers</td><td>Curl :3010/health → 200</td><td><b>Medio</b> (cambiar imports)</td></tr>
+<tr><td>3: Reorg apps</td><td>web/ → apps/clinica-web/</td><td>Docker compose + curl :3013</td><td>Bajo (solo paths)</td></tr>
+<tr><td>4: Commit</td><td>Push</td><td>git status limpio</td><td>Sin riesgo</td></tr>
+<tr><td>5: Merge + Restart</td><td>main + restart services</td><td><b>Validación E2E completa</b></td><td><b>Alto</b> (requiere ajustes)</td></tr>
+</table>
+
+<hr>
+
+<h2>🧠 OBSIDIAN VAULT — Estructura propuesta</h2>
+
+<div class="tree">/home/admin/setubalai-vault/SetubalAI/
+├── 00-Index.md              <span class="comment">(siempre actualizado)</span>
+├── MAPA-ARQUITECTURA.md     <span class="comment">(estructura actual del proyecto)</span>
+├── SERVICIOS-ACTIVOS.md     <span class="comment">(qué corre, dónde, cómo verificar)</span>
+├── ENDPOINTS-VALIDADOS.md   <span class="comment">(curl commands + resultados)</span>
+├── CREDENCIALES.md          <span class="comment">(todas las credenciales, actualizadas)</span>
+├── CONTEXTO-SESION.md       <span class="comment">(qué se hizo en cada sesión)</span>
+├── FLUJO-DESARROLLO.md      <span class="comment">(cómo trabajar: rama, commit, validar)</span>
+└── 🗂️ Backend/
+    └── (notas técnicas de análisis)
+└── 🗂️ Clinica/
+    └── (flujo clínico, roles, historial)</div>
+
+<hr>
+<p style="text-align:center;color:#6b7280;font-size:11px;margin-top:32px;">
+SetubalAI — Plan de Reorganización · 10 Junio 2026<br>
+<b>No se borra nada. Se reubica. Se documenta. Se valida.</b>
+</p>
+
+</body>
+</html>

@@ -48,27 +48,25 @@ export default function ProfesionalesConfigPage() {
       const res = await authFetch("/medicos/");
       const data = await res.json();
       const list = Array.isArray(data) ? data : [];
-      // Si hay filtro de especialidad activo, filtrar en cliente
-      if (f.selectedEspecialidadId) {
-        const esp = f.especialidades.find(e => e.id === f.selectedEspecialidadId);
-        if (esp) {
-          const filtered = list.filter((m: Medico) =>
-            m.especialidades.includes(esp.nombre) || m.especialidades.length === 0
-          );
-          setMedicos(filtered);
-        } else {
-          setMedicos(list);
-        }
-      } else {
-        setMedicos(list);
-      }
+      // SIEMPRE cargamos TODOS (los del Context usan filtro visual arriba)
+      setMedicos(list);
     } catch (err) {
       console.error("Error cargando médicos:", err);
       setMedicos([]);
     } finally {
       setLoading(false);
     }
-  }, [authFetch, f.selectedEspecialidadId, f.especialidades]);
+  }, [authFetch]);
+
+  // Filtrado reactivo según especialidad seleccionada en el Context
+  const medicosFiltrados = f.selectedEspecialidadId
+    ? medicos.filter(m => {
+        const esp = f.especialidades.find(e => e.id === f.selectedEspecialidadId);
+        if (!esp) return true;
+        const espNombre = esp.nombre;
+        return (m.especialidades || []).includes(espNombre);
+      })
+    : medicos; // Sin filtro → mostrar todos
 
   useEffect(() => { loadMedicos(); }, [loadMedicos]);
 
@@ -166,8 +164,7 @@ export default function ProfesionalesConfigPage() {
               👨‍⚕️ Profesionales
             </h2>
             <p style={{ fontSize: 13, color: "#62666d", margin: "6px 0 0" }}>
-              {medicos.length} profesional{medicos.length !== 1 ? "es" : ""}
-              {f.selectedEspecialidadId && ` · Filtrar: ${f.especialidades.find(e => e.id === f.selectedEspecialidadId)?.nombre}`}
+              {medicosFiltrados.length} profesional{medicosFiltrados.length !== 1 ? "es" : ""}{f.selectedEspecialidadId ? ` en ${f.especialidades.find(e => e.id === f.selectedEspecialidadId)?.nombre || ""}` : ""}
             </p>
           </div>
           <button onClick={openCreate} style={{
@@ -256,10 +253,42 @@ export default function ProfesionalesConfigPage() {
         </div>
       )}
 
+      {/* Filtro de especialidades — conectado al Context */}
+      <div style={{ background: "#111214", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 10, padding: "14px 20px", marginBottom: 24 }}>
+        <div style={{ fontSize: 11, color: "#8a8f98", textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 600, marginBottom: 10 }}>Filtrar por especialidad</div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          <button
+            onClick={() => f.setEspecialidadId(null)}
+            style={{
+              padding: "6px 14px", borderRadius: 6, fontSize: 12, fontWeight: 500, cursor: "pointer",
+              background: !f.selectedEspecialidadId ? "rgba(94,106,210,0.25)" : "transparent",
+              color: !f.selectedEspecialidadId ? "#7170ff" : "#62666d",
+              border: !f.selectedEspecialidadId ? "1.5px solid rgba(113,112,255,0.4)" : "1px solid rgba(255,255,255,0.08)",
+            }}>
+            Todos ({medicos.length})
+          </button>
+          {f.especialidades.map(esp => {
+            const count = medicos.filter(m => (m.especialidades || []).includes(esp.nombre)).length;
+            const active = f.selectedEspecialidadId === esp.id;
+            return (
+              <button key={esp.id} type="button" onClick={() => f.setEspecialidadId(active ? null : esp.id)}
+                style={{
+                  padding: "6px 14px", borderRadius: 6, fontSize: 12, fontWeight: 500, cursor: "pointer",
+                  background: active ? "rgba(94,106,210,0.25)" : "transparent",
+                  color: active ? "#7170ff" : "#62666d",
+                  border: active ? "1.5px solid rgba(113,112,255,0.4)" : "1px solid rgba(255,255,255,0.08)",
+                }}>
+                {active ? "✓ " : ""}{esp.nombre} ({count})
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Tabla */}
-      {medicos.length === 0 ? (
+      {medicosFiltrados.length === 0 ? (
         <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 12, padding: "40px 24px", textAlign: "center" }}>
-          <p style={{ color: "#62666d", fontSize: 14 }}>No hay profesionales registrados.</p>
+          <p style={{ color: "#62666d", fontSize: 14 }}>No hay profesionales en esta especialidad.</p>
         </div>
       ) : (
         <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 12, overflow: "hidden" }}>
@@ -274,7 +303,7 @@ export default function ProfesionalesConfigPage() {
               </tr>
             </thead>
             <tbody>
-              {medicos.map((m) => (
+              {medicosFiltrados.map((m) => (
                 <tr key={m.id} style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
                   <td style={{ padding: "16px 20px" }}>
                     <div style={{ fontWeight: 500, fontSize: 14, color: "#f7f8f8" }}>Dr/a. {m.nombre} {m.apellido}</div>

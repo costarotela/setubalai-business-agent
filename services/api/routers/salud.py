@@ -66,8 +66,8 @@ def get_medico_restriction(request: Request, db: Session = Depends(get_db)):
     if rol == "superadmin":
         return None, True, "superadmin"
     if rol in ("admin", "contador"):
-        # Admin de clínica: puede gestionar turnos pero NO ve datos clínicos
-        return None, False, "admin"
+        # Admin de clínica: clave maestra, ve todo de su empresa
+        return None, True, "admin"
     if medico_id:
         return medico_id, False, "medico"
     # Operador sin medico_id = recepcionista
@@ -521,7 +521,8 @@ def crear_medico(
     medico_id_auth, es_admin, rol = medico_restriccion
     if medico_id_auth and not es_admin:
         raise HTTPException(403, "Solo administradores pueden crear médicos")
-    m = Medico(**{**data.model_dump(), "empresa_id": empresa_id, "activo": True})
+    md = data.model_dump(exclude={"especialidades", "email", "telefono"})
+    m = Medico(**{**md, "empresa_id": empresa_id, "activo": True})
     db.add(m)
     db.commit()
     db.refresh(m)
@@ -561,7 +562,7 @@ def editar_medico(
             MedicoEspecialidades.medico_id == medico_id
         ).delete()
         for esp_id in data.especialidades:
-            db.add(MedicoEspecialidades(medico_id=medico_id_auth, especialidad_id=esp_id))
+            db.add(MedicoEspecialidades(medico_id=medico_id, especialidad_id=esp_id))
         db.commit()
     db.refresh(m)
     return _dict_medico(m, db)
@@ -583,7 +584,7 @@ def eliminar_medico(
     # Contar registros asociados para info de borrado
     count_turnos = db.query(Visita).filter(Visita.medico_id == medico_id).count()
     count_atenciones = db.query(AtencionMedica).filter(
-        AtencionMedica.medico_id == medico_id_auth
+        AtencionMedica.medico_id == medico_id
     ).count()
     # CASCADE: al borrar el médico se borran visitas, atenciones, recetas, grillas, etc.
     db.delete(m)
@@ -1214,7 +1215,10 @@ def crear_nomenclador(
     if medico_id_auth and not es_admin:
         raise HTTPException(403, "Solo administradores pueden crear nomencladores")
     n = NomencladorPractica(**{
-        **{k: v for k, v in data.items() if hasattr(NomencladorPractica, k)},
+        **{k: v for k, v in data.items() if k != "codigo_nabon" and hasattr(NomencladorPractica, k)},
+        "codigo": data.get("codigo_nabon") or data.get("codigo", "SIN-CODIGO"),
+        "descripcion": data.get("nombre") or data.get("descripcion", ""),
+        "precio_particular": data.get("precio_particular") or data.get("valor_base", 0),
         "empresa_id": empresa_id,
         "activo": data.get("activo", True),
     })
