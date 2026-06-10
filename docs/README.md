@@ -1,50 +1,60 @@
-# 📁 Documentación del Proyecto
+# 📚 SetubalAI — Índice de Documentación
 
-> **Última actualización:** 2026-06-03  
-> **Contexto actual:** FASE 4 — ADN Clínico del Sistema
+> **Última actualización:** 2026-06-10
+> **Estado del plan:** Feature branch `reorganizacion-arquitectura`
 
 ---
 
-## 🟢 Vigentes (documentación actual)
+## 🟢 DOCUMENTOS VIGENTES (actualizados con código real)
 
-| Documento | Propósito |
-|----------|-----------|
-| [ESTADO-FASE3-CONTEXTO.md](./ESTADO-FASE3-CONTEXTO.md) | **Estado actual del proyecto** — branch, datos DB, credenciales, verificación |
-| [PLAN-REFACTORIZACION-ADN-CLINICO.md](./PLAN-REFACTORIZACION-ADN-CLINICO.md) | **Plan de FASE 4** — refactor arquitectónico de filtros clínicos y navegación reactiva |
-| [ARQUITECTURA-SAAS.md](./ARQUITECTURA-SAAS.md) | Arquitectura SaaS base del producto |
-| [PLAN-MAESTRO-CLINICA-MULTIESPECIALIDADES.md](./PLAN-MAESTRO-CLINICA-MULTIESPECIALIDADES.md) | Plan maestro del dominio clínico |
-| [PLAN-MAESTRO-ARQUITECTURA-MODULAR.md](./PLAN-MAESTRO-ARQUITECTURA-MODULAR.md) | Plan maestro de arquitectura modular |
-| [PLAN-CALENDARIO-GRILLAS.md](./PLAN-CALENDARIO-GRILLAS.md) | Plan específico para grilla del calendario (en FASE 4) |
-| [LECCIONES-FLOW-TRABAJO.md](./LECCIONES-FLOW-TRABAJO.md) | Lecciones aprendidas del flujo de desarrollo |
-| [DEV-LOCAL-CLINICA.md](./DEV-LOCAL-CLINICA.md) | Configuración dev local de la clínica |
-| [ANALISIS_PACIENTES_VS_CLIENTES.md](./ANALISIS_PACIENTES_VS_CLIENTES.md) | Análisis modelo pacientes vs clientes |
+| Documento | Qué describe |
+|-----------|-------------|
+| [ESTADO-FASE3-CONTEXTO.md](./ESTADO-FASE3-CONTEXTO.md) | Estado actual: datos DB, credenciales, servicios activos, páginas validadas |
+| [MAPEO-SISTEMA-INTEGRAL.md](./MAPEO-SISTEMA-INTEGRAL.md) | Mapeo completo: DB schema → Backend → Frontend → Context Provider |
+| [LECCIONES-FLOW-TRABAJO.md](./LECCIONES-FLOW-TRABAJO.md) | Lecciones aprendidas del flujo de desarrollo (errores, fixes, patrones) |
+| [DEV-LOCAL-CLINICA.md](./DEV-LOCAL-CLINICA.md) | Config dev local de la clínica |
+
+## 🔵 PLANES Y ARQUITECTURA
+
+| Documento | Qué describe |
+|-----------|-------------|
+| [ARQUITECTURA-SAAS.md](./ARQUITECTURA-SAAS.md) | Arquitectura SaaS multi-tenant base |
+| [CATALOGO-SaaS-CLINICAS.md](./CATALOGO-SaaS-CLINICAS.md) | Catálogo comercial del producto para clínicas |
+| [PLAN-REFACTORIZACION-ADN-CLINICO.md](./PLAN-REFACTORIZACION-ADN-CLINICO.md) | Plan FASE 4: refactor de filtros clínicos y navegación reactiva |
+| [PLAN-CALENDARIO-GRILLAS.md](./PLAN-CALENDARIO-GRILLAS.md) | Plan de grillas y calendario |
+
+## 📊 DIAGNÓSTICOS Y ANÁLISIS (referencia)
+
+| Documento | Qué describe |
+|-----------|-------------|
+| [ANALISIS-ANTE-REFACTORIZACION.md](./ANALISIS-ANTE-REFACTORIZACION.md) | Análisis previo a la refactorización |
+| [ANALISIS_PACIENTES_VS_CLIENTES.md](./ANALISIS_PACIENTES_VS_CLIENTES.md) | Modelo pacientes vs clientes |
 | [ANALISIS-SERVICIOS-FLEXIBILIDAD.md](./ANALISIS-SERVICIOS-FLEXIBILIDAD.md) | Análisis de flexibilidad de servicios |
-| [ARQUITECTURA-AGENTE-TURNOS-AUTONOMOS.md](./ARQUITECTURA-AGENTE-TURNOS-AUTONOMOS.md) | Arquitectura del agente autónomo de turnos |
-| [FLUJO-TELEGRAM-TURNOS-COMPLETO.md](./FLUJO-TELEGRAM-TURNOS-COMPLETO.md) | Flujo Telegram de turnos |
+| [PLAN-CICLO-COMPLETO.md](./PLAN-CICLO-COMPLETO.md) | Plan del ciclo completo médico |
 
-## 🟡 Planes
+## 🗺️ DOCUMENTOS VISUALES (HTML)
 
-| Archivo | Estado |
-|---------|--------|
-| `PLAN-REFACTORIZACION-ADN-CLINICO.md` | **ACTIVO** — en ejecución (FASE 4) |
-| `PLAN-CALENDARIO-GRILLAS.md` | Parcialmente implementado (en FASE 4) |
-| `PLAN-MAESTRO-CLINICA-MULTIESPECIALIDADES.md` | Referencia (dominio) |
-| `PLAN-MAESTRO-ARQUITECTURA-MODULAR.md` | Referencia (arquitectura) |
+| Documento | Qué describe |
+|-----------|-------------|
+| [FLUJO-CENTRO-MEDICO.html](./FLUJO-CENTRO-MEDICO.html) | Diagrama visual del flujo del centro médico |
+| [FLUJO-E2E-TELEGRAM-CLINICA.html](./FLUJO-E2E-TELEGRAM-CLINICA.html) | Flujo E2E del bot Telegram |
+| [MAPA-COMPLETO-SISTEMA-CLINICAS.html](./MAPA-COMPLETO-SISTEMA-CLINICAS.html) | Mapa completo del sistema de clínicas |
+| [PLAN-REFACTORIZACION-VISUAL.html](./PLAN-REFACTORIZACION-VISUAL.html) | Visual del plan de refactorización |
+| [catalogo-saas-email.html](./CATALOGO-SaaS-EMAIL.html) | Catálogo comercial formato email |
 
-## 🔴 Archivados
+## 📁 CARPETAS ARCHIVADAS (código/docs obsoletos)
 
-Los documentos obsoletos, planes superados y post-mortems viejos se mueven a:
-- [`archived/2026-05-29-pre-unificacion/`](./archived/2026-05-29-pre-unificacion/) — Pre-unificaciòn de Fase 3
-- [`archived/2026-05-26_MVP-CLINICA-V2-OBsoleto.md`](./archived/2026-05-26_MVP-CLINICA-V2-OBsoleto.md)
-- [`archived/2026-05-26_MVP-CLINICA-MEDICA-OBsoleto.md`](./archived/2026-05-26_MVP-CLINICA-MEDICA-OBsoleto.md)
-- [`archived/2026-05-21_setubalai-business-agent.md`](./archived/2026-05-21_setubalai-business-agent.md)
-- [`archived/2026-06-03-adn-clinico-refactor/`](./archived/2026-06-03-adn-clinico-refactor/) — Documentos superados al iniciar FASE 4
+| Carpeta | Qué contiene |
+|---------|-------------|
+| [archived/](./archived/) | Documentos previos al pivote a clínica (Mayo 2026) |
+| [archived/2026-05-29-pre-unificacion/](./archived/2026-05-29-pre-unificacion/) | Análisis previos a la unificación |
+| [archived/2026-06-03-adn-clinico-refactor/](./archived/2026-06-03-adn-clinico-refactor/) | Progreso de fases 1-3 completadas |
+| [plans/](./plans/) | Plans técnicos de auth y multi-tenant |
 
----
+## 📌 CREDENCIALES Y CONFIG
 
-## 📋 Reglas de mantenimiento
-
-1. **Plan completado** → archivar en `archived/YYYY-MM-DD-nombre/`
-2. **Plan reemplazado** → archivar con razón en nombre del archivo
-3. **Estado del proyecto** → siempre actualizar `ESTADO-FASE3-CONTEXTO.md`
-4. **NUNCA** borrar documentación archivada (referencia histórica, debugging)
+| Documento | Qué describe |
+|-----------|-------------|
+| [../CREDENCIALES.md](../CREDENCIALES.md) | Credenciales de todos los usuarios y servicios |
+| [../CONTEXT-ACTUAL.md](../CONTEXT-ACTUAL.md) | Contexto actual del proyecto |
+| [../GOAL.md](../GOAL.md) | Goal maestro con trazabilidad de fases |
