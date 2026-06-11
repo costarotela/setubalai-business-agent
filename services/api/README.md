@@ -23,7 +23,11 @@ services/api/
 │   ├── whatsapp.py      ← 📱 WHATSAPP BOT (Cloud API Meta webhook)
 │   ├── auth.py          ← 🔐 Login, perfil, gestión usuarios
 │   ├── especialidades.py ← CRUD especialidades médicas
-│   ├── configuracion_agenda.py ← CRUD grillas, bloqueos, duraciones, prestaciones
+    │   └── configuracion/    ← Configuración de agenda (paquete)
+    │       ├── __init__.py   ← Exporta los 3 sub-routers
+    │       ├── grillas.py     ← CRUD grillas médicas
+    │       ├── bloqueos.py   ← CRUD bloqueos de grilla
+    │       └── duraciones.py ← CRUD duraciones prestaciones
 │   ├── obras_sociales.py ← CRUD obras sociales
 │   ├── turnos.py        ← Slots libres (algoritmo de disponibilidad)
 │   ├── clientes.py      ← 💼 CRM COMERCIAL (tablas vacías, legacy)
@@ -49,7 +53,7 @@ services/api/
 | `whatsapp.py` | Webhook WhatsApp Cloud API (Meta) | ✅ Activo |
 | `auth.py` | login, /auth/me, usuarios, reset password | ✅ Activo |
 | `especialidades.py` | CRUD especialidades | ✅ Activo |
-| `configuracion_agenda.py` | CRUD grillas, bloqueos, duraciones, prestaciones | ✅ Activo |
+| `configuracion/*.py` | CRUD grillas, bloqueos, duraciones, prestaciones | ✅ Activo |
 | `obras_sociales.py` | CRUD obras sociales | ✅ Activo |
 | `turnos.py` | /agenda/slots-libres | ✅ Activo |
 | `empresas.py` | CRUD empresas, stats | ✅ Activo |

@@ -83,6 +83,7 @@ class GrillaMedica(Base):
     id = Column(Integer, primary_key=True)
     empresa_id = Column(Integer, ForeignKey("empresa.id"), nullable=False)
     medico_id = Column(Integer, ForeignKey("medicos.id"), nullable=False)
+    especialidad_id = Column(Integer, ForeignKey("especialidades_medicas.id"), nullable=True)
     dia_semana = Column(Integer, nullable=False)
     hora_inicio = Column(DateTime, nullable=False)
     hora_fin = Column(DateTime, nullable=False)
@@ -90,12 +91,14 @@ class GrillaMedica(Base):
     created_at = Column(TIMESTAMPTZ, server_default=func.now())
     updated_at = Column(TIMESTAMPTZ, server_default=func.now())
     medico = relationship("Medico")
+    especialidad = relationship("EspecialidadMedica")
 
 class BloqueoGrilla(Base):
     __tablename__ = "bloqueos_grilla"
     id = Column(Integer, primary_key=True)
     empresa_id = Column(Integer, ForeignKey("empresa.id"), nullable=False)
     medico_id = Column(Integer, ForeignKey("medicos.id"), nullable=False)
+    especialidad_id = Column(Integer, ForeignKey("especialidades_medicas.id"), nullable=True)
     fecha_desde = Column(Date, nullable=False)
     fecha_hasta = Column(Date, nullable=False)
     hora_inicio = Column(DateTime)
@@ -103,6 +106,7 @@ class BloqueoGrilla(Base):
     motivo = Column(String(200))
     created_at = Column(TIMESTAMPTZ, server_default=func.now())
     medico = relationship("Medico")
+    especialidad = relationship("EspecialidadMedica")
 
 class EspecialidadMedica(Base):
     __tablename__ = "especialidades_medicas"

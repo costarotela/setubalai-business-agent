@@ -2,24 +2,27 @@
 import { useState, useEffect } from "react";
 import { useAuthFetch } from "@/app/auth-context";
 import { useFiltrosClinica } from "@/contexts/FiltrosClinicaContext";
+import SelectorEspecialidadMedico from "@/components/SelectorEspecialidadMedico";
 
 interface Bloqueo {
   id: number;
-  medico_id: number;
+  especialidad_id: number;
+  especialidad_nombre: string;
+  medico_id: number | null;
+  medico_nombre: string;
+  medico_apellido: string;
   fecha_desde: string;
   fecha_hasta: string;
   motivo?: string;
-  medico_nombre?: string;
-  medico_apellido?: string;
 }
 
 const API = process.env.NEXT_PUBLIC_API_URL || "/api";
 
 export default function BloqueosPage() {
   const authFetch = useAuthFetch();
-  const { selectedEspecialidadId, especialidades } = useFiltrosClinica();
+  const { selectedEspecialidadId, selectedMedicoId, especialidades, medicosFiltrados } = useFiltrosClinica();
+
   const [bloqueos, setBloqueos] = useState<Bloqueo[]>([]);
-  const [medicos, setMedicos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
@@ -27,70 +30,139 @@ export default function BloqueosPage() {
   const [error, setError] = useState("");
   const [confirmDelete, setConfirmDelete] = useState<number | null>(null);
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => {
+    if (!selectedEspecialidadId) {
+      setBloqueos([]);
+      setLoading(false);
+      return;
+    }
+    loadData();
+  }, [selectedEspecialidadId, selectedMedicoId]);
 
   const loadData = async () => {
+    if (!selectedEspecialidadId) return;
     setLoading(true);
+    setError("");
     try {
-      const [rB, rM] = await Promise.all([
-        authFetch("/configuracion-agenda/bloqueos-grilla/"),
-        authFetch("/medicos/")
-      ]);
+      let url = `/configuracion-agenda/bloqueos-grilla/?especialidad_id=${selectedEspecialidadId}`;
+      if (selectedMedicoId) url += `&medico_id=${selectedMedicoId}`;
+
+      const rB = await authFetch(url);
       const dataB = await rB.json();
-      const dataM = await rM.json();
       setBloqueos(Array.isArray(dataB) ? dataB : []);
-      setMedicos(Array.isArray(dataM) ? dataM : []);
-    } catch (e) { console.error(e); }
+    } catch {
+      setBloqueos([]);
+    }
     setLoading(false);
   };
 
   const openAdd = () => {
-    setForm({ medico_id: "", fecha_desde: new Date().toISOString().slice(0, 10), fecha_hasta: "", motivo: "" });
-    setEditId(null); setError(""); setShowModal(true);
+    setForm({
+      medico_id: selectedMedicoId ? String(selectedMedicoId) : "",
+      fecha_desde: new Date().toISOString().slice(0, 10),
+      fecha_hasta: "",
+      motivo: "",
+    });
+    setEditId(null);
+    setError("");
+    setShowModal(true);
   };
 
   const openEdit = (b: Bloqueo) => {
-    setForm({ medico_id: String(b.medico_id), fecha_desde: b.fecha_desde.slice(0, 10), fecha_hasta: b.fecha_hasta.slice(0, 10), motivo: b.motivo || "" });
-    setEditId(b.id); setError(""); setShowModal(true);
+    setForm({
+      medico_id: b.medico_id ? String(b.medico_id) : "",
+      fecha_desde: b.fecha_desde.slice(0, 10),
+      fecha_hasta: b.fecha_hasta.slice(0, 10),
+      motivo: b.motivo || "",
+    });
+    setEditId(b.id);
+    setError("");
+    setShowModal(true);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+
+    const body: any = {
+      especialidad_id: selectedEspecialidadId!,
+      fecha_desde: form.fecha_desde,
+      fecha_hasta: form.fecha_hasta,
+      motivo: form.motivo || null,
+    };
+    // Solo incluir medico_id si se seleccionó uno
+    if (form.medico_id) body.medico_id = Number(form.medico_id);
+
     const isEdit = !!editId;
     const method = isEdit ? "PUT" : "POST";
-    const url = isEdit ? `${API}/configuracion-agenda/bloqueos-grilla/${editId}` : `${API}/configuracion-agenda/bloqueos-grilla/`;
-    const body = { medico_id: Number(form.medico_id), fecha_desde: form.fecha_desde, fecha_hasta: form.fecha_hasta, motivo: form.motivo || null };
+    const url = isEdit
+      ? `/configuracion-agenda/bloqueos-grilla/${editId}`
+      : `/configuracion-agenda/bloqueos-grilla/`;
+
     try {
-      const res = await authFetch(url.replace(API, ""), { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-      if (!res.ok) { const d = await res.json().catch(() => ({})); setError(d.detail || "Error"); return; }
-      setShowModal(false); await loadData();
-    } catch { setError("Error de red"); }
+      const res = await authFetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        setError(d.detail || "Error");
+        return;
+      }
+      setShowModal(false);
+      await loadData();
+    } catch {
+      setError("Error de red");
+    }
   };
 
   const handleDelete = async (id: number) => {
     try {
-      const res = await authFetch(`${API}/configuracion-agenda/bloqueos-grilla/${id}`.replace(API, ""), { method: "DELETE" });
+      const res = await authFetch(`/configuracion-agenda/bloqueos-grilla/${id}`, { method: "DELETE" });
       if (res.ok || res.status === 204) await loadData();
-    } catch (e) { console.error(e); }
+    } catch { /* ignore */ }
     setConfirmDelete(null);
   };
+
+  // --- Indicador de contexto ---
+  const selectedEsp = especialidades.find(e => e.id === selectedEspecialidadId);
+  const selectedMed = medicosFiltrados.find(m => m.id === selectedMedicoId);
+  const contextLabel = selectedMedicoId
+    ? `Configurando para: Dr. ${selectedMed?.apellido || ""} ${selectedMed?.nombre || ""} (${selectedEsp?.nombre || ""})`
+    : `Configurando para TODOS: ${selectedEsp?.nombre || ""}`;
+
+  if (!selectedEspecialidadId) {
+    return (
+      <div style={{ padding: 40, textAlign: "center", color: "#f59e0b" }}>
+        <p style={{ fontSize: 16 }}>⚠ Seleccioná una especialidad para ver los bloqueos</p>
+        <p style={{ fontSize: 13, color: "#62666d", marginTop: 8 }}>
+          Los bloqueos se aplican por especialidad médica.
+        </p>
+      </div>
+    );
+  }
 
   if (loading) return <div style={{ padding: 40, color: "#62666d" }}>Cargando bloqueos...</div>;
 
   return (
     <div style={{ padding: "32px 40px", maxWidth: 1400, margin: "0 auto" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 32, paddingBottom: 24, borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24, paddingBottom: 24, borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
         <div>
-          <h2 style={{ fontSize: 22, fontWeight: 600, color: "#f7f8f8", marginBottom: 8 }}>🚫 Bloqueos de Agenda</h2>
-          <p style={{ fontSize: 13, color: "#62666d", margin: 0 }}>{bloqueos.length} bloqueos registrados{selectedEspecialidadId && (() => { const esp = especialidades.find(e => e.id === selectedEspecialidadId); return esp ? ` — ${esp.nombre}` : ""; })()}</p>
+          <h2 style={{ fontSize: 22, fontWeight: 600, color: "#f7f8f8", marginBottom: 4 }}>🚫 Bloqueos de Agenda</h2>
+          <p style={{ fontSize: 13, color: "#8a8f98", margin: 0 }}>{contextLabel} — {bloqueos.length} bloqueos</p>
         </div>
         <button onClick={openAdd} style={{ background: "rgba(34,197,94,0.15)", border: "1px solid rgba(34,197,94,0.3)", borderRadius: 8, padding: "10px 20px", color: "#22c55e", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>+ Nuevo Bloqueo</button>
       </div>
 
+      {/* Selector Cascada */}
+      <div style={{ marginBottom: 24 }}>
+        <SelectorEspecialidadMedico />
+      </div>
+
       {bloqueos.length === 0 ? (
         <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 12, padding: "40px 24px", textAlign: "center" }}>
-          <p style={{ color: "#62666d" }}>No hay bloqueos configurados.</p>
+          <p style={{ color: "#62666d" }}>No hay bloqueos configurados para esta especialidad.</p>
         </div>
       ) : (
         <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 12, overflow: "hidden" }}>
@@ -105,19 +177,12 @@ export default function BloqueosPage() {
               </tr>
             </thead>
             <tbody>
-              {bloqueos
-      .filter(b => {
-        if (!selectedEspecialidadId) return true;
-        const esp = especialidades.find(e => e.id === selectedEspecialidadId);
-        if (!esp) return true;
-        const medico = medicos.find(m => m.id === b.medico_id);
-        const espNames = medico?.especialidades || [];
-        return espNames.includes(esp.nombre);
-      })
-      .map((b) => (
+              {bloqueos.map((b) => (
                 <tr key={b.id} style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
                   <td style={{ padding: "14px 20px" }}>
-                    <div style={{ fontWeight: 500, color: "#f7f8f8" }}>Dr. {b.medico_apellido || "—"}</div>
+                    <div style={{ fontWeight: 500, color: "#f7f8f8" }}>
+                      {b.medico_id ? `Dr. ${b.medico_apellido || "—"}, ${b.medico_nombre || "—"}` : "Todos los profesionales"}
+                    </div>
                   </td>
                   <td style={{ padding: "14px 20px", textAlign: "center", color: "#c9cbcf" }}>{b.fecha_desde}</td>
                   <td style={{ padding: "14px 20px", textAlign: "center", color: "#c9cbcf" }}>{b.fecha_hasta}</td>
@@ -142,11 +207,11 @@ export default function BloqueosPage() {
             <form onSubmit={handleSubmit}>
               <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                 <div>
-                  <label style={{ fontSize: 12, color: "#8a8f98", marginBottom: 4, display: "block" }}>Profesional</label>
-                  <select value={form.medico_id} onChange={e => setForm({ ...form, medico_id: e.target.value })} required style={{ width: "100%", padding: "10px 12px", background: "#27272a", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, color: "#f7f8f8", fontSize: 14 }}>
-                    <option value="">Seleccionar profesional...</option>
-                    {medicos.filter((m: any) => m.activo !== false).map((m: any) => (
-                      <option key={m.id} value={m.id}>{m.nombre} {m.apellido} (ID: {m.id})</option>
+                  <label style={{ fontSize: 12, color: "#8a8f98", marginBottom: 4, display: "block" }}>Profesional (opcional)</label>
+                  <select value={form.medico_id} onChange={e => setForm({ ...form, medico_id: e.target.value })} style={{ width: "100%", padding: "10px 12px", background: "#27272a", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, color: "#f7f8f8", fontSize: 14 }}>
+                    <option value="">Todos los profesionales</option>
+                    {medicosFiltrados.map((m: any) => (
+                      <option key={m.id} value={m.id}>{m.nombre} {m.apellido}</option>
                     ))}
                   </select>
                 </div>
@@ -157,7 +222,7 @@ export default function BloqueosPage() {
                   </div>
                   <div>
                     <label style={{ fontSize: 12, color: "#8a8f98", marginBottom: 4, display: "block" }}>Hasta</label>
-                    <input type="date" value={form.fecha_hasta} onChange={e => setForm({ ...form, fecha_hasta: e.target.value })} style={{ width: "100%", padding: "10px 12px", background: "#27272a", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, color: "#f7f8f8", fontSize: 14 }} />
+                    <input type="date" value={form.fecha_hasta} onChange={e => setForm({ ...form, fecha_hasta: e.target.value })} required style={{ width: "100%", padding: "10px 12px", background: "#27272a", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, color: "#f7f8f8", fontSize: 14 }} />
                   </div>
                 </div>
                 <div>
