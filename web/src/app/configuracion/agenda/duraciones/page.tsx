@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuthFetch } from "@/app/auth-context";
 import { useFiltrosClinica } from "@/contexts/FiltrosClinicaContext";
 import SelectorEspecialidadMedico from "@/components/SelectorEspecialidadMedico";
@@ -16,47 +16,39 @@ const API = process.env.NEXT_PUBLIC_API_URL || "/api";
 
 export default function DuracionesPage() {
   const authFetch = useAuthFetch();
-  const { selectedEspecialidadId, especialidades, medicosFiltrados } = useFiltrosClinica();
+  const { selectedEspecialidadId, especialidades } = useFiltrosClinica();
 
   const [duraciones, setDuraciones] = useState<DuracionPrestacion[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0);
   const [editId, setEditId] = useState<number | null>(null);
   const [form, setForm] = useState({ duracion_minutos: 30, sobre_turnos_permitidos: 0 });
   const [showCreate, setShowCreate] = useState(false);
   const [deleting, setDeleting] = useState<number | null>(null);
   const [error, setError] = useState("");
 
+  const loadData = useCallback(async () => {
+    const rD = await authFetch("/configuracion-agenda/duracion-prestaciones/");
+    const dataD = await rD.json();
+    const esp = especialidades.find(e => e.id === selectedEspecialidadId);
+    if (esp) {
+      const filtered = (Array.isArray(dataD) ? dataD : []).filter(
+        (d: DuracionPrestacion) => d.especialidad === esp.nombre
+      );
+      setDuraciones(filtered);
+    } else {
+      setDuraciones([]);
+    }
+  }, [authFetch, especialidades, selectedEspecialidadId]);
+
   useEffect(() => {
     if (!selectedEspecialidadId) {
       setDuraciones([]);
-      setLoading(false);
       return;
     }
     loadData();
-  }, [selectedEspecialidadId]);
+  }, [selectedEspecialidadId, refreshKey, loadData]);
 
-  const loadData = async () => {
-    if (!selectedEspecialidadId) return;
-    setLoading(true);
-    setError("");
-    try {
-      const rD = await authFetch("/configuracion-agenda/duracion-prestaciones/");
-      const dataD = await rD.json();
-      // Filtrar client-side para la especialidad seleccionada
-      const esp = especialidades.find(e => e.id === selectedEspecialidadId);
-      if (esp) {
-        const filtered = (Array.isArray(dataD) ? dataD : []).filter(
-          (d: DuracionPrestacion) => d.especialidad === esp.nombre
-        );
-        setDuraciones(filtered);
-      } else {
-        setDuraciones([]);
-      }
-    } catch {
-      setDuraciones([]);
-    }
-    setLoading(false);
-  };
+  const refresh = () => setRefreshKey(k => k + 1);
 
   const openEdit = (d: DuracionPrestacion) => {
     setEditId(d.id);
@@ -75,42 +67,48 @@ export default function DuracionesPage() {
   const handleSave = async () => {
     setError("");
     if (editId) {
-      // Actualizar existente
       const payload = { duracion_minutos: form.duracion_minutos, sobre_turnos_permitidos: form.sobre_turnos_permitidos };
-      try {
-        const res = await authFetch(`${API}/configuracion-agenda/duracion-prestaciones/${editId}`.replace(API, ""), {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-        if (!res.ok) { const d = await res.json().catch(() => ({})); setError(d.detail || "Error"); return; }
-        // Esperar a que el backend confirme antes de cerrar modal y refrescar
-        await loadData();
-        setShowCreate(false);
-      } catch { setError("Error de red"); }
+      const res = await authFetch(`${API}/configuracion-agenda/duracion-prestaciones/${editId}`.replace(API, ""), {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        setError(d.detail || "Error");
+        return;
+      }
+      // Actualizacion OPTIMISTA: actualizamos el estado directamente con la respuesta del backend
+      // sin depender de un re-fetch que puede tener closures stale
+      const responseData = await res.json();
+      setDuraciones(prev => prev.map(d =>
+        d.id === editId
+          ? { ...d, duracion_minutos: responseData.duracion_minutos ?? form.duracion_minutos, sobre_turnos_permitidos: responseData.sobre_turnos_permitidos ?? form.sobre_turnos_permitidos }
+          : d
+      ));
+      setShowCreate(false);
     } else {
-      // POST nueva duracion para esta especialidad
       const payload = { especialidad_id: selectedEspecialidadId!, duracion_minutos: form.duracion_minutos, sobre_turnos_permitidos: form.sobre_turnos_permitidos };
-      try {
-        const res = await authFetch(`${API}/configuracion-agenda/duracion-prestaciones/`.replace(API, ""), {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-        if (!res.ok) { const d = await res.json().catch(() => ({})); setError(d.detail || "Error"); return; }
-        await loadData();
-        setShowCreate(false);
-      } catch { setError("Error de red"); }
+      const res = await authFetch(`${API}/configuracion-agenda/duracion-prestaciones/`.replace(API, ""), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        setError(d.detail || "Error");
+        return;
+      }
+      setShowCreate(false);
+      refresh();
     }
   };
 
   const handleDelete = async (id: number) => {
     if (!confirm("¿Eliminar esta duración de turno?")) return;
     setDeleting(id);
-    try {
-      const res = await authFetch(`${API}/configuracion-agenda/duracion-prestaciones/${id}/`.replace(API, ""), { method: "DELETE" });
-      if (res.ok) await loadData();
-    } catch { /* ignore */ }
+    const res = await authFetch(`${API}/configuracion-agenda/duracion-prestaciones/${id}/`.replace(API, ""), { method: "DELETE" });
+    if (res.ok) refresh();
     setDeleting(null);
   };
 
@@ -121,14 +119,10 @@ export default function DuracionesPage() {
     return (
       <div style={{ padding: 40, textAlign: "center", color: "#f59e0b" }}>
         <p style={{ fontSize: 16 }}>⚠ Seleccioná una especialidad para ver las duraciones</p>
-        <p style={{ fontSize: 13, color: "#62666d", marginTop: 8 }}>
-          Las duraciones de turno se configuran por especialidad médica.
-        </p>
+        <p style={{ fontSize: 13, color: "#62666d", marginTop: 8 }}>Las duraciones de turno se configuran por especialidad médica.</p>
       </div>
     );
   }
-
-  if (loading) return <div style={{ padding: 40, color: "#62666d" }}>Cargando duraciones...</div>;
 
   return (
     <div style={{ padding: "32px 40px", maxWidth: 1400, margin: "0 auto" }}>
@@ -140,7 +134,6 @@ export default function DuracionesPage() {
         <button onClick={openCreate} style={{ background: "rgba(34,197,94,0.15)", border: "1px solid rgba(34,197,94,0.3)", borderRadius: 8, padding: "10px 20px", color: "#22c55e", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>+ Nueva Duración</button>
       </div>
 
-      {/* Selector Cascada (medical field hidden - duraciones are per specialty only) */}
       <div style={{ marginBottom: 24 }}>
         <SelectorEspecialidadMedico onMedicoChange={() => {}} showTodosMedicos={false} />
       </div>
@@ -148,9 +141,7 @@ export default function DuracionesPage() {
       {duraciones.length === 0 ? (
         <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 12, padding: "40px 24px", textAlign: "center" }}>
           <p style={{ color: "#62666d" }}>No hay duraciones configuradas para esta especialidad.</p>
-          <button onClick={openCreate} style={{ marginTop: 12, background: "rgba(34,197,94,0.15)", border: "1px solid rgba(34,197,94,0.3)", borderRadius: 8, padding: "8px 16px", color: "#22c55e", fontSize: 13, cursor: "pointer" }}>
-            Configurar duración
-          </button>
+          <button onClick={openCreate} style={{ marginTop: 12, background: "rgba(34,197,94,0.15)", border: "1px solid rgba(34,197,94,0.3)", borderRadius: 8, padding: "8px 16px", color: "#22c55e", fontSize: 13, cursor: "pointer" }}>Configurar duración</button>
         </div>
       ) : (
         <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 12, overflow: "hidden" }}>
@@ -182,7 +173,6 @@ export default function DuracionesPage() {
         </div>
       )}
 
-      {/* Modal Edit/Create */}
       {showCreate && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50 }} onClick={() => setShowCreate(false)}>
           <div style={{ background: "#18181b", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12, padding: 32, width: 440, maxWidth: "90vw" }} onClick={e => e.stopPropagation()}>
