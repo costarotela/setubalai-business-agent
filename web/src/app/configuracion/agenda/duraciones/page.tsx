@@ -74,11 +74,8 @@ export default function DuracionesPage() {
 
   const handleSave = async () => {
     setError("");
-    // Find existing duracion for this specialty to update
-    const esp = especialidades.find(e => e.id === selectedEspecialidadId);
-    const existing = duraciones.find(d => d.especialidad === esp?.nombre);
-
     if (editId) {
+      // Actualizar existente
       const payload = { duracion_minutos: form.duracion_minutos, sobre_turnos_permitidos: form.sobre_turnos_permitidos };
       try {
         const res = await authFetch(`${API}/configuracion-agenda/duracion-prestaciones/${editId}`.replace(API, ""), {
@@ -87,14 +84,12 @@ export default function DuracionesPage() {
           body: JSON.stringify(payload),
         });
         if (!res.ok) { const d = await res.json().catch(() => ({})); setError(d.detail || "Error"); return; }
-        setShowCreate(false); await loadData();
+        // Esperar a que el backend confirme antes de cerrar modal y refrescar
+        await loadData();
+        setShowCreate(false);
       } catch { setError("Error de red"); }
-    } else if (existing) {
-      // Update existing via edit id
-      setEditId(existing.id);
-      handleSave();
     } else {
-      // POST new
+      // POST nueva duracion para esta especialidad
       const payload = { especialidad_id: selectedEspecialidadId!, duracion_minutos: form.duracion_minutos, sobre_turnos_permitidos: form.sobre_turnos_permitidos };
       try {
         const res = await authFetch(`${API}/configuracion-agenda/duracion-prestaciones/`.replace(API, ""), {
@@ -103,7 +98,8 @@ export default function DuracionesPage() {
           body: JSON.stringify(payload),
         });
         if (!res.ok) { const d = await res.json().catch(() => ({})); setError(d.detail || "Error"); return; }
-        setShowCreate(false); await loadData();
+        await loadData();
+        setShowCreate(false);
       } catch { setError("Error de red"); }
     }
   };
