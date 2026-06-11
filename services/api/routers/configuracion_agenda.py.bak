@@ -1,0 +1,5 @@
+# MOVED: This file was split into routers/configuracion/ package
+# See: routers/configuracion/grillas.py
+#      routers/configuracion/bloqueos.py
+#      routers/configuracion/duraciones.py
+# Updated in main.py: imports routers.configuracion.{grillas_router, bloqueos_router, duraciones_router}
